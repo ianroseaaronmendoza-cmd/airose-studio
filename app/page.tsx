@@ -1,103 +1,143 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [menuOpen, setMenuOpen] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
+  return (
+    <main className="min-h-screen bg-[#0a0a0a] text-gray-100 flex flex-col">
+      {/* Navigation Bar */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-md z-50">
+        <h1 className="text-xl font-bold tracking-wide text-white">
+          Airose Studio
+        </h1>
+
+        <nav className="hidden md:flex space-x-6 text-sm font-medium">
+          <a href="#" className="hover:text-pink-400 transition">Home</a>
+          <a href="#" className="hover:text-pink-400 transition">Music</a>
+          <a href="#" className="hover:text-pink-400 transition">Projects</a>
+          <a href="#" className="hover:text-pink-400 transition">Writing</a>
+          <a href="#" className="hover:text-pink-400 transition">About</a>
+          <a href="#" className="hover:text-pink-400 transition">Support</a>
+        </nav>
+
+        {/* Mobile Menu Button */}
+        <button
+          className="md:hidden text-gray-300 hover:text-pink-400"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          ☰
+        </button>
+      </header>
+
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <div className="md:hidden flex flex-col items-center bg-[#0a0a0a] border-b border-gray-800 pb-4">
+          {["Home", "Music", "Projects", "Writing", "About", "Support"].map((item) => (
+            <a
+              key={item}
+              href="#"
+              className="py-2 text-gray-300 hover:text-pink-400 transition"
+              onClick={() => setMenuOpen(false)}
+            >
+              {item}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Hero Section */}
+      <section className="flex flex-col items-center justify-center text-center flex-grow px-6 py-20">
+        <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-4">
+          Where imagination becomes craft.
+        </h2>
+        <p className="text-gray-400 max-w-xl">
+          Welcome to Airose Studio — a creative space where music, tools, and stories come to life.
+        </p>
+        <div className="mt-8 flex space-x-4">
           <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#projects"
+            className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-5 py-2 rounded-lg transition"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
+            Explore Projects
           </a>
           <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#music"
+            className="border border-pink-500 text-pink-400 hover:bg-pink-500 hover:text-white font-semibold px-5 py-2 rounded-lg transition"
           >
-            Read our docs
+            Listen to Music
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </section>
+
+      {/* Featured Sections */}
+      <section id="projects" className="px-6 py-16 border-t border-gray-800 bg-[#0d0d0d]">
+        <h3 className="text-2xl font-bold mb-6 text-white">✨ Featured Projects</h3>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            { title: "Airose Lyric Video Maker", desc: "Create lyric videos effortlessly." },
+            { title: "Airose Harmony Trainer", desc: "Learn and practice vocal harmonies." },
+            { title: "Airose Refiner Mini", desc: "Timestamp and sync lyrics with precision." },
+          ].map((proj) => (
+            <div
+              key={proj.title}
+              className="p-5 bg-[#111] rounded-2xl border border-gray-800 hover:border-pink-400 transition"
+            >
+              <h4 className="font-semibold text-lg text-pink-400">{proj.title}</h4>
+              <p className="text-sm text-gray-400 mt-2">{proj.desc}</p>
+              <button className="mt-4 text-sm text-gray-300 hover:text-pink-400">View →</button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="music" className="px-6 py-16 border-t border-gray-800">
+        <h3 className="text-2xl font-bold mb-6 text-white">🎵 Featured Music</h3>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-[#111] border border-gray-800 rounded-2xl p-5">
+            <p className="text-pink-400 font-semibold">Ikaw lang, Hesus</p>
+            <iframe
+              className="mt-3 rounded-lg"
+              width="100%"
+              height="120"
+              src="https://open.spotify.com/embed/track/3Zy6gYZZ..."
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture"
+            ></iframe>
+          </div>
+          <div className="bg-[#111] border border-gray-800 rounded-2xl p-5">
+            <p className="text-pink-400 font-semibold">Walang Hanggan</p>
+            <p className="text-gray-400 mt-2 text-sm">
+              Coming soon on Spotify.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="writing" className="px-6 py-16 border-t border-gray-800 bg-[#0d0d0d]">
+        <h3 className="text-2xl font-bold mb-6 text-white">🖋 Writing</h3>
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-pink-400 font-semibold">Poems</h4>
+            <p className="text-gray-400 text-sm">A collection of reflections and lyrical thoughts.</p>
+          </div>
+          <div>
+            <h4 className="text-pink-400 font-semibold">Novels</h4>
+            <p className="text-gray-400 text-sm">Stories inspired by music and imagination.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-800 py-6 text-center text-sm text-gray-500">
+        <p>© 2025 Airose Studio | Built with ❤️ and purpose.</p>
+        <div className="mt-3 flex justify-center space-x-5 text-gray-400">
+          <a href="#" className="hover:text-pink-400">Instagram</a>
+          <a href="#" className="hover:text-pink-400">YouTube</a>
+          <a href="#" className="hover:text-pink-400">Spotify</a>
+          <a href="#" className="hover:text-pink-400">GitHub</a>
+        </div>
       </footer>
-    </div>
+    </main>
   );
 }
