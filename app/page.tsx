@@ -18,12 +18,13 @@ export default function Home() {
         <div className="text-lg font-semibold">Airose Studio</div>
 
         <nav className="space-x-6 hidden md:flex">
-          <a className="text-sm hover:text-pink-400" href="/">Home</a>
-          <a className="text-sm hover:text-pink-400" href="/music">Music</a>
-          <a className="text-sm hover:text-pink-400" href="/projects">Projects</a>
-          <a className="text-sm hover:text-pink-400" href="/writing">Writing</a>
-          <a className="text-sm hover:text-pink-400" href="/about">About</a>
-          <a className="text-sm hover:text-pink-400" href="/support">Support</a>
+          <Link href="/" className="text-sm hover:text-pink-400">Home</Link>
+          <Link href="/music" className="text-sm hover:text-pink-400">Music</Link>
+          <Link href="/projects" className="text-sm hover:text-pink-400">Projects</Link>
+          <Link href="/writing" className="text-sm hover:text-pink-400">Writing</Link>
+          <Link href="/about" className="text-sm hover:text-pink-400">About</Link>
+          <Link href="/support" className="text-sm hover:text-pink-400">Support</Link>
+
         </nav>
       </header>
 
