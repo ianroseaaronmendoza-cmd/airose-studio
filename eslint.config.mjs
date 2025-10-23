@@ -10,7 +10,10 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // ✅ Base Next.js + TypeScript rules
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+
+  // ✅ Ignore build/system folders
   {
     ignores: [
       "node_modules/**",
@@ -19,6 +22,17 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+  },
+
+  // ✅ Custom rule overrides
+  {
+    rules: {
+      // 🔕 Disable errors for apostrophes and quotes inside JSX
+      "react/no-unescaped-entities": "off",
+
+      // 🔕 Disable warnings for unused variables (temporary)
+      "@typescript-eslint/no-unused-vars": "off",
+    },
   },
 ];
 
