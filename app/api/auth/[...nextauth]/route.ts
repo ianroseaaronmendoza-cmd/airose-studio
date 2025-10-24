@@ -1,4 +1,4 @@
-﻿import NextAuth from "next-auth/next";
+﻿import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -14,41 +14,34 @@ const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            console.error("Missing credentials");
-            return null;
-          }
-
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
-
-          if (!user) {
-            console.error("User not found");
-            return null;
-          }
-
-          const isValid = await bcrypt.compare(
-            credentials.password,
-            user.passwordHash
-          );
-
-          if (!isValid) {
-            console.error("Invalid password");
-            return null;
-          }
-
-          return {
-            id: user.id,
-            name: user.name ?? "User",
-            email: user.email,
-            role: user.role ?? "user",
-          };
-        } catch (err) {
-          console.error("Authorize error:", err);
+        if (!credentials?.email || !credentials?.password) {
+          console.error("Missing credentials");
           return null;
         }
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+        });
+        if (!user) {
+          console.error("User not found");
+          return null;
+        }
+
+        const valid = await bcrypt.compare(
+          credentials.password,
+          user.passwordHash
+        );
+        if (!valid) {
+          console.error("Invalid password");
+          return null;
+        }
+
+        return {
+          id: user.id,
+          name: user.name ?? "User",
+          email: user.email,
+          role: user.role ?? "user",
+        };
       },
     }),
   ],
@@ -77,5 +70,4 @@ const authOptions = {
 
 const handler = NextAuth(authOptions);
 
-// ✅ The crucial part: export both GET and POST as *functions*
 export { handler as GET, handler as POST };
