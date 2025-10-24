@@ -1,11 +1,10 @@
 "use client";
 
-import React from "react";
 import dynamic from "next/dynamic";
+import React from "react";
 
-// ✅ Correctly load your music component as a client-side module
-// This prevents “promise resolves to object” and hydration mismatches.
-const Music = dynamic(() => import("../../components/music").then(mod => mod.default), {
+// ✅ Proper dynamic import — relative to /components folder
+const Music = dynamic(() => import("../../components/music.jsx").then(mod => mod.default), {
   ssr: false,
   loading: () => (
     <div className="text-center text-gray-400 py-20">

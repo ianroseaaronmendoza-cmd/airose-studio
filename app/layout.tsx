@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { EditorProvider, useEditor } from "@/app/context/EditorContext";
+import { SessionProvider, useSession, signOut } from "next-auth/react";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -15,62 +16,63 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="bg-[#0a0a0a]">
       <body className="bg-[#0a0a0a] text-gray-100 scroll-smooth">
-        <EditorProvider>
-          <Header
-            menuOpen={menuOpen}
-            toggleMenu={toggleMenu}
-            closeMenu={closeMenu}
-          />
+        <SessionProvider>
+          <EditorProvider>
+            <Header
+              menuOpen={menuOpen}
+              toggleMenu={toggleMenu}
+              closeMenu={closeMenu}
+            />
+            <main className="bg-[#0a0a0a] min-h-screen">{children}</main>
 
-          <main className="bg-[#0a0a0a] min-h-screen">{children}</main>
+            <footer className="border-t border-gray-800 py-8 mt-8 text-center bg-[#0a0a0a]">
+              <p className="text-sm text-gray-400">
+                © 2025 Airose Studio by Airose Official | Soli Deo Gloria
+              </p>
 
-          <footer className="border-t border-gray-800 py-8 mt-8 text-center bg-[#0a0a0a]">
-            <p className="text-sm text-gray-400">
-              © 2025 Airose Studio by Airose Official | Soli Deo Gloria
-            </p>
-
-            <div className="mt-4 flex justify-center gap-6 text-sm">
-              <a
-                href="https://www.instagram.com/airose_official/"
-                target="_blank"
-                rel="noreferrer"
-                className="text-pink-400 hover:text-white transition"
-              >
-                Instagram
-              </a>
-              <a
-                href="https://open.spotify.com/artist/7siLh2Wz78DXsMBsS3HRGG?si=a8fc159d713c4648"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[#1DB954] hover:text-white transition"
-              >
-                Spotify
-              </a>
-              <a
-                href="https://www.youtube.com/@AiroseOfficial"
-                target="_blank"
-                rel="noreferrer"
-                className="text-pink-400 hover:text-white transition"
-              >
-                YouTube
-              </a>
-              <a
-                href="https://www.wattpad.com/user/Mazedon"
-                target="_blank"
-                rel="noreferrer"
-                className="text-pink-400 hover:text-white transition"
-              >
-                Wattpad
-              </a>
-            </div>
-          </footer>
-        </EditorProvider>
+              <div className="mt-4 flex justify-center gap-6 text-sm">
+                <a
+                  href="https://www.instagram.com/airose_official/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-pink-400 hover:text-white transition"
+                >
+                  Instagram
+                </a>
+                <a
+                  href="https://open.spotify.com/artist/7siLh2Wz78DXsMBsS3HRGG?si=a8fc159d713c4648"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#1DB954] hover:text-white transition"
+                >
+                  Spotify
+                </a>
+                <a
+                  href="https://www.youtube.com/@AiroseOfficial"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-pink-400 hover:text-white transition"
+                >
+                  YouTube
+                </a>
+                <a
+                  href="https://www.wattpad.com/user/Mazedon"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-pink-400 hover:text-white transition"
+                >
+                  Wattpad
+                </a>
+              </div>
+            </footer>
+          </EditorProvider>
+        </SessionProvider>
       </body>
     </html>
   );
 }
 
-/* ---------------- Header (consumes EditorProvider via useEditor) ---------------- */
+/* ---------------- Header (admin check + logout) ---------------- */
 
 function Header({
   menuOpen,
@@ -81,7 +83,14 @@ function Header({
   toggleMenu: () => void;
   closeMenu: () => void;
 }) {
+  const { data: session } = useSession();
   const { editorMode, toggleEditor } = useEditor();
+
+  const isAdmin = session?.user?.role === "admin";
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/" });
+  };
 
   return (
     <>
@@ -90,20 +99,43 @@ function Header({
           <span className="text-pink-400">Airose Studio</span> by Airose Official
         </div>
 
+        {/* Desktop Nav */}
         <nav className="space-x-6 hidden md:flex items-center">
           <NavLinks closeMenu={closeMenu} />
-          <button
-            onClick={toggleEditor}
-            className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
-              editorMode
-                ? "bg-pink-500 text-white border-pink-400"
-                : "border-gray-700 text-gray-400"
-            }`}
-          >
-            {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
-          </button>
+
+          {!session && (
+            <Link
+              href="/signin"
+              className="text-sm text-pink-400 hover:text-white transition"
+            >
+              Sign In
+            </Link>
+          )}
+
+          {session && (
+            <button
+              onClick={handleLogout}
+              className="text-sm text-pink-400 hover:text-white transition"
+            >
+              Logout
+            </button>
+          )}
+
+          {isAdmin && (
+            <button
+              onClick={toggleEditor}
+              className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
+                editorMode
+                  ? "bg-pink-500 text-white border-pink-400"
+                  : "border-gray-700 text-gray-400"
+              }`}
+            >
+              {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
+            </button>
+          )}
         </nav>
 
+        {/* Mobile Nav Button */}
         <button
           className="md:hidden p-2 rounded-md hover:bg-neutral-900 text-gray-300"
           onClick={toggleMenu}
@@ -117,7 +149,12 @@ function Header({
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           ) : (
             <svg
@@ -127,11 +164,17 @@ function Header({
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             </svg>
           )}
         </button>
 
+        {/* Mobile Menu */}
         <AnimatePresence>
           {menuOpen && (
             <>
@@ -152,24 +195,55 @@ function Header({
               >
                 <div className="flex items-center justify-between">
                   <div className="font-semibold text-pink-400">Menu</div>
-                  <button onClick={closeMenu} aria-label="Close menu" className="p-2 rounded-md hover:bg-neutral-900">
+                  <button
+                    onClick={closeMenu}
+                    aria-label="Close menu"
+                    className="p-2 rounded-md hover:bg-neutral-900"
+                  >
                     ✕
                   </button>
                 </div>
 
                 <nav className="flex flex-col gap-4 mt-6">
                   <NavLinks closeMenu={closeMenu} isMobile />
-                  <button
-                    onClick={() => {
-                      toggleEditor();
-                      closeMenu();
-                    }}
-                    className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
-                      editorMode ? "bg-pink-500 text-white border-pink-400" : "border-gray-700 text-gray-400"
-                    }`}
-                  >
-                    {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
-                  </button>
+
+                  {!session && (
+                    <Link
+                      href="/signin"
+                      onClick={closeMenu}
+                      className="text-pink-400 hover:text-white transition"
+                    >
+                      Sign In
+                    </Link>
+                  )}
+
+                  {session && (
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        closeMenu();
+                      }}
+                      className="text-pink-400 hover:text-white transition"
+                    >
+                      Logout
+                    </button>
+                  )}
+
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        toggleEditor();
+                        closeMenu();
+                      }}
+                      className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
+                        editorMode
+                          ? "bg-pink-500 text-white border-pink-400"
+                          : "border-gray-700 text-gray-400"
+                      }`}
+                    >
+                      {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
+                    </button>
+                  )}
                 </nav>
               </motion.aside>
             </>
@@ -206,7 +280,9 @@ function NavLinks({
           href={href}
           onClick={closeMenu}
           className={`${
-            isMobile ? "text-gray-300 hover:text-pink-400 text-base transition" : "text-sm text-gray-300 hover:text-pink-400 transition"
+            isMobile
+              ? "text-gray-300 hover:text-pink-400 text-base transition"
+              : "text-sm text-gray-300 hover:text-pink-400 transition"
           }`}
         >
           {label}

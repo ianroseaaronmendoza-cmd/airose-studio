@@ -3,50 +3,97 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEditor } from "@/app/context/EditorContext"; // we’ll make sure you have this
+import { useEditor } from "@/app/context/EditorContext";
 import { blogs as initialBlogs } from "@/data/writings";
 
+type Blog = {
+  slug: string;
+  title?: string;
+  date?: string;
+  content?: string;
+};
 
-export default function BlogSlugPage({ params }) {
+export default function BlogSlugPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   const router = useRouter();
-  const { editorMode } = useEditor(); // shared from layout.tsx
+  const { editorMode } = useEditor();
 
-  const [post, setPost] = useState(null);
-  const [allBlogs, setAllBlogs] = useState(initialBlogs);
+  const [post, setPost] = useState<Blog | null>(null);
+  const [allBlogs, setAllBlogs] = useState<Blog[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    const found = allBlogs.find((b) => b.slug === slug);
-    setPost(found || null);
-  }, [slug, allBlogs]);
+  // Helpers for localStorage
+  const LOCAL_KEY = "blogs";
 
+  const loadLocalBlogs = (): Blog[] => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(LOCAL_KEY) : null;
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.warn("Failed to parse local blogs:", e);
+      return [];
+    }
+  };
+
+  const persistLocalBlogs = (blogs: Blog[]) => {
+    try {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(blogs));
+    } catch (e) {
+      console.warn("Failed to write blogs to localStorage:", e);
+    }
+  };
+
+  // Initialize merged blog list (local edits override defaults)
+  useEffect(() => {
+    try {
+      const local = loadLocalBlogs();
+      const map = new Map<string, Blog>();
+      (initialBlogs ?? []).forEach((b: Blog) => map.set(b.slug, b));
+      (local ?? []).forEach((b: Blog) => map.set(b.slug, b));
+      const merged = Array.from(map.values());
+      setAllBlogs(merged);
+      const found = merged.find((b) => b.slug === slug) || null;
+      setPost(found);
+    } catch (e) {
+      console.error("Failed to load blogs:", e);
+      setAllBlogs(initialBlogs ?? []);
+      setPost((initialBlogs ?? []).find((b) => b.slug === slug) ?? null);
+    }
+    // run once on mount (slug change will be handled below)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep post in sync if allBlogs changes (e.g. after a save)
+  useEffect(() => {
+    if (!allBlogs || allBlogs.length === 0) return;
+    const found = allBlogs.find((b) => b.slug === slug) || null;
+    setPost(found);
+  }, [allBlogs, slug]);
+
+  // Save edited post to localStorage (explicit save button)
   async function handleSave() {
     if (!post) return;
     setSaving(true);
     setSaved(false);
 
     try {
-      const updatedBlogs = allBlogs.map((b) =>
-        b.slug === post.slug ? post : b
-      );
-      const res = await fetch("/api/writings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          blogs: updatedBlogs,
-          poems: [], // preserve other sections if you want to add them later
-          novels: [],
-        }),
-      });
+      const local = loadLocalBlogs();
+      // replace or add
+      const others = (local ?? []).filter((b: Blog) => b.slug !== post.slug);
+      const updatedLocal = [...others, post];
+      persistLocalBlogs(updatedLocal);
 
-      if (res.ok) {
-        setAllBlogs(updatedBlogs);
-        setSaved(true);
-      } else {
-        alert("Save failed");
-      }
+      // Update in-memory merged list (local overrides defaults)
+      const defaultMap = new Map<string, Blog>();
+      (initialBlogs ?? []).forEach((b: Blog) => defaultMap.set(b.slug, b));
+      (updatedLocal ?? []).forEach((b: Blog) => defaultMap.set(b.slug, b));
+      const merged = Array.from(defaultMap.values());
+      setAllBlogs(merged);
+
+      setSaved(true);
+      // auto-clear saved state after a short delay
+      setTimeout(() => setSaved(false), 1500);
     } catch (err) {
       console.error("Save error:", err);
       alert("Save failed — check console.");
@@ -85,9 +132,7 @@ export default function BlogSlugPage({ params }) {
             onClick={handleSave}
             disabled={saving}
             className={`px-3 py-2 rounded ${
-              saving
-                ? "bg-gray-700 cursor-not-allowed"
-                : "bg-green-600 hover:bg-green-700"
+              saving ? "bg-gray-700 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
             }`}
           >
             {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
@@ -99,12 +144,12 @@ export default function BlogSlugPage({ params }) {
         <div className="space-y-4">
           <input
             className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
-            value={post.title}
+            value={post.title ?? ""}
             onChange={(e) => setPost({ ...post, title: e.target.value })}
           />
           <textarea
             className="w-full h-60 p-2 bg-gray-900 border border-gray-700 rounded"
-            value={post.content}
+            value={post.content ?? ""}
             onChange={(e) => setPost({ ...post, content: e.target.value })}
           />
         </div>
@@ -113,9 +158,9 @@ export default function BlogSlugPage({ params }) {
           <h1 className="text-3xl font-bold mb-2">{post.title}</h1>
           <p className="text-xs text-gray-500 mb-6">{post.date}</p>
           <article className="prose prose-invert">
-            {post.content.split("\n").map((line, i) =>
-              line.trim() ? <p key={i}>{line}</p> : <br key={i} />
-            )}
+            {String(post.content ?? "")
+              .split("\n")
+              .map((line: string, i: number) => (line.trim() ? <p key={i}>{line}</p> : <br key={i} />))}
           </article>
         </>
       )}
