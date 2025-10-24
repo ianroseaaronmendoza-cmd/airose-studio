@@ -25,13 +25,17 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.16",
     "@types/bcryptjs": "^2.4.2",
     "@types/node": "^20.11.30",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.21",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.5",
+    "postcss": "^8.5.6",
     "prisma": "^6.18.0",
+    "tailwindcss": "^4.1.16",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
