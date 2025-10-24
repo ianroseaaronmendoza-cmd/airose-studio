@@ -6,6 +6,13 @@
       "use": "@vercel/next"
     }
   ],
+  "routes": [
+    {
+      "src": "/writing/poems(.*)",
+      "status": 404,
+      "dest": "/"
+    }
+  ],
   "env": {
     "NEXTAUTH_SECRET": "@nextauth_secret",
     "NEXTAUTH_URL": "@nextauth_url",
