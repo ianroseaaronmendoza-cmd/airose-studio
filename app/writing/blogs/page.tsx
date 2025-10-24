@@ -1,34 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { useEditor } from "@/app/layout";
+import { useEditor } from "@/app/context/EditorContext";
 import { useState, useEffect } from "react";
 import { blogs as defaultBlogs } from "@/data/writings";
 
+type Blog = {
+  slug: string;
+  title: string;
+  date?: string;
+  excerpt?: string;
+  content?: string;
+};
+
 export default function BlogsPage() {
   const { editorMode } = useEditor();
-  const [blogs, setBlogs] = useState(defaultBlogs);
+  const [blogs, setBlogs] = useState<Blog[]>(defaultBlogs ?? []);
 
   // Load saved blogs from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("blogs");
-    if (saved) setBlogs(JSON.parse(saved));
+    try {
+      const saved = typeof window !== "undefined" && localStorage.getItem("blogs");
+      if (saved) setBlogs(JSON.parse(saved));
+    } catch (e) {
+      console.warn("Failed to parse saved blogs from localStorage", e);
+    }
   }, []);
 
   // Save blogs when they change
   useEffect(() => {
-    localStorage.setItem("blogs", JSON.stringify(blogs));
+    try {
+      localStorage.setItem("blogs", JSON.stringify(blogs));
+    } catch (e) {
+      console.warn("Failed to save blogs to localStorage", e);
+    }
   }, [blogs]);
 
   const addNewBlog = () => {
-    const newBlog = {
+    const newBlog: Blog = {
       slug: `new-post-${Date.now()}`,
       title: "Untitled Blog",
       date: new Date().toISOString().slice(0, 10),
       excerpt: "Click to edit...",
       content: "Start writing your post here.",
     };
-    setBlogs([...blogs, newBlog]);
+    setBlogs((prev) => [...prev, newBlog]);
   };
 
   return (

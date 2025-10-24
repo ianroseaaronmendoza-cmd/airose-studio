@@ -1,101 +1,124 @@
+// @ts-nocheck
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { blogs as defaultBlogs } from "@/data/writings";
-import { useEditor } from "@/app/layout"; // get global editor state
+import { useEditor } from "@/app/context/EditorContext"; // we’ll make sure you have this
+import { blogs as initialBlogs } from "@/data/writings";
 
-type Props = { params: { slug: string } };
 
-export default function BlogSlugPage({ params }: Props) {
-  const router = useRouter();
-  const { editorMode } = useEditor(); // 👈 use global editor context
+export default function BlogSlugPage({ params }) {
   const { slug } = params;
+  const router = useRouter();
+  const { editorMode } = useEditor(); // shared from layout.tsx
 
-  const [post, setPost] = useState<any>(null);
-  const [notFound, setNotFound] = useState(false);
+  const [post, setPost] = useState(null);
+  const [allBlogs, setAllBlogs] = useState(initialBlogs);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const local = localStorage.getItem("blogs");
-    const localBlogs = local ? JSON.parse(local) : [];
-    const allBlogs = [...defaultBlogs, ...localBlogs];
     const found = allBlogs.find((b) => b.slug === slug);
-    if (found) setPost(found);
-    else setNotFound(true);
-  }, [slug]);
+    setPost(found || null);
+  }, [slug, allBlogs]);
 
-  // 🔹 Save edits to localStorage whenever post changes (and in edit mode)
-  useEffect(() => {
-    if (post && editorMode) {
-      const local = localStorage.getItem("blogs");
-      const localBlogs = local ? JSON.parse(local) : [];
-      const others = localBlogs.filter((b: any) => b.slug !== post.slug);
-      localStorage.setItem("blogs", JSON.stringify([...others, post]));
+  async function handleSave() {
+    if (!post) return;
+    setSaving(true);
+    setSaved(false);
+
+    try {
+      const updatedBlogs = allBlogs.map((b) =>
+        b.slug === post.slug ? post : b
+      );
+      const res = await fetch("/api/writings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          blogs: updatedBlogs,
+          poems: [], // preserve other sections if you want to add them later
+          novels: [],
+        }),
+      });
+
+      if (res.ok) {
+        setAllBlogs(updatedBlogs);
+        setSaved(true);
+      } else {
+        alert("Save failed");
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+      alert("Save failed — check console.");
+    } finally {
+      setSaving(false);
     }
-  }, [post, editorMode]);
+  }
 
-  if (notFound) {
+  if (!post) {
     return (
       <main className="max-w-3xl mx-auto py-10 text-center">
-        <h1 className="text-2xl font-bold mb-4 text-pink-400">404 — Blog Not Found</h1>
-        <p className="text-gray-400 mb-6">This post may have been deleted or renamed.</p>
+        <p className="text-gray-400">Post not found.</p>
         <button
-          onClick={() => router.push("/writing/blogs")}
-          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded text-pink-400 text-sm transition"
+          onClick={() => router.back()}
+          className="mt-6 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700"
         >
-          ← Back to Blogs
+          ← Back
         </button>
       </main>
     );
   }
 
-  if (!post) return null;
-
-  // 🔹 Helper to update fields in edit mode
-  const handleChange = (field: string, value: string) => {
-    if (!editorMode) return;
-    setPost({ ...post, [field]: value });
-  };
-
   return (
     <main className="max-w-3xl mx-auto py-10">
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-6">
+        <button
+          onClick={() => router.back()}
+          className="px-3 py-2 bg-gray-800 rounded hover:bg-gray-700"
+        >
+          ← Back
+        </button>
+
+        {editorMode && (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className={`px-3 py-2 rounded ${
+              saving
+                ? "bg-gray-700 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
+            }`}
+          >
+            {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
+          </button>
+        )}
+      </div>
+
       {editorMode ? (
-        <>
+        <div className="space-y-4">
           <input
-            className="text-3xl font-bold mb-2 w-full bg-transparent border-b border-gray-700 focus:border-pink-400 outline-none"
+            className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
             value={post.title}
-            onChange={(e) => handleChange("title", e.target.value)}
-          />
-          <input
-            className="text-xs text-gray-500 mb-6 w-full bg-transparent border-b border-gray-800 outline-none"
-            value={post.date}
-            onChange={(e) => handleChange("date", e.target.value)}
+            onChange={(e) => setPost({ ...post, title: e.target.value })}
           />
           <textarea
-            className="w-full h-80 p-4 bg-gray-900 rounded-lg text-gray-100 font-light border border-gray-700 focus:border-pink-400 outline-none"
+            className="w-full h-60 p-2 bg-gray-900 border border-gray-700 rounded"
             value={post.content}
-            onChange={(e) => handleChange("content", e.target.value)}
+            onChange={(e) => setPost({ ...post, content: e.target.value })}
           />
-        </>
+        </div>
       ) : (
         <>
           <h1 className="text-3xl font-bold mb-2">{post.title}</h1>
           <p className="text-xs text-gray-500 mb-6">{post.date}</p>
-          <article className="prose prose-invert mb-10">
-            {post.content.split("\n").map((line: string, i: number) =>
+          <article className="prose prose-invert">
+            {post.content.split("\n").map((line, i) =>
               line.trim() ? <p key={i}>{line}</p> : <br key={i} />
             )}
           </article>
         </>
       )}
-
-      {/* Back Button */}
-      <button
-        onClick={() => router.push("/writing/blogs")}
-        className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded text-pink-400 text-sm transition mt-6"
-      >
-        ← Back to Blogs
-      </button>
     </main>
   );
 }

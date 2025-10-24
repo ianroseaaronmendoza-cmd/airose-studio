@@ -2,41 +2,36 @@
 
 import "./globals.css";
 import Link from "next/link";
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import type { ReactNode } from "react";
+import { EditorContext } from "./context/EditorContext"; // ✅ Only import, not redefine
 
-/* === Global Editor Mode Context === */
-export const EditorContext = createContext({
-  editorMode: false,
-  toggleEditor: () => {},
-});
-export const useEditor = () => useContext(EditorContext);
-
-/* === Root Layout === */
 export default function RootLayout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editorMode, setEditorMode] = useState(false);
 
-  // Load saved editor mode
+  // Load saved editor mode from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("editorMode");
     if (saved === "true") setEditorMode(true);
   }, []);
 
-  // Save editor mode when toggled
+  // Save editor mode to localStorage when toggled
   useEffect(() => {
     localStorage.setItem("editorMode", String(editorMode));
   }, [editorMode]);
 
-  const toggleMenu = () => setMenuOpen(!menuOpen);
+  const toggleMenu = () => setMenuOpen((prev) => !prev);
   const closeMenu = () => setMenuOpen(false);
-  const toggleEditor = () => setEditorMode(!editorMode);
+  const toggleEditor = () => setEditorMode((prev) => !prev);
 
   return (
     <html lang="en" className="bg-[#0a0a0a]">
       <body className="bg-[#0a0a0a] text-gray-100 scroll-smooth">
+        {/* === Global Editor Context Provider === */}
         <EditorContext.Provider value={{ editorMode, toggleEditor }}>
-          {/* HEADER */}
+          {/* === HEADER === */}
           <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 sticky top-0 bg-[#080808]/95 backdrop-blur z-50">
             <div className="text-lg font-semibold tracking-wide">
               <span className="text-pink-400">Airose Studio</span> by Airose Official
@@ -45,7 +40,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             {/* Desktop Nav */}
             <nav className="space-x-6 hidden md:flex items-center">
               <NavLinks closeMenu={closeMenu} />
-              {/* Editor Mode Toggle */}
               <button
                 onClick={toggleEditor}
                 className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
@@ -129,7 +123,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
                     <nav className="flex flex-col gap-4 mt-6">
                       <NavLinks closeMenu={closeMenu} isMobile />
-                      {/* Editor Mode for Mobile */}
                       <button
                         onClick={() => {
                           toggleEditor();
@@ -150,15 +143,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </AnimatePresence>
           </header>
 
-          {/* MAIN */}
+          {/* === MAIN === */}
           <main className="bg-[#0a0a0a] min-h-screen">{children}</main>
 
-          {/* FOOTER */}
+          {/* === FOOTER === */}
           <footer className="border-t border-gray-800 py-8 mt-8 text-center bg-[#0a0a0a]">
             <p className="text-sm text-gray-400">
               © 2025 Airose Studio by Airose Official | Soli Deo Gloria
             </p>
-
             <div className="mt-4 flex justify-center gap-6 text-sm">
               <a
                 href="https://www.instagram.com/airose_official/"
