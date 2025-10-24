@@ -1,63 +1,105 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
+// app/api/auth/[...nextauth]/route.ts
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import prisma from "@/lib/prisma"; // <-- If you don't have "@/" aliases, use a relative path like "../../../../lib/prisma"
 
-const prisma = new PrismaClient();
-
-export const authOptions: NextAuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials.password)
-          throw new Error("Missing email or password");
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-        if (!user) throw new Error("User not found");
-
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.passwordHash
-        );
-        if (!isValid) throw new Error("Invalid password");
-
-        return {
-          id: user.id,
-          name: user.name ?? "User",
-          email: user.email,
-          role: user.role ?? "user",
-        };
-      },
-    }),
-  ],
-  secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: "jwt" },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) token.role = user.role;
-      return token;
-    },
-    async session({ session, token }) {
-      if (token && session.user) session.user.role = token.role;
-      return session;
-    },
-    async redirect({ baseUrl }) {
-      return `${baseUrl}/editor`;
-    },
-  },
-  pages: { signIn: "/signin" },
-};
-
-// ✅ Ensure bcrypt works (Node.js runtime, not Edge)
 export const runtime = "nodejs";
 
-// ✅ Proper export format for Next.js App Router
-const handler = NextAuth(authOptions);
+/**
+ * NOTE: Keep initialization in a try/catch so initialization errors appear clearly in logs.
+ * NextAuth returns a handler which we export as GET and POST for the App Router.
+ */
+let handler;
+try {
+  handler = NextAuth({
+    providers: [
+      Credentials({
+        name: "Credentials",
+        credentials: {
+          email: { label: "Email", type: "email" },
+          password: { label: "Password", type: "password" },
+        },
+        async authorize(credentials) {
+          try {
+            // Defensive checks: return null for invalid input (NextAuth handles auth failure)
+            if (!credentials?.email || !credentials?.password) {
+              return null;
+            }
+
+            // Find user by email
+            const user = await prisma.user.findUnique({
+              where: { email: credentials.email },
+            });
+
+            // Guard: user must exist and have a password hash stored
+            if (!user || !user.passwordHash) {
+              return null;
+            }
+
+            // Compare password
+            const valid = await bcrypt.compare(
+              credentials.password,
+              user.passwordHash
+            );
+            if (!valid) return null;
+
+            // Return the user object to be included in the JWT
+            return {
+              id: user.id,
+              name: user.name ?? "User",
+              email: user.email,
+              role: user.role ?? "user",
+            };
+          } catch (err) {
+            // Log inner authorize errors to server logs and return null to avoid 500s
+            console.error("authorize() error:", err);
+            return null;
+          }
+        },
+      }),
+    ],
+
+    // Ensure you have NEXTAUTH_SECRET set in production
+    secret: process.env.NEXTAUTH_SECRET,
+
+    // Using JWT sessions
+    session: {
+      strategy: "jwt",
+    },
+
+    // Custom sign-in page (App Router route)
+    pages: {
+      signIn: "/signin",
+    },
+
+    callbacks: {
+      async jwt({ token, user }) {
+        if (user) {
+          (token as any).role = (user as any).role;
+        }
+        return token;
+      },
+      async session({ session, token }) {
+        if (token && session.user) {
+          (session.user as any).role = (token as any).role;
+        }
+        return session;
+      },
+      async redirect({ url, baseUrl }) {
+        // Always redirect to /editor on relative URLs
+        if (url.startsWith("/")) return `${baseUrl}/editor`;
+        return baseUrl;
+      },
+    },
+
+    // Optional: debug logging (enable via NEXTAUTH_DEBUG=true in env)
+    // debug: !!process.env.NEXTAUTH_DEBUG,
+  });
+} catch (err) {
+  // Initialization error — rethrow so the platform logs the failure
+  console.error("NextAuth initialization error:", err);
+  throw err;
+}
+
 export { handler as GET, handler as POST };
