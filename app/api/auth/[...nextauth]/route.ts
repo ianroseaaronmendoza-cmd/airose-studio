@@ -1,4 +1,4 @@
-﻿import NextAuth from "next-auth";
+﻿import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -10,7 +10,7 @@ const authOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text" },
+        email: { label: "Email", type: "text", placeholder: "you@example.com" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
@@ -29,12 +29,12 @@ const authOptions = {
             return null;
           }
 
-          const valid = await bcrypt.compare(
+          const isValid = await bcrypt.compare(
             credentials.password,
             user.passwordHash
           );
 
-          if (!valid) {
+          if (!isValid) {
             console.error("Invalid password");
             return null;
           }
@@ -77,4 +77,5 @@ const authOptions = {
 
 const handler = NextAuth(authOptions);
 
+// ✅ The crucial part: export both GET and POST as *functions*
 export { handler as GET, handler as POST };
