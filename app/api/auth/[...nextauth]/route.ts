@@ -2,7 +2,6 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
@@ -11,11 +10,11 @@ const authOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email", placeholder: "you@example.com" },
+        email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.email || !credentials.password) {
           throw new Error("Missing email or password");
         }
 
@@ -23,8 +22,8 @@ const authOptions = {
           where: { email: credentials.email },
         });
 
-        if (!user || !user.passwordHash) {
-          throw new Error("Invalid credentials");
+        if (!user) {
+          throw new Error("User not found");
         }
 
         const isValid = await bcrypt.compare(
@@ -33,12 +32,13 @@ const authOptions = {
         );
 
         if (!isValid) {
-          throw new Error("Invalid credentials");
+          throw new Error("Invalid password");
         }
 
+        // Return a minimal object (do not include passwordHash)
         return {
           id: user.id,
-          name: user.name ?? "",
+          name: user.name ?? "User",
           email: user.email,
           role: user.role ?? "user",
         };
@@ -46,24 +46,35 @@ const authOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/auth/signin",
+  session: {
+    strategy: "jwt",
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.role = user.role;
+      if (user) {
+        token.role = user.role;
+      }
       return token;
     },
     async session({ session, token }) {
-      if (token) (session.user as any).role = token.role;
+      if (token && session.user) {
+        session.user.role = token.role;
+      }
       return session;
     },
+    async redirect({ baseUrl }) {
+      // 👇 Redirect user to /editor after successful login
+      return `${baseUrl}/editor`;
+    },
+  },
+  pages: {
+    signIn: "/signin",
   },
 };
 
-// ✅ Fix runtime and handler exports for Vercel
+// ✅ Ensure correct runtime (bcrypt needs Node.js)
 export const runtime = "nodejs";
 
+// ✅ Export correct handlers
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
