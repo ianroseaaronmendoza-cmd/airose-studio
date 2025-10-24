@@ -1,11 +1,11 @@
-import NextAuth from "next-auth";
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -14,28 +14,20 @@ const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials.password) {
+        if (!credentials?.email || !credentials.password)
           throw new Error("Missing email or password");
-        }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
-
-        if (!user) {
-          throw new Error("User not found");
-        }
+        if (!user) throw new Error("User not found");
 
         const isValid = await bcrypt.compare(
           credentials.password,
           user.passwordHash
         );
+        if (!isValid) throw new Error("Invalid password");
 
-        if (!isValid) {
-          throw new Error("Invalid password");
-        }
-
-        // Return a minimal object (do not include passwordHash)
         return {
           id: user.id,
           name: user.name ?? "User",
@@ -46,35 +38,26 @@ const authOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-      }
+      if (user) token.role = user.role;
       return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.role = token.role;
-      }
+      if (token && session.user) session.user.role = token.role;
       return session;
     },
     async redirect({ baseUrl }) {
-      // 👇 Redirect user to /editor after successful login
       return `${baseUrl}/editor`;
     },
   },
-  pages: {
-    signIn: "/signin",
-  },
+  pages: { signIn: "/signin" },
 };
 
-// ✅ Ensure correct runtime (bcrypt needs Node.js)
+// ✅ Ensure bcrypt works (Node.js runtime, not Edge)
 export const runtime = "nodejs";
 
-// ✅ Export correct handlers
+// ✅ Proper export format for Next.js App Router
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
