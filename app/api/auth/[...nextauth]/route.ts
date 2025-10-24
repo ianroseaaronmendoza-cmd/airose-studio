@@ -2,10 +2,11 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-const handler = NextAuth({
+const authOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -14,16 +15,26 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Missing email or password");
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
 
-        if (!user) return null;
+        if (!user || !user.passwordHash) {
+          throw new Error("Invalid credentials");
+        }
 
-        const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
-        if (!isValid) return null;
+        const isValid = await bcrypt.compare(
+          credentials.password,
+          user.passwordHash
+        );
+
+        if (!isValid) {
+          throw new Error("Invalid credentials");
+        }
 
         return {
           id: user.id,
@@ -36,18 +47,23 @@ const handler = NextAuth({
   ],
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
-  pages: { signIn: "/auth/signin" },
+  pages: {
+    signIn: "/auth/signin",
+  },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.role = (user as any).role;
+      if (user) token.role = user.role;
       return token;
     },
     async session({ session, token }) {
-      (session.user as any).role = token.role;
+      if (token) (session.user as any).role = token.role;
       return session;
     },
   },
-});
+};
 
-// ✅ Correct exports for Next.js App Router
+// ✅ Fix runtime and handler exports for Vercel
+export const runtime = "nodejs";
+
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
