@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-// ✅ Force this route to always render dynamically
+// ✅ Force this route to always run dynamically on the server (no static build)
 export const dynamic = "force-dynamic";
 export const dynamicParams = true;
 export const fetchCache = "force-no-store";
@@ -10,26 +10,25 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
-import { poems as initialPoems } from "@/data/writings";
+import { blogs as initialBlogs } from "@/data/writings";
 
-type Poem = {
+type Blog = {
   slug: string;
   title?: string;
   date?: string;
   content?: string;
 };
 
-export default function PoemsListPage() {
+export default function BlogsListPage() {
   const router = useRouter();
   const { editorMode } = useEditor();
+  const [blogs, setBlogs] = useState<Blog[]>([]);
 
-  const [poems, setPoems] = useState<Poem[]>([]);
+  const LOCAL_KEY = "blogs";
+  const DELETED_KEY = "blogs_deleted";
 
-  const LOCAL_KEY = "poems";
-  const DELETED_KEY = "poems_deleted";
-
-  // --- Local Storage Helpers ---
-  const loadLocal = (): Poem[] => {
+  // ---- Local Storage Helpers ----
+  const loadLocal = (): Blog[] => {
     if (typeof window === "undefined") return [];
     try {
       const raw = localStorage.getItem(LOCAL_KEY);
@@ -49,7 +48,7 @@ export default function PoemsListPage() {
     }
   };
 
-  const persistLocal = (items: Poem[]) => {
+  const persistLocal = (items: Blog[]) => {
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
     } catch {}
@@ -61,28 +60,30 @@ export default function PoemsListPage() {
     } catch {}
   };
 
-  const buildMerged = (local: Poem[], deleted: string[]) => {
+  const buildMerged = (local: Blog[], deleted: string[]) => {
     const del = new Set(deleted || []);
-    const map = new Map<string, Poem>();
-    (initialPoems ?? []).forEach((p: Poem) => {
-      if (!del.has(p.slug)) map.set(p.slug, p);
+    const map = new Map<string, Blog>();
+    (initialBlogs ?? []).forEach((b: Blog) => {
+      if (!del.has(b.slug)) map.set(b.slug, b);
     });
-    (local ?? []).forEach((p: Poem) => {
-      if (!del.has(p.slug)) map.set(p.slug, p);
+    (local ?? []).forEach((b: Blog) => {
+      if (!del.has(b.slug)) map.set(b.slug, b);
     });
     return Array.from(map.values());
   };
 
-  // --- Initialization ---
+  // ---- Initial Load ----
   useEffect(() => {
     if (typeof window === "undefined") return;
     const reload = () => {
       const local = loadLocal();
       const deleted = loadDeleted();
-      setPoems(buildMerged(local, deleted));
+      setBlogs(buildMerged(local, deleted));
     };
+
     reload();
 
+    // Sync across tabs
     const onStorage = (ev: StorageEvent) => {
       if (!ev.key || ev.key.startsWith(LOCAL_KEY) || ev.key.startsWith(DELETED_KEY)) {
         reload();
@@ -92,16 +93,16 @@ export default function PoemsListPage() {
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
-  // --- Add New Poem ---
+  // ---- Create New ----
   const makeSlug = (title = "untitled") => {
     const base = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "")
-      .slice(0, 40) || "poem";
+      .slice(0, 40) || "post";
     let slug = base;
     let i = 1;
-    const existing = new Set(poems.map((p) => p.slug));
+    const existing = new Set(blogs.map((b) => b.slug));
     while (existing.has(slug)) slug = `${base}-${i++}`;
     return slug;
   };
@@ -109,7 +110,7 @@ export default function PoemsListPage() {
   const handleAddNew = () => {
     const title = "Untitled";
     const slug = makeSlug(title + "-" + Date.now().toString().slice(-4));
-    const newPoem: Poem = {
+    const newPost: Blog = {
       slug,
       title,
       content: "",
@@ -117,21 +118,22 @@ export default function PoemsListPage() {
     };
 
     const local = loadLocal();
-    const updatedLocal = [...local, newPoem];
+    const updatedLocal = [...local, newPost];
     persistLocal(updatedLocal);
-    setPoems(buildMerged(updatedLocal, loadDeleted()));
-    router.push(`/writing/poems/${slug}`);
+    setBlogs(buildMerged(updatedLocal, loadDeleted()));
+
+    router.push(`/writing/blogs/${slug}`);
   };
 
-  // --- Delete Poem ---
+  // ---- Delete ----
   const handleDelete = (slug: string) => {
-    if (!confirm("Delete this poem? This cannot be undone easily.")) return;
+    if (!confirm("Delete this blog? This cannot be undone easily.")) return;
 
     const local = loadLocal();
-    const updatedLocal = local.filter((p) => p.slug !== slug);
+    const updatedLocal = local.filter((b) => b.slug !== slug);
     persistLocal(updatedLocal);
 
-    const defaultsHave = (initialPoems || []).some((p) => p.slug === slug);
+    const defaultsHave = (initialBlogs || []).some((b) => b.slug === slug);
     const deleted = loadDeleted();
     let updatedDeleted = deleted;
     if (defaultsHave && !deleted.includes(slug)) {
@@ -139,63 +141,63 @@ export default function PoemsListPage() {
       persistDeleted(updatedDeleted);
     }
 
-    setPoems(buildMerged(updatedLocal, updatedDeleted));
+    setBlogs(buildMerged(updatedLocal, updatedDeleted));
   };
 
   const localSlugs = new Set(
-    typeof window !== "undefined" ? loadLocal().map((p) => p.slug) : []
+    typeof window !== "undefined" ? loadLocal().map((b) => b.slug) : []
   );
 
-  // --- Render ---
+  // ---- Render ----
   return (
     <main className="max-w-4xl mx-auto py-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Poems</h1>
+        <h1 className="text-2xl font-semibold">Blogs</h1>
         {editorMode && (
           <button
             onClick={handleAddNew}
             className="px-3 py-2 bg-green-600 rounded hover:bg-green-700"
           >
-            + Add poem
+            + Add blog
           </button>
         )}
       </div>
 
       <div className="space-y-4">
-        {poems.length === 0 ? (
-          <p className="text-gray-400">No poems yet.</p>
+        {blogs.length === 0 ? (
+          <p className="text-gray-400">No blogs yet.</p>
         ) : (
-          poems.map((p) => (
+          blogs.map((b) => (
             <article
-              key={p.slug}
+              key={b.slug}
               className="p-4 border border-gray-800 rounded hover:bg-gray-900"
             >
               <div className="flex justify-between items-start">
                 <div>
                   <Link
-                    href={`/writing/poems/${p.slug}`}
+                    href={`/writing/blogs/${b.slug}`}
                     className="text-lg font-medium hover:underline"
                   >
-                    {p.title || "Untitled"}
+                    {b.title || "Untitled"}
                   </Link>
-                  <p className="text-xs text-gray-500">{p.date}</p>
+                  <p className="text-xs text-gray-500">{b.date}</p>
                 </div>
 
                 <div className="flex flex-col items-end space-y-1">
                   <div className="text-right text-sm text-gray-400">
-                    {localSlugs.has(p.slug) ? "local" : "default"}
+                    {localSlugs.has(b.slug) ? "local" : "default"}
                   </div>
 
                   {editorMode && (
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => router.push(`/writing/poems/${p.slug}`)}
+                        onClick={() => router.push(`/writing/blogs/${b.slug}`)}
                         className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm"
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(p.slug)}
+                        onClick={() => handleDelete(b.slug)}
                         className="px-2 py-1 bg-red-600 rounded hover:bg-red-700 text-sm"
                       >
                         Delete
@@ -205,7 +207,7 @@ export default function PoemsListPage() {
                 </div>
               </div>
               <p className="mt-2 text-sm text-gray-300 line-clamp-3">
-                {(p.content || "").slice(0, 250)}
+                {(b.content || "").slice(0, 250)}
               </p>
             </article>
           ))

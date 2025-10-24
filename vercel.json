@@ -8,14 +8,8 @@
   ],
   "routes": [
     {
-      "src": "/writing/poems(.*)",
-      "status": 404,
-      "dest": "/"
+      "src": "/(.*)",
+      "dest": "/$1"
     }
-  ],
-  "env": {
-    "NEXTAUTH_SECRET": "@nextauth_secret",
-    "NEXTAUTH_URL": "@nextauth_url",
-    "DATABASE_URL": "@database_url"
-  }
+  ]
 }

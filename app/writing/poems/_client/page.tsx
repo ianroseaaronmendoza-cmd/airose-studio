@@ -1,12 +1,15 @@
 // @ts-nocheck
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+// ✅ Force this route to render dynamically on the server
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+export const fetchCache = "force-no-store";
+
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { poems as initialPoems } from "@/data/writings";
-
-export const dynamic = "force-dynamic"; // ✅ this tells Vercel to generate a client-safe route
 
 type Poem = {
   slug: string;
@@ -25,14 +28,12 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const savedTimerRef = useRef<number | null>(null);
-
   const LOCAL_KEY = "poems";
   const DELETED_KEY = "poems_deleted";
 
   const loadLocal = (): Poem[] => {
+    if (typeof window === "undefined") return [];
     try {
-      if (typeof window === "undefined") return [];
       const raw = localStorage.getItem(LOCAL_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
@@ -41,8 +42,8 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
   };
 
   const loadDeleted = (): string[] => {
+    if (typeof window === "undefined") return [];
     try {
-      if (typeof window === "undefined") return [];
       const raw = localStorage.getItem(DELETED_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
@@ -53,14 +54,12 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
   const persistLocal = (items: Poem[]) => {
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
-      localStorage.setItem(`${LOCAL_KEY}_last_updated`, String(Date.now()));
     } catch {}
   };
 
   const persistDeleted = (slugs: string[]) => {
     try {
       localStorage.setItem(DELETED_KEY, JSON.stringify(slugs));
-      localStorage.setItem(`${DELETED_KEY}_last_updated`, String(Date.now()));
     } catch {}
   };
 
@@ -89,26 +88,6 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
     reloadMerged();
   }, [slug]);
 
-  useEffect(() => {
-    const onStorage = (ev: StorageEvent) => {
-      if (!ev.key) {
-        reloadMerged();
-        return;
-      }
-      if (ev.key.startsWith(LOCAL_KEY) || ev.key.startsWith(DELETED_KEY)) {
-        reloadMerged();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [slug]);
-
-  useEffect(() => {
-    return () => {
-      if (savedTimerRef.current) window.clearTimeout(savedTimerRef.current);
-    };
-  }, []);
-
   async function handleSave() {
     if (!poem) return;
     setSaving(true);
@@ -119,13 +98,10 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
       const others = (local ?? []).filter((p) => p.slug !== poem.slug);
       const updatedLocal = [...others, poem];
       persistLocal(updatedLocal);
-
       const merged = buildMerged(updatedLocal, loadDeleted());
       setAll(merged);
-
       setSaved(true);
-      if (savedTimerRef.current) window.clearTimeout(savedTimerRef.current);
-      savedTimerRef.current = window.setTimeout(() => setSaved(false), 1500);
+      setTimeout(() => setSaved(false), 1500);
     } catch (err) {
       console.error("Save error:", err);
       alert("Save failed — check console.");
@@ -136,7 +112,7 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
 
   const handleDelete = () => {
     if (!poem) return;
-    if (!confirm("Delete this poem? This cannot be undone easily.")) return;
+    if (!confirm("Delete this poem?")) return;
 
     const local = loadLocal();
     const updatedLocal = local.filter((p) => p.slug !== poem.slug);
@@ -158,10 +134,16 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
       <main className="max-w-3xl mx-auto py-10 text-center">
         <p className="text-gray-400">Poem not found.</p>
         <div className="mt-6 flex justify-center gap-3">
-          <button onClick={() => router.back()} className="px-4 py-2 bg-gray-800 rounded hover:bg-gray-700">
+          <button
+            onClick={() => router.back()}
+            className="px-4 py-2 bg-gray-800 rounded hover:bg-gray-700"
+          >
             ← Back
           </button>
-          <button onClick={() => router.push("/writing/poems")} className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">
+          <button
+            onClick={() => router.push("/writing/poems")}
+            className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+          >
             View poems list
           </button>
         </div>
@@ -172,28 +154,35 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
   return (
     <main className="max-w-3xl mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
-        <button onClick={() => router.back()} className="px-3 py-2 bg-gray-800 rounded hover:bg-gray-700">
+        <button
+          onClick={() => router.back()}
+          className="px-3 py-2 bg-gray-800 rounded hover:bg-gray-700"
+        >
           ← Back
         </button>
 
-        <div className="flex items-center space-x-2">
-          {editorMode && (
-            <>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className={`px-3 py-2 rounded ${saving ? "bg-gray-700 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`}
-                aria-disabled={saving}
-              >
-                {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
-              </button>
+        {editorMode && (
+          <div className="flex space-x-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`px-3 py-2 rounded ${
+                saving
+                  ? "bg-gray-700 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700"
+              }`}
+            >
+              {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
+            </button>
 
-              <button onClick={handleDelete} className="px-3 py-2 bg-red-600 rounded hover:bg-red-700">
-                Delete
-              </button>
-            </>
-          )}
-        </div>
+            <button
+              onClick={handleDelete}
+              className="px-3 py-2 bg-red-600 rounded hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
 
       {editorMode ? (
@@ -203,14 +192,12 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
             value={poem.title ?? ""}
             onChange={(e) => setPoem({ ...poem, title: e.target.value })}
             placeholder="Title"
-            aria-label="Title"
           />
           <textarea
             className="w-full h-60 p-2 bg-gray-900 border border-gray-700 rounded"
             value={poem.content ?? ""}
             onChange={(e) => setPoem({ ...poem, content: e.target.value })}
             placeholder="Write your poem..."
-            aria-label="Content"
           />
         </div>
       ) : (

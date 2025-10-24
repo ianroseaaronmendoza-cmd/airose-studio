@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { blogs as initialBlogs } from "@/data/writings";
 
+export const dynamic = "force-dynamic"; // ✅ Tells Vercel this route is dynamic
+
 type Blog = {
   slug: string;
   title?: string;
@@ -23,12 +25,12 @@ export default function BlogSlugPage({ params }: { params: { slug: string } }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Helpers for localStorage
   const LOCAL_KEY = "blogs";
 
   const loadLocalBlogs = (): Blog[] => {
     try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(LOCAL_KEY) : null;
+      const raw =
+        typeof window !== "undefined" ? localStorage.getItem(LOCAL_KEY) : null;
       return raw ? JSON.parse(raw) : [];
     } catch (e) {
       console.warn("Failed to parse local blogs:", e);
@@ -58,11 +60,11 @@ export default function BlogSlugPage({ params }: { params: { slug: string } }) {
     } catch (e) {
       console.error("Failed to load blogs:", e);
       setAllBlogs(initialBlogs ?? []);
-      setPost((initialBlogs ?? []).find((b) => b.slug === slug) ?? null);
+      setPost(
+        (initialBlogs ?? []).find((b) => b.slug === slug) ?? null
+      );
     }
-    // run once on mount (slug change will be handled below)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [slug]);
 
   // Keep post in sync if allBlogs changes (e.g. after a save)
   useEffect(() => {
@@ -79,12 +81,10 @@ export default function BlogSlugPage({ params }: { params: { slug: string } }) {
 
     try {
       const local = loadLocalBlogs();
-      // replace or add
       const others = (local ?? []).filter((b: Blog) => b.slug !== post.slug);
       const updatedLocal = [...others, post];
       persistLocalBlogs(updatedLocal);
 
-      // Update in-memory merged list (local overrides defaults)
       const defaultMap = new Map<string, Blog>();
       (initialBlogs ?? []).forEach((b: Blog) => defaultMap.set(b.slug, b));
       (updatedLocal ?? []).forEach((b: Blog) => defaultMap.set(b.slug, b));
@@ -92,7 +92,6 @@ export default function BlogSlugPage({ params }: { params: { slug: string } }) {
       setAllBlogs(merged);
 
       setSaved(true);
-      // auto-clear saved state after a short delay
       setTimeout(() => setSaved(false), 1500);
     } catch (err) {
       console.error("Save error:", err);
@@ -118,7 +117,6 @@ export default function BlogSlugPage({ params }: { params: { slug: string } }) {
 
   return (
     <main className="max-w-3xl mx-auto py-10">
-      {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
         <button
           onClick={() => router.back()}
@@ -132,7 +130,9 @@ export default function BlogSlugPage({ params }: { params: { slug: string } }) {
             onClick={handleSave}
             disabled={saving}
             className={`px-3 py-2 rounded ${
-              saving ? "bg-gray-700 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
+              saving
+                ? "bg-gray-700 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700"
             }`}
           >
             {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
@@ -160,7 +160,9 @@ export default function BlogSlugPage({ params }: { params: { slug: string } }) {
           <article className="prose prose-invert">
             {String(post.content ?? "")
               .split("\n")
-              .map((line: string, i: number) => (line.trim() ? <p key={i}>{line}</p> : <br key={i} />))}
+              .map((line: string, i: number) =>
+                line.trim() ? <p key={i}>{line}</p> : <br key={i} />
+              )}
           </article>
         </>
       )}
