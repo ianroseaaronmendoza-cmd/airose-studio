@@ -1,34 +1,20 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
     const { password } = await req.json();
 
-    const user = await prisma.user.findUnique({
-      where: { email: "admin@airose.studio" },
-    });
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: "No admin user found" }), {
-        status: 404,
-      });
-    }
-
-    const isValid = await bcrypt.compare(password, user.passwordHash); // ✅ fixed here
-    if (!isValid) {
+    // Compare entered password with .env ADMIN_PASSWORD
+    if (password !== process.env.ADMIN_PASSWORD) {
       return new Response(JSON.stringify({ error: "Invalid password" }), {
         status: 401,
       });
     }
 
-    // ✅ generate a long-lived JWT (never expires)
+    // Create a long-lived JWT token (never expires)
     const token = jwt.sign(
-      { email: user.email, role: user.role },
-      process.env.NEXTAUTH_SECRET!,
+      { role: "admin" },
+      process.env.JWT_SECRET!,
       { expiresIn: "365d" }
     );
 
@@ -36,7 +22,7 @@ export async function POST(req: Request) {
       status: 200,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Editor login error:", error);
     return new Response(JSON.stringify({ error: "Server error" }), {
       status: 500,
     });
