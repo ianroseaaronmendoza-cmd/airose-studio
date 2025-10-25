@@ -2,77 +2,76 @@
 
 import "./globals.css";
 import Link from "next/link";
-import { useState, ReactNode } from "react";
+import { useState, ReactNode, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { EditorProvider, useEditor } from "@/app/context/EditorContext";
-import { SessionProvider, useSession, signOut } from "next-auth/react";
 
+/**
+ * Root Layout — same visuals, but no next-auth dependency
+ */
 export default function RootLayout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
-
   const toggleMenu = () => setMenuOpen((v) => !v);
   const closeMenu = () => setMenuOpen(false);
 
   return (
     <html lang="en" className="bg-[#0a0a0a]">
       <body className="bg-[#0a0a0a] text-gray-100 scroll-smooth">
-        <SessionProvider>
-          <EditorProvider>
-            <Header
-              menuOpen={menuOpen}
-              toggleMenu={toggleMenu}
-              closeMenu={closeMenu}
-            />
-            <main className="bg-[#0a0a0a] min-h-screen">{children}</main>
+        <EditorProvider>
+          <Header
+            menuOpen={menuOpen}
+            toggleMenu={toggleMenu}
+            closeMenu={closeMenu}
+          />
+          <main className="bg-[#0a0a0a] min-h-screen">{children}</main>
 
-            <footer className="border-t border-gray-800 py-8 mt-8 text-center bg-[#0a0a0a]">
-              <p className="text-sm text-gray-400">
-                © 2025 Airose Studio by Airose Official | Soli Deo Gloria
-              </p>
+          <footer className="border-t border-gray-800 py-8 mt-8 text-center bg-[#0a0a0a]">
+            <p className="text-sm text-gray-400">
+              © 2025 Airose Studio by Airose Official | Soli Deo Gloria
+            </p>
 
-              <div className="mt-4 flex justify-center gap-6 text-sm">
-                <a
-                  href="https://www.instagram.com/airose_official/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-pink-400 hover:text-white transition"
-                >
-                  Instagram
-                </a>
-                <a
-                  href="https://open.spotify.com/artist/7siLh2Wz78DXsMBsS3HRGG?si=a8fc159d713c4648"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[#1DB954] hover:text-white transition"
-                >
-                  Spotify
-                </a>
-                <a
-                  href="https://www.youtube.com/@AiroseOfficial"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-pink-400 hover:text-white transition"
-                >
-                  YouTube
-                </a>
-                <a
-                  href="https://www.wattpad.com/user/Mazedon"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-pink-400 hover:text-white transition"
-                >
-                  Wattpad
-                </a>
-              </div>
-            </footer>
-          </EditorProvider>
-        </SessionProvider>
+            <div className="mt-4 flex justify-center gap-6 text-sm">
+              <a
+                href="https://www.instagram.com/airose_official/"
+                target="_blank"
+                rel="noreferrer"
+                className="text-pink-400 hover:text-white transition"
+              >
+                Instagram
+              </a>
+              <a
+                href="https://open.spotify.com/artist/7siLh2Wz78DXsMBsS3HRGG?si=a8fc159d713c4648"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#1DB954] hover:text-white transition"
+              >
+                Spotify
+              </a>
+              <a
+                href="https://www.youtube.com/@AiroseOfficial"
+                target="_blank"
+                rel="noreferrer"
+                className="text-pink-400 hover:text-white transition"
+              >
+                YouTube
+              </a>
+              <a
+                href="https://www.wattpad.com/user/Mazedon"
+                target="_blank"
+                rel="noreferrer"
+                className="text-pink-400 hover:text-white transition"
+              >
+                Wattpad
+              </a>
+            </div>
+          </footer>
+        </EditorProvider>
       </body>
     </html>
   );
 }
 
-/* ---------------- Header (admin check + logout) ---------------- */
+/* ---------------- Header ---------------- */
 
 function Header({
   menuOpen,
@@ -83,13 +82,20 @@ function Header({
   toggleMenu: () => void;
   closeMenu: () => void;
 }) {
-  const { data: session } = useSession();
   const { editorMode, toggleEditor } = useEditor();
 
-  const isAdmin = session?.user?.role === "admin";
+  // Check if user is an editor (via cookie token)
+  const [isEditor, setIsEditor] = useState(false);
+  useEffect(() => {
+    fetch("/api/check-editor")
+      .then((r) => r.json())
+      .then((data) => setIsEditor(data.ok))
+      .catch(() => setIsEditor(false));
+  }, []);
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/" });
+    await fetch("/api/editor-logout", { method: "POST" });
+    window.location.href = "/";
   };
 
   return (
@@ -103,35 +109,35 @@ function Header({
         <nav className="space-x-6 hidden md:flex items-center">
           <NavLinks closeMenu={closeMenu} />
 
-          {!session && (
+          {!isEditor && (
             <Link
-              href="/signin"
+              href="/editor-login"
               className="text-sm text-pink-400 hover:text-white transition"
             >
-              Sign In
+              Editor Login
             </Link>
           )}
 
-          {session && (
-            <button
-              onClick={handleLogout}
-              className="text-sm text-pink-400 hover:text-white transition"
-            >
-              Logout
-            </button>
-          )}
+          {isEditor && (
+            <>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-pink-400 hover:text-white transition"
+              >
+                Logout
+              </button>
 
-          {isAdmin && (
-            <button
-              onClick={toggleEditor}
-              className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
-                editorMode
-                  ? "bg-pink-500 text-white border-pink-400"
-                  : "border-gray-700 text-gray-400"
-              }`}
-            >
-              {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
-            </button>
+              <button
+                onClick={toggleEditor}
+                className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
+                  editorMode
+                    ? "bg-pink-500 text-white border-pink-400"
+                    : "border-gray-700 text-gray-400"
+                }`}
+              >
+                {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
+              </button>
+            </>
           )}
         </nav>
 
@@ -207,42 +213,42 @@ function Header({
                 <nav className="flex flex-col gap-4 mt-6">
                   <NavLinks closeMenu={closeMenu} isMobile />
 
-                  {!session && (
+                  {!isEditor && (
                     <Link
-                      href="/signin"
+                      href="/editor-login"
                       onClick={closeMenu}
                       className="text-pink-400 hover:text-white transition"
                     >
-                      Sign In
+                      Editor Login
                     </Link>
                   )}
 
-                  {session && (
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        closeMenu();
-                      }}
-                      className="text-pink-400 hover:text-white transition"
-                    >
-                      Logout
-                    </button>
-                  )}
+                  {isEditor && (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          closeMenu();
+                        }}
+                        className="text-pink-400 hover:text-white transition"
+                      >
+                        Logout
+                      </button>
 
-                  {isAdmin && (
-                    <button
-                      onClick={() => {
-                        toggleEditor();
-                        closeMenu();
-                      }}
-                      className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
-                        editorMode
-                          ? "bg-pink-500 text-white border-pink-400"
-                          : "border-gray-700 text-gray-400"
-                      }`}
-                    >
-                      {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
-                    </button>
+                      <button
+                        onClick={() => {
+                          toggleEditor();
+                          closeMenu();
+                        }}
+                        className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
+                          editorMode
+                            ? "bg-pink-500 text-white border-pink-400"
+                            : "border-gray-700 text-gray-400"
+                        }`}
+                      >
+                        {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
+                      </button>
+                    </>
                   )}
                 </nav>
               </motion.aside>
