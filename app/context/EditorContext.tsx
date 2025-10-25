@@ -1,58 +1,66 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 type EditorContextType = {
   editorMode: boolean;
   toggleEditor: () => void;
-  setEditorMode?: (v: boolean) => void;
+  setEditorMode: (value: boolean) => void;
 };
 
-const EditorContext = createContext<EditorContextType | undefined>(undefined);
+const EditorContext = createContext<EditorContextType>({
+  editorMode: false,
+  toggleEditor: () => {},
+  setEditorMode: () => {},
+});
 
-export function EditorProvider({ children }: { children: ReactNode }) {
-  const [editorMode, setEditorMode] = useState<boolean>(false);
+export const EditorProvider = ({ children }: { children: ReactNode }) => {
+  const [editorMode, setEditorMode] = useState(false);
 
-  // load from localStorage once on mount
+  // ✅ Toggle editor mode manually
+  const toggleEditor = () => {
+    setEditorMode((prev) => {
+      const newValue = !prev;
+      if (!newValue) localStorage.removeItem("editor_token");
+      return newValue;
+    });
+  };
+
+  // ✅ Check token validity on first load
   useEffect(() => {
-    try {
-      const saved = typeof window !== "undefined" ? localStorage.getItem("editorMode") : null;
-      if (saved === "true") setEditorMode(true);
-    } catch (e) {
-      // ignore storage errors in SSR/dev
-      console.warn("Failed to read editorMode from localStorage", e);
-    }
+    const token = localStorage.getItem("editor_token");
+    if (!token) return;
+
+    const verifyToken = async () => {
+      try {
+        const res = await fetch("/api/check-editor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+
+        const data = await res.json();
+        if (data.valid) {
+          setEditorMode(true);
+        } else {
+          localStorage.removeItem("editor_token");
+          setEditorMode(false);
+        }
+      } catch (err) {
+        console.error("Token verification failed:", err);
+        localStorage.removeItem("editor_token");
+        setEditorMode(false);
+      }
+    };
+
+    verifyToken();
   }, []);
-
-  // persist
-  useEffect(() => {
-    try {
-      if (typeof window !== "undefined") localStorage.setItem("editorMode", String(editorMode));
-    } catch (e) {
-      console.warn("Failed to write editorMode to localStorage", e);
-    }
-  }, [editorMode]);
-
-  const toggleEditor = () => setEditorMode((v) => !v);
 
   return (
     <EditorContext.Provider value={{ editorMode, toggleEditor, setEditorMode }}>
       {children}
     </EditorContext.Provider>
   );
-}
+};
 
-export function useEditor() {
-  const ctx = useContext(EditorContext);
-  if (!ctx) {
-    // helpful error in dev if provider missing
-    throw new Error("useEditor() must be used within an <EditorProvider />");
-  }
-  return ctx;
-}
+export const useEditor = () => useContext(EditorContext);

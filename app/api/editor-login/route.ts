@@ -1,30 +1,40 @@
+import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
 export async function POST(req: Request) {
   try {
     const { password } = await req.json();
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const secret = process.env.JWT_SECRET;
 
-    // Compare entered password with .env ADMIN_PASSWORD
-    if (password !== process.env.ADMIN_PASSWORD) {
-      return new Response(JSON.stringify({ error: "Invalid password" }), {
-        status: 401,
-      });
+    if (!adminPassword || !secret) {
+      console.error("Missing ADMIN_PASSWORD or JWT_SECRET in environment");
+      return NextResponse.json(
+        { error: "Server misconfiguration" },
+        { status: 500 }
+      );
     }
 
-    // Create a long-lived JWT token (never expires)
-    const token = jwt.sign(
-      { role: "admin" },
-      process.env.JWT_SECRET!,
-      { expiresIn: "365d" }
-    );
+    if (password !== adminPassword) {
+      return NextResponse.json({ error: "Invalid password" }, { status: 401 });
+    }
 
-    return new Response(JSON.stringify({ token }), {
-      status: 200,
+    const token = jwt.sign({ role: "admin" }, secret, { expiresIn: "999y" });
+
+    const response = NextResponse.json({ success: true });
+
+    // Set HttpOnly cookie with token
+    response.cookies.set("editor_token", token, {
+      httpOnly: true,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365 * 10, // 10 years
+      sameSite: "lax",
     });
-  } catch (error) {
-    console.error("Editor login error:", error);
-    return new Response(JSON.stringify({ error: "Server error" }), {
-      status: 500,
-    });
+
+    return response;
+  } catch (err) {
+    console.error("Editor login failed:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

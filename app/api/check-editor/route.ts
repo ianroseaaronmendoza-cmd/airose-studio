@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
-export async function GET(req: Request) {
-  const cookie = req.headers.get("cookie") || "";
-  const match = cookie.match(/editor_token=([^;]+)/);
-  if (!match) return NextResponse.json({ ok: false });
-
+export async function POST(req: Request) {
   try {
-    jwt.verify(match[1], process.env.JWT_SECRET!);
-    return NextResponse.json({ ok: true });
+    const { token } = await req.json();
+    const secret = process.env.JWT_SECRET;
+
+    if (!token || !secret) {
+      return NextResponse.json({ valid: false });
+    }
+
+    const decoded = jwt.verify(token, secret) as { role?: string };
+    const valid = decoded.role === "admin";
+
+    return NextResponse.json({ valid });
   } catch {
-    return NextResponse.json({ ok: false });
+    return NextResponse.json({ valid: false });
   }
 }
