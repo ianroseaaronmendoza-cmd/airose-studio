@@ -1,20 +1,16 @@
+// app/api/check-editor/route.ts
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
 
-export async function POST(req: Request) {
+export async function GET() {
   try {
-    const { token } = await req.json();
-    const secret = process.env.JWT_SECRET;
+    const token = cookies().get("editor_token")?.value;
+    if (!token) return NextResponse.json({ ok: false });
 
-    if (!token || !secret) {
-      return NextResponse.json({ valid: false });
-    }
-
-    const decoded = jwt.verify(token, secret) as { role?: string };
-    const valid = decoded.role === "admin";
-
-    return NextResponse.json({ valid });
-  } catch {
-    return NextResponse.json({ valid: false });
+    jwt.verify(token, process.env.JWT_SECRET!);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ ok: false });
   }
 }

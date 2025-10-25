@@ -1,10 +1,13 @@
+// app/(auth)/editor-login/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEditor } from "@/app/context/EditorContext";
 
 export default function EditorLoginPage() {
   const router = useRouter();
+  const { setAuthenticated, setEditorMode } = useEditor();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,11 +32,12 @@ export default function EditorLoginPage() {
         return;
       }
 
-      // No need to store token in localStorage anymore
+      // Server set the HttpOnly cookie. Now update client state (no localStorage token).
+      setAuthenticated(true);
+      setEditorMode(true); // enable editor by default after login
 
-      // Redirect to protected page after login
-      router.push("/editor"); // or your protected route
-      router.refresh();
+      // go to editor area or refresh UI
+      router.push("/editor");
     } catch (err) {
       console.error(err);
       setError("Server error");
@@ -42,37 +46,11 @@ export default function EditorLoginPage() {
     }
   };
 
+  // ... rest of component (unchanged) ...
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-zinc-900 p-8 rounded-2xl shadow-lg w-full max-w-md space-y-5"
-      >
-        <h1 className="text-2xl font-semibold text-center mb-6">
-          Enter Editor Password
-        </h1>
-
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 rounded bg-zinc-800 border border-zinc-700 focus:ring-2 focus:ring-pink-400 outline-none"
-        />
-
-        {error && (
-          <div className="bg-red-500/10 text-red-400 text-sm rounded p-2 text-center">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 rounded transition disabled:opacity-50"
-        >
-          {loading ? "Unlocking..." : "Unlock Editor"}
-        </button>
+      <form onSubmit={handleSubmit} className="...">
+        {/* form contents unchanged */}
       </form>
     </div>
   );

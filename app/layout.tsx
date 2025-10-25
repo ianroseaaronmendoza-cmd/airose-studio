@@ -2,12 +2,12 @@
 
 import "./globals.css";
 import Link from "next/link";
-import { useState, ReactNode, useEffect } from "react";
+import { useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { EditorProvider, useEditor } from "@/app/context/EditorContext";
 
 /**
- * Root Layout — same visuals, but no next-auth dependency
+ * Root Layout — provides EditorContext to the whole app
  */
 export default function RootLayout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -82,20 +82,12 @@ function Header({
   toggleMenu: () => void;
   closeMenu: () => void;
 }) {
-  const { editorMode, toggleEditor } = useEditor();
-
-  // Check if user is an editor (via cookie token)
-  const [isEditor, setIsEditor] = useState(false);
-  useEffect(() => {
-    fetch("/api/check-editor")
-      .then((r) => r.json())
-      .then((data) => setIsEditor(data.ok))
-      .catch(() => setIsEditor(false));
-  }, []);
+  // Use the EditorContext for authentication & editor mode state
+  const { isAuthenticated, editorMode, toggleEditor, logout } = useEditor();
 
   const handleLogout = async () => {
-    await fetch("/api/editor-logout", { method: "POST" });
-    window.location.href = "/";
+    // context logout handles clearing cookie, state, and redirect
+    await logout();
   };
 
   return (
@@ -109,7 +101,7 @@ function Header({
         <nav className="space-x-6 hidden md:flex items-center">
           <NavLinks closeMenu={closeMenu} />
 
-          {!isEditor && (
+          {!isAuthenticated && (
             <Link
               href="/editor-login"
               className="text-sm text-pink-400 hover:text-white transition"
@@ -118,7 +110,7 @@ function Header({
             </Link>
           )}
 
-          {isEditor && (
+          {isAuthenticated && (
             <>
               <button
                 onClick={handleLogout}
@@ -213,7 +205,7 @@ function Header({
                 <nav className="flex flex-col gap-4 mt-6">
                   <NavLinks closeMenu={closeMenu} isMobile />
 
-                  {!isEditor && (
+                  {!isAuthenticated && (
                     <Link
                       href="/editor-login"
                       onClick={closeMenu}
@@ -223,7 +215,7 @@ function Header({
                     </Link>
                   )}
 
-                  {isEditor && (
+                  {isAuthenticated && (
                     <>
                       <button
                         onClick={() => {

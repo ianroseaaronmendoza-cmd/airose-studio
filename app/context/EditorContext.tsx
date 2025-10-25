@@ -1,66 +1,120 @@
+// app/context/EditorContext.tsx
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type EditorContextType = {
+  isAuthenticated: boolean;
   editorMode: boolean;
   toggleEditor: () => void;
-  setEditorMode: (value: boolean) => void;
+  setAuthenticated: (v: boolean) => void;
+  setEditorMode: (v: boolean) => void;
+  logout: () => Promise<void>;
 };
 
-const EditorContext = createContext<EditorContextType>({
-  editorMode: false,
-  toggleEditor: () => {},
-  setEditorMode: () => {},
-});
+const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
-export const EditorProvider = ({ children }: { children: ReactNode }) => {
-  const [editorMode, setEditorMode] = useState(false);
+export function EditorProvider({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [editorMode, setEditorModeState] = useState<boolean>(false);
+  const router = useRouter();
 
-  // ✅ Toggle editor mode manually
-  const toggleEditor = () => {
-    setEditorMode((prev) => {
-      const newValue = !prev;
-      if (!newValue) localStorage.removeItem("editor_token");
-      return newValue;
-    });
-  };
-
-  // ✅ Check token validity on first load
+  // read persisted editor preference from localStorage
   useEffect(() => {
-    const token = localStorage.getItem("editor_token");
-    if (!token) return;
+    try {
+      const stored = localStorage.getItem("editor_mode");
+      if (stored !== null) setEditorModeState(stored === "true");
+    } catch {
+      // ignore
+    }
+  }, []);
 
-    const verifyToken = async () => {
+  // Check server-side cookie for authentication on mount and when window gains focus
+  useEffect(() => {
+    let mounted = true;
+    const check = async () => {
       try {
-        const res = await fetch("/api/check-editor", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
-
-        const data = await res.json();
-        if (data.valid) {
-          setEditorMode(true);
+        const res = await fetch("/api/check-editor");
+        if (!mounted) return;
+        if (res.ok) {
+          const data = await res.json();
+          setIsAuthenticated(Boolean(data.ok));
+          // If user just authenticated but editor mode not set, default to ON
+          if (data.ok && localStorage.getItem("editor_mode") === null) {
+            setEditorModeState(true);
+            localStorage.setItem("editor_mode", "true");
+          }
         } else {
-          localStorage.removeItem("editor_token");
-          setEditorMode(false);
+          setIsAuthenticated(false);
         }
-      } catch (err) {
-        console.error("Token verification failed:", err);
-        localStorage.removeItem("editor_token");
-        setEditorMode(false);
+      } catch {
+        setIsAuthenticated(false);
       }
     };
 
-    verifyToken();
+    check();
+    window.addEventListener("focus", check);
+    return () => {
+      mounted = false;
+      window.removeEventListener("focus", check);
+    };
   }, []);
 
+  const toggleEditor = () => {
+    const next = !editorMode;
+    setEditorModeState(next);
+    try {
+      localStorage.setItem("editor_mode", next ? "true" : "false");
+    } catch {}
+  };
+
+  const setEditorMode = (v: boolean) => {
+    setEditorModeState(v);
+    try {
+      localStorage.setItem("editor_mode", v ? "true" : "false");
+    } catch {}
+  };
+
+  const setAuthenticated = (v: boolean) => {
+    setIsAuthenticated(v);
+  };
+
+  const logout = async () => {
+    try {
+      await fetch("/api/editor-logout", { method: "POST" });
+    } catch (err) {
+      // ignore
+    }
+    setIsAuthenticated(false);
+    setEditorModeState(false);
+    try {
+      localStorage.removeItem("editor_mode");
+    } catch {}
+    // redirect to home
+    router.push("/");
+  };
+
   return (
-    <EditorContext.Provider value={{ editorMode, toggleEditor, setEditorMode }}>
+    <EditorContext.Provider
+      value={{
+        isAuthenticated,
+        editorMode,
+        toggleEditor,
+        setAuthenticated,
+        setEditorMode,
+        logout,
+      }}
+    >
       {children}
     </EditorContext.Provider>
   );
-};
+}
 
-export const useEditor = () => useContext(EditorContext);
+export function useEditor() {
+  const ctx = useContext(EditorContext);
+  if (!ctx) {
+    throw new Error("useEditor must be used within EditorProvider");
+  }
+  return ctx;
+}
