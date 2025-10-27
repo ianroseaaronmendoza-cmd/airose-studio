@@ -4,6 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import { useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
 import { EditorProvider, useEditor } from "@/app/context/EditorContext";
 
 /**
@@ -13,58 +14,68 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const toggleMenu = () => setMenuOpen((v) => !v);
   const closeMenu = () => setMenuOpen(false);
+  const pathname = usePathname();
+
+  // Hide header/footer for authentication pages
+  const isAuthPage =
+    pathname.startsWith("/editor-login") || pathname.startsWith("/admin-login");
 
   return (
     <html lang="en" className="bg-[#0a0a0a]">
       <body className="bg-[#0a0a0a] text-gray-100 scroll-smooth">
         <EditorProvider>
-          <Header
-            menuOpen={menuOpen}
-            toggleMenu={toggleMenu}
-            closeMenu={closeMenu}
-          />
+          {!isAuthPage && (
+            <Header
+              menuOpen={menuOpen}
+              toggleMenu={toggleMenu}
+              closeMenu={closeMenu}
+            />
+          )}
+
           <main className="bg-[#0a0a0a] min-h-screen">{children}</main>
 
-          <footer className="border-t border-gray-800 py-8 mt-8 text-center bg-[#0a0a0a]">
-            <p className="text-sm text-gray-400">
-              © 2025 Airose Studio by Airose Official | Soli Deo Gloria
-            </p>
+          {!isAuthPage && (
+            <footer className="border-t border-gray-800 py-8 mt-8 text-center bg-[#0a0a0a]">
+              <p className="text-sm text-gray-400">
+                © 2025 Airose Studio by Airose Official | Soli Deo Gloria
+              </p>
 
-            <div className="mt-4 flex justify-center gap-6 text-sm">
-              <a
-                href="https://www.instagram.com/airose_official/"
-                target="_blank"
-                rel="noreferrer"
-                className="text-pink-400 hover:text-white transition"
-              >
-                Instagram
-              </a>
-              <a
-                href="https://open.spotify.com/artist/7siLh2Wz78DXsMBsS3HRGG?si=a8fc159d713c4648"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[#1DB954] hover:text-white transition"
-              >
-                Spotify
-              </a>
-              <a
-                href="https://www.youtube.com/@AiroseOfficial"
-                target="_blank"
-                rel="noreferrer"
-                className="text-pink-400 hover:text-white transition"
-              >
-                YouTube
-              </a>
-              <a
-                href="https://www.wattpad.com/user/Mazedon"
-                target="_blank"
-                rel="noreferrer"
-                className="text-pink-400 hover:text-white transition"
-              >
-                Wattpad
-              </a>
-            </div>
-          </footer>
+              <div className="mt-4 flex justify-center gap-6 text-sm">
+                <a
+                  href="https://www.instagram.com/airose_official/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-pink-400 hover:text-white transition"
+                >
+                  Instagram
+                </a>
+                <a
+                  href="https://open.spotify.com/artist/7siLh2Wz78DXsMBsS3HRGG?si=a8fc159d713c4648"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#1DB954] hover:text-white transition"
+                >
+                  Spotify
+                </a>
+                <a
+                  href="https://www.youtube.com/@AiroseOfficial"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-pink-400 hover:text-white transition"
+                >
+                  YouTube
+                </a>
+                <a
+                  href="https://www.wattpad.com/user/Mazedon"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-pink-400 hover:text-white transition"
+                >
+                  Wattpad
+                </a>
+              </div>
+            </footer>
+          )}
         </EditorProvider>
       </body>
     </html>
@@ -82,11 +93,9 @@ function Header({
   toggleMenu: () => void;
   closeMenu: () => void;
 }) {
-  // Use the EditorContext for authentication & editor mode state
   const { isAuthenticated, editorMode, toggleEditor, logout } = useEditor();
 
   const handleLogout = async () => {
-    // context logout handles clearing cookie, state, and redirect
     await logout();
   };
 
