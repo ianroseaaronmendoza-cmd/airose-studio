@@ -1,215 +1,79 @@
-// @ts-nocheck
+// app/writing/page.tsx
 "use client";
 
-// ✅ Force this route to always render dynamically
-export const dynamic = "force-dynamic";
-export const dynamicParams = true;
-export const fetchCache = "force-no-store";
-
-import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { useEditor } from "@/app/context/EditorContext";
-import { poems as initialPoems } from "@/data/writings";
+import { BookOpen, PenTool, FileText } from "lucide-react"; // icons!
 
-type Poem = {
-  slug: string;
-  title?: string;
-  date?: string;
-  content?: string;
-};
-
-export default function PoemsListPage() {
-  const router = useRouter();
+export default function WritingHub() {
   const { editorMode } = useEditor();
 
-  const [poems, setPoems] = useState<Poem[]>([]);
+  const sections = [
+    {
+      title: "Poems",
+      desc: "Short verses and lyrical reflections born from still moments.",
+      href: "/writing/poems",
+      color: "from-pink-500/20 to-pink-800/20",
+      icon: <PenTool className="w-6 h-6 text-pink-400" />,
+    },
+    {
+      title: "Novels",
+      desc: "Stories that breathe — faith, emotion, and imagination intertwined.",
+      href: "/writing/novels",
+      color: "from-blue-500/20 to-blue-800/20",
+      icon: <BookOpen className="w-6 h-6 text-blue-400" />,
+    },
+    {
+      title: "Blogs",
+      desc: "Personal reflections, creative thoughts, and shared experiences.",
+      href: "/writing/blogs",
+      color: "from-emerald-500/20 to-emerald-800/20",
+      icon: <FileText className="w-6 h-6 text-emerald-400" />,
+    },
+  ];
 
-  const LOCAL_KEY = "poems";
-  const DELETED_KEY = "poems_deleted";
-
-  // --- Local Storage Helpers ---
-  const loadLocal = (): Poem[] => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = localStorage.getItem(LOCAL_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const loadDeleted = (): string[] => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = localStorage.getItem(DELETED_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const persistLocal = (items: Poem[]) => {
-    try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
-    } catch {}
-  };
-
-  const persistDeleted = (slugs: string[]) => {
-    try {
-      localStorage.setItem(DELETED_KEY, JSON.stringify(slugs));
-    } catch {}
-  };
-
-  const buildMerged = (local: Poem[], deleted: string[]) => {
-    const del = new Set(deleted || []);
-    const map = new Map<string, Poem>();
-    (initialPoems ?? []).forEach((p: Poem) => {
-      if (!del.has(p.slug)) map.set(p.slug, p);
-    });
-    (local ?? []).forEach((p: Poem) => {
-      if (!del.has(p.slug)) map.set(p.slug, p);
-    });
-    return Array.from(map.values());
-  };
-
-  // --- Initialization ---
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const reload = () => {
-      const local = loadLocal();
-      const deleted = loadDeleted();
-      setPoems(buildMerged(local, deleted));
-    };
-    reload();
-
-    const onStorage = (ev: StorageEvent) => {
-      if (!ev.key || ev.key.startsWith(LOCAL_KEY) || ev.key.startsWith(DELETED_KEY)) {
-        reload();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  // --- Add New Poem ---
-  const makeSlug = (title = "untitled") => {
-    const base = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 40) || "poem";
-    let slug = base;
-    let i = 1;
-    const existing = new Set(poems.map((p) => p.slug));
-    while (existing.has(slug)) slug = `${base}-${i++}`;
-    return slug;
-  };
-
-  const handleAddNew = () => {
-    const title = "Untitled";
-    const slug = makeSlug(title + "-" + Date.now().toString().slice(-4));
-    const newPoem: Poem = {
-      slug,
-      title,
-      content: "",
-      date: new Date().toISOString().slice(0, 10),
-    };
-
-    const local = loadLocal();
-    const updatedLocal = [...local, newPoem];
-    persistLocal(updatedLocal);
-    setPoems(buildMerged(updatedLocal, loadDeleted()));
-    router.push(`/writing/poems/${slug}`);
-  };
-
-  // --- Delete Poem ---
-  const handleDelete = (slug: string) => {
-    if (!confirm("Delete this poem? This cannot be undone easily.")) return;
-
-    const local = loadLocal();
-    const updatedLocal = local.filter((p) => p.slug !== slug);
-    persistLocal(updatedLocal);
-
-    const defaultsHave = (initialPoems || []).some((p) => p.slug === slug);
-    const deleted = loadDeleted();
-    let updatedDeleted = deleted;
-    if (defaultsHave && !deleted.includes(slug)) {
-      updatedDeleted = [...deleted, slug];
-      persistDeleted(updatedDeleted);
-    }
-
-    setPoems(buildMerged(updatedLocal, updatedDeleted));
-  };
-
-  const localSlugs = new Set(
-    typeof window !== "undefined" ? loadLocal().map((p) => p.slug) : []
-  );
-
-  // --- Render ---
   return (
-    <main className="max-w-4xl mx-auto py-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Poems</h1>
+    <main className="max-w-5xl mx-auto py-16 px-6">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="text-center mb-14"
+      >
+        <h1 className="text-4xl font-bold mb-3 text-pink-400">Writing</h1>
+        <p className="text-gray-400 text-lg">
+          Explore poems, novels, and blogs — stories and thoughts written from the heart.
+        </p>
         {editorMode && (
-          <button
-            onClick={handleAddNew}
-            className="px-3 py-2 bg-green-600 rounded hover:bg-green-700"
+          <p className="text-xs mt-2 text-green-400">
+            ✏️ Editor Mode is ON — management tools are available inside each section.
+          </p>
+        )}
+      </motion.div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {sections.map((s, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
           >
-            + Add poem
-          </button>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        {poems.length === 0 ? (
-          <p className="text-gray-400">No poems yet.</p>
-        ) : (
-          poems.map((p) => (
-            <article
-              key={p.slug}
-              className="p-4 border border-gray-800 rounded hover:bg-gray-900"
+            <Link
+              href={s.href}
+              className={`group block p-6 rounded-2xl bg-gradient-to-br ${s.color} border border-gray-800 hover:border-pink-400 hover:bg-[#111]/60 transition-all duration-300 hover:-translate-y-1`}
             >
-              <div className="flex justify-between items-start">
-                <div>
-                  <Link
-                    href={`/writing/poems/${p.slug}`}
-                    className="text-lg font-medium hover:underline"
-                  >
-                    {p.title || "Untitled"}
-                  </Link>
-                  <p className="text-xs text-gray-500">{p.date}</p>
-                </div>
-
-                <div className="flex flex-col items-end space-y-1">
-                  <div className="text-right text-sm text-gray-400">
-                    {localSlugs.has(p.slug) ? "local" : "default"}
-                  </div>
-
-                  {editorMode && (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => router.push(`/writing/poems/${p.slug}`)}
-                        className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.slug)}
-                        className="px-2 py-1 bg-red-600 rounded hover:bg-red-700 text-sm"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-3 mb-3">
+                {s.icon}
+                <h2 className="text-xl font-semibold">{s.title}</h2>
               </div>
-              <p className="mt-2 text-sm text-gray-300 line-clamp-3">
-                {(p.content || "").slice(0, 250)}
+              <p className="text-gray-400 text-sm leading-relaxed group-hover:text-gray-300">
+                {s.desc}
               </p>
-            </article>
-          ))
-        )}
+            </Link>
+          </motion.div>
+        ))}
       </div>
     </main>
   );
