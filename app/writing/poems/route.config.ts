@@ -6,3 +6,4 @@ export const runtime = "nodejs";
 export const preferredRegion = "auto";
 
 export default {};
+

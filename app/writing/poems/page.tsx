@@ -14,3 +14,4 @@ export default function PoemsPageWrapper() {
   // ✅ This page has no params, so no props needed
   return <PoemsClient />;
 }
+

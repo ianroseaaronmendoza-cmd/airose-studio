@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { novels as initialNovels } from "@/data/writings";
-import BackButton from "@/app/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Chapter = { number: number; slug: string; title?: string; content?: string };
 type Book = { slug: string; title?: string; description?: string; chapters?: Chapter[] };
@@ -154,3 +154,4 @@ export default function ChapterPage({ params }: { params: { novel: string; chapt
     </main>
   );
 }
+

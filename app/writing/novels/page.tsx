@@ -13,3 +13,4 @@ export const runtime = "nodejs";
 export default function NovelsPageWrapper() {
   return <NovelsClient />;
 }
+

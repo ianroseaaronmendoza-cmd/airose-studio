@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { poems as initialPoems } from "@/data/writings";
-import BackButton from "@/app/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Poem = { slug: string; title?: string; date?: string; content?: string };
 
@@ -179,3 +179,4 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
     </main>
   );
 }
+

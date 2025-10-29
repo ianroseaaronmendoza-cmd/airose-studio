@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { blogs as initialBlogs } from "@/data/writings";
-import BackButton from "@/app/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Blog = { slug: string; title?: string; date?: string; excerpt?: string; content?: string };
 
@@ -160,3 +160,4 @@ export default function BlogSlugPage({ params }: { params: { slug: string } }) {
     </main>
   );
 }
+
