@@ -1,13 +1,13 @@
 // ✅ Server wrapper for /writing/poems
 import PoemsClient from "./_client/page";
 
-// Force dynamic runtime so it always deploys a lambda
+// ✅ Force dynamic rendering for proper behavior in Vercel Lambdas
 export const dynamic = "force-dynamic";
 export const dynamicParams = true;
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
-// Use Node runtime for compatibility
+// ✅ Use Node.js runtime for better compatibility
 export const runtime = "nodejs";
 
 export default function PoemsPageWrapper() {

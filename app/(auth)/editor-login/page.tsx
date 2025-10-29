@@ -1,6 +1,7 @@
 // app/(auth)/editor-login/page.tsx
 "use client";
 
+import React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
@@ -32,11 +33,8 @@ export default function EditorLoginPage() {
         return;
       }
 
-      // Server set the HttpOnly cookie. Now update client state (no localStorage token).
       setAuthenticated(true);
-      setEditorMode(true); // enable editor by default after login
-
-      // go to editor area or refresh UI
+      setEditorMode(true);
       router.push("/editor");
     } catch (err) {
       console.error(err);
@@ -46,11 +44,28 @@ export default function EditorLoginPage() {
     }
   };
 
-  // ... rest of component (unchanged) ...
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <form onSubmit={handleSubmit} className="...">
-        {/* form contents unchanged */}
+      <form onSubmit={handleSubmit} className="p-8 rounded-xl border border-white/10 bg-white/5 shadow-md backdrop-blur-sm space-y-4 w-full max-w-sm">
+        <h2 className="text-xl font-semibold text-center">Editor Login</h2>
+
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter editor password"
+          className="w-full px-4 py-2 rounded-md bg-black/50 border border-white/10 text-white focus:outline-none focus:border-violet-400"
+        />
+
+        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-2 rounded-md bg-gradient-to-r from-violet-600 to-teal-500 hover:opacity-90 transition font-medium"
+        >
+          {loading ? "Verifying..." : "Login"}
+        </button>
       </form>
     </div>
   );
