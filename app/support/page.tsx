@@ -219,7 +219,7 @@ function GcashQrModal({ onClose }: { onClose: () => void }) {
 
         <div className="mt-4 flex items-center justify-center">
           <img
-            src={GCASH_QR_DATA_URL}
+            src="/gcash_qr.png"
             alt="GCash QR - Airose Official"
             className="w-56 h-56 object-contain rounded-lg bg-white/3 p-2"
           />
