@@ -1,168 +1,159 @@
 // @ts-nocheck
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { blogs as initialBlogs } from "@/data/writings";
+import BackButton from "@/app/components/BackButton";
 
-export const dynamic = "force-dynamic"; // ✅ Tells Vercel this route is dynamic
-
-type Blog = {
-  slug: string;
-  title?: string;
-  date?: string;
-  content?: string;
-};
+type Blog = { slug: string; title?: string; date?: string; excerpt?: string; content?: string };
 
 export default function BlogSlugPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   const router = useRouter();
   const { editorMode } = useEditor();
 
-  const [post, setPost] = useState<Blog | null>(null);
-  const [allBlogs, setAllBlogs] = useState<Blog[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
   const LOCAL_KEY = "blogs";
+  const DELETED_KEY = "blogs_deleted";
 
-  const loadLocalBlogs = (): Blog[] => {
+  const loadLocal = (): Blog[] => {
+    if (typeof window === "undefined") return [];
     try {
-      const raw =
-        typeof window !== "undefined" ? localStorage.getItem(LOCAL_KEY) : null;
+      const raw = localStorage.getItem(LOCAL_KEY);
       return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      console.warn("Failed to parse local blogs:", e);
+    } catch {
       return [];
     }
   };
 
-  const persistLocalBlogs = (blogs: Blog[]) => {
+  const loadDeleted = (): string[] => {
+    if (typeof window === "undefined") return [];
     try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(blogs));
-    } catch (e) {
-      console.warn("Failed to write blogs to localStorage:", e);
+      const raw = localStorage.getItem(DELETED_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
     }
   };
 
-  // Initialize merged blog list (local edits override defaults)
-  useEffect(() => {
+  const persistLocal = (items: Blog[]) => {
     try {
-      const local = loadLocalBlogs();
-      const map = new Map<string, Blog>();
-      (initialBlogs ?? []).forEach((b: Blog) => map.set(b.slug, b));
-      (local ?? []).forEach((b: Blog) => map.set(b.slug, b));
-      const merged = Array.from(map.values());
-      setAllBlogs(merged);
-      const found = merged.find((b) => b.slug === slug) || null;
-      setPost(found);
-    } catch (e) {
-      console.error("Failed to load blogs:", e);
-      setAllBlogs(initialBlogs ?? []);
-      setPost(
-        (initialBlogs ?? []).find((b) => b.slug === slug) ?? null
-      );
-    }
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
+    } catch {}
+  };
+
+  const persistDeleted = (slugs: string[]) => {
+    try {
+      localStorage.setItem(DELETED_KEY, JSON.stringify(slugs));
+    } catch {}
+  };
+
+  const buildMerged = (local: Blog[], deleted: string[]) => {
+    const del = new Set(deleted || []);
+    const map = new Map<string, Blog>();
+    (initialBlogs ?? []).forEach((b: Blog) => {
+      if (!del.has(b.slug)) map.set(b.slug, b);
+    });
+    (local ?? []).forEach((b: Blog) => {
+      if (!del.has(b.slug)) map.set(b.slug, b);
+    });
+    return Array.from(map.values());
+  };
+
+  const [post, setPost] = useState<Blog | null>(null);
+  const [all, setAll] = useState<Blog[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const reloadMerged = () => {
+    const local = loadLocal();
+    const deleted = loadDeleted();
+    const merged = buildMerged(local, deleted);
+    setAll(merged);
+    const found = merged.find((p) => p.slug === slug) || null;
+    setPost(found);
+  };
+
+  useEffect(() => {
+    reloadMerged();
   }, [slug]);
 
-  // Keep post in sync if allBlogs changes (e.g. after a save)
-  useEffect(() => {
-    if (!allBlogs || allBlogs.length === 0) return;
-    const found = allBlogs.find((b) => b.slug === slug) || null;
-    setPost(found);
-  }, [allBlogs, slug]);
-
-  // Save edited post to localStorage (explicit save button)
   async function handleSave() {
     if (!post) return;
     setSaving(true);
     setSaved(false);
-
     try {
-      const local = loadLocalBlogs();
-      const others = (local ?? []).filter((b: Blog) => b.slug !== post.slug);
+      const local = loadLocal();
+      const others = (local ?? []).filter((p) => p.slug !== post.slug);
       const updatedLocal = [...others, post];
-      persistLocalBlogs(updatedLocal);
-
-      const defaultMap = new Map<string, Blog>();
-      (initialBlogs ?? []).forEach((b: Blog) => defaultMap.set(b.slug, b));
-      (updatedLocal ?? []).forEach((b: Blog) => defaultMap.set(b.slug, b));
-      const merged = Array.from(defaultMap.values());
-      setAllBlogs(merged);
-
+      persistLocal(updatedLocal);
       setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
+      setTimeout(() => setSaved(false), 1200);
+      reloadMerged();
     } catch (err) {
-      console.error("Save error:", err);
-      alert("Save failed — check console.");
+      console.error(err);
+      alert("Save failed");
     } finally {
       setSaving(false);
     }
   }
 
+  const handleDelete = () => {
+    if (!post) return;
+    if (!confirm("Delete this blog?")) return;
+
+    const local = loadLocal().filter((p) => p.slug !== post.slug);
+    persistLocal(local);
+
+    const defaultsHave = (initialBlogs || []).some((p) => p.slug === post.slug);
+    const deleted = loadDeleted();
+    let updatedDeleted = deleted;
+    if (defaultsHave && !deleted.includes(post.slug)) {
+      updatedDeleted = [...deleted, post.slug];
+      persistDeleted(updatedDeleted);
+    }
+
+    router.push("/writing/blogs");
+  };
+
   if (!post) {
     return (
       <main className="max-w-3xl mx-auto py-10 text-center">
-        <p className="text-gray-400">Post not found.</p>
-        <button
-          onClick={() => router.back()}
-          className="mt-6 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700"
-        >
-          ← Back
-        </button>
+        <BackButton href="/writing/blogs" />
+        <p className="text-gray-400 mt-6">Blog post not found.</p>
       </main>
     );
   }
 
   return (
     <main className="max-w-3xl mx-auto py-10">
+      <BackButton href="/writing/blogs" />
+
       <div className="flex justify-between items-center mb-6">
-        <button
-          onClick={() => router.back()}
-          className="px-3 py-2 bg-gray-800 rounded hover:bg-gray-700"
-        >
-          ← Back
-        </button>
+        <h1 className="text-2xl font-semibold">{post.title || "Untitled"}</h1>
 
         {editorMode && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`px-3 py-2 rounded ${
-              saving
-                ? "bg-gray-700 cursor-not-allowed"
-                : "bg-green-600 hover:bg-green-700"
-            }`}
-          >
-            {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
-          </button>
+          <div className="flex gap-2">
+            <button onClick={handleSave} disabled={saving} className={`px-3 py-2 rounded ${saving ? "bg-gray-700" : "bg-green-600 hover:bg-green-700"}`}>
+              {saving ? "Saving..." : saved ? "Saved ✓" : "Save"}
+            </button>
+            <button onClick={handleDelete} className="px-3 py-2 rounded bg-red-600 hover:bg-red-700">Delete</button>
+          </div>
         )}
       </div>
 
       {editorMode ? (
         <div className="space-y-4">
-          <input
-            className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
-            value={post.title ?? ""}
-            onChange={(e) => setPost({ ...post, title: e.target.value })}
-          />
-          <textarea
-            className="w-full h-60 p-2 bg-gray-900 border border-gray-700 rounded"
-            value={post.content ?? ""}
-            onChange={(e) => setPost({ ...post, content: e.target.value })}
-          />
+          <input value={post.title ?? ""} onChange={(e) => setPost({ ...post, title: e.target.value })} className="w-full p-2 bg-gray-900 border border-gray-700 rounded" placeholder="Title" />
+          <input value={post.date ?? ""} onChange={(e) => setPost({ ...post, date: e.target.value })} className="w-full p-2 bg-gray-900 border border-gray-700 rounded" placeholder="Date (YYYY-MM-DD)" />
+          <textarea value={post.content ?? ""} onChange={(e) => setPost({ ...post, content: e.target.value })} className="w-full h-64 p-2 bg-gray-900 border border-gray-700 rounded" placeholder="Content" />
         </div>
       ) : (
         <>
-          <h1 className="text-3xl font-bold mb-2">{post.title}</h1>
-          <p className="text-xs text-gray-500 mb-6">{post.date}</p>
+          {post.date && <p className="text-xs text-gray-500 mb-4">{post.date}</p>}
           <article className="prose prose-invert">
-            {String(post.content ?? "")
-              .split("\n")
-              .map((line: string, i: number) =>
-                line.trim() ? <p key={i}>{line}</p> : <br key={i} />
-              )}
+            {String(post.content ?? "").split("\n").map((line: string, i: number) => (line.trim() ? <p key={i}>{line}</p> : <br key={i} />))}
           </article>
         </>
       )}

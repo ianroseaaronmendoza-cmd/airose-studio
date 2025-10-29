@@ -5,26 +5,23 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { novels as initialNovels } from "@/data/writings";
+import BackButton from "@/app/components/BackButton";
 
-type Chapter = { slug: string; title?: string; content?: string };
-type Novel = { slug: string; title?: string; chapters?: Chapter[] };
+type Chapter = { number: number; slug: string; title?: string; content?: string };
+type Book = { slug: string; title?: string; description?: string; chapters?: Chapter[] };
 
 export default function ChapterPage({ params }: { params: { novel: string; chapter: string } }) {
-  const { novel: novelSlug, chapter: chapterSlug } = params;
+  const { novel, chapter } = params;
   const router = useRouter();
   const { editorMode } = useEditor();
 
-  const [chapter, setChapter] = useState<Chapter | null>(null);
-  const [novel, setNovel] = useState<Novel | null>(null);
   const LOCAL_KEY = "novels";
   const DELETED_KEY = "novels_deleted";
-  const DELETED_CHAPTERS_KEY = "novels_deleted_chapters";
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
-  const loadLocal = (): Novel[] => {
+  const loadLocal = (): Book[] => {
+    if (typeof window === "undefined") return [];
     try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(LOCAL_KEY) : null;
+      const raw = localStorage.getItem(LOCAL_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -32,176 +29,127 @@ export default function ChapterPage({ params }: { params: { novel: string; chapt
   };
 
   const loadDeleted = (): string[] => {
+    if (typeof window === "undefined") return [];
     try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(DELETED_KEY) : null;
+      const raw = localStorage.getItem(DELETED_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
     }
   };
 
-  const loadDeletedChapters = (): Record<string, string[]> => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(DELETED_CHAPTERS_KEY) : null;
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  };
-
-  const persistLocal = (items: Novel[]) => {
+  const persistLocal = (items: Book[]) => {
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
     } catch {}
   };
 
-  const persistDeletedChapters = (map: Record<string, string[]>) => {
-    try {
-      localStorage.setItem(DELETED_CHAPTERS_KEY, JSON.stringify(map));
-    } catch {}
-  };
-
-  const buildMerged = (local: Novel[], deleted: string[], deletedChaptersMap: Record<string, string[]>) => {
+  const buildMerged = (local: Book[], deleted: string[]) => {
     const del = new Set(deleted || []);
-    const map = new Map<string, Novel>();
-    (initialNovels ?? []).forEach((n: Novel) => {
-      if (!del.has(n.slug)) {
-        const defCh = (n.chapters ?? []).filter((c) => {
-          const delCh = deletedChaptersMap[n.slug] || [];
-          return !delCh.includes(c.slug);
-        });
-        map.set(n.slug, { ...n, chapters: defCh });
-      }
+    const map = new Map<string, Book>();
+    (initialNovels ?? []).forEach((b: Book) => {
+      if (!del.has(b.slug)) map.set(b.slug, b);
     });
-    (local ?? []).forEach((n: Novel) => {
-      if (!del.has(n.slug)) {
-        const existing = map.get(n.slug) || { slug: n.slug, title: n.title, chapters: [] };
-        const chapMap = new Map<string, Chapter>();
-        (existing.chapters || []).forEach((c: Chapter) => chapMap.set(c.slug, c));
-        (n.chapters || []).forEach((c: Chapter) => chapMap.set(c.slug, c));
-        map.set(n.slug, { ...existing, ...n, chapters: Array.from(chapMap.values()) });
-      }
+    (local ?? []).forEach((b: Book) => {
+      if (!del.has(b.slug)) map.set(b.slug, b);
     });
     return Array.from(map.values());
   };
 
-  useEffect(() => {
+  const [book, setBook] = useState<Book | null>(null);
+  const [chap, setChap] = useState<Chapter | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const reloadMerged = () => {
     const local = loadLocal();
     const deleted = loadDeleted();
-    const deletedChapters = loadDeletedChapters();
-    const merged = buildMerged(local, deleted, deletedChapters);
-    const n = merged.find((x) => x.slug === novelSlug) || null;
-    setNovel(n);
-    setChapter(n?.chapters?.find((c) => c.slug === chapterSlug) || null);
+    const merged = buildMerged(local, deleted);
+    const found = merged.find((b) => b.slug === novel) || null;
+    setBook(found);
+    const foundChap = found?.chapters?.find((c) => c.slug === chapter) || null;
+    setChap(foundChap);
+  };
 
-    const onStorage = (ev: StorageEvent) => {
-      if (ev.key === LOCAL_KEY || ev.key === DELETED_KEY || ev.key === DELETED_CHAPTERS_KEY) {
-        const local2 = loadLocal();
-        const deleted2 = loadDeleted();
-        const deletedChapters2 = loadDeletedChapters();
-        const merged2 = buildMerged(local2, deleted2, deletedChapters2);
-        const n2 = merged2.find((x) => x.slug === novelSlug) || null;
-        setNovel(n2);
-        setChapter(n2?.chapters?.find((c) => c.slug === chapterSlug) || null);
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [novelSlug, chapterSlug]);
+  useEffect(() => {
+    reloadMerged();
+  }, [novel, chapter]);
 
-  if (!chapter) {
-    return (
-      <main className="max-w-3xl mx-auto py-10 text-center">
-        <p className="text-gray-400">Chapter not found.</p>
-        <button onClick={() => router.back()} className="mt-6 px-4 py-2 bg-gray-800 rounded hover:bg-gray-700">
-          ← Back
-        </button>
-      </main>
-    );
-  }
-
-  const handleSave = () => {
-    if (!novel || !chapter) return;
+  const handleSave = async () => {
+    if (!chap || !book) return;
     setSaving(true);
     setSaved(false);
-
     try {
       const local = loadLocal();
-      const idx = local.findIndex((n) => n.slug === novel.slug);
-      let updatedLocal = [...local];
-      if (idx >= 0) {
-        // update chapter in existing local override
-        updatedLocal[idx] = {
-          ...updatedLocal[idx],
-          chapters: (updatedLocal[idx].chapters || []).map((c) => (c.slug === chapter.slug ? chapter : c)),
-        };
-      } else {
-        // create local override from merged novel and replace chapter
-        const mergedCh = (novel.chapters || []).map((c) => (c.slug === chapter.slug ? chapter : c));
-        updatedLocal.push({ slug: novel.slug, title: novel.title, chapters: mergedCh });
-      }
-      persistLocal(updatedLocal);
+      const others = (local ?? []).filter((b) => b.slug !== book.slug);
+      const updatedBook: Book = {
+        ...book,
+        chapters: (book.chapters ?? []).map((c) => (c.slug === chap.slug ? chap : c)),
+      };
+      persistLocal([...others, updatedBook]);
       setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
+      setTimeout(() => setSaved(false), 1200);
+      reloadMerged();
     } catch (err) {
-      console.error("Save error:", err);
-      alert("Save failed — check console.");
+      console.error(err);
+      alert("Save failed");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = () => {
-    if (!novel || !chapter) return;
+  const handleDeleteChapter = () => {
+    if (!book || !chap) return;
     if (!confirm("Delete this chapter?")) return;
 
     const local = loadLocal();
-    const idx = local.findIndex((n) => n.slug === novel.slug);
-    if (idx >= 0) {
-      local[idx] = { ...local[idx], chapters: (local[idx].chapters || []).filter((c) => c.slug !== chapter.slug) };
-      persistLocal(local);
-    } else {
-      const deletedChapters = loadDeletedChapters();
-      const arr = new Set(deletedChapters[novel.slug] || []);
-      arr.add(chapter.slug);
-      deletedChapters[novel.slug] = Array.from(arr);
-      persistDeletedChapters(deletedChapters);
-    }
-
-    // return to novel page
-    router.push(`/writing/novels/${novel.slug}`);
+    const others = (local ?? []).filter((b) => b.slug !== book.slug);
+    const updatedBook: Book = {
+      ...book,
+      chapters: (book.chapters ?? []).filter((c) => c.slug !== chap.slug).map((c, i) => ({ ...c, number: i + 1 })),
+    };
+    persistLocal([...others, updatedBook]);
+    router.push(`/writing/novels/${book.slug}`);
   };
 
-  return (
-    <main className="max-w-3xl mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
-        <button onClick={() => router.back()} className="px-3 py-2 bg-gray-800 rounded hover:bg-gray-700">← Back</button>
+  if (!book || !chap) {
+    return (
+      <main className="max-w-4xl mx-auto py-10 text-center">
+        <BackButton href={`/writing/novels/${novel}`} />
+        <p className="text-gray-400 mt-6">Chapter not found.</p>
+      </main>
+    );
+  }
 
-        <div className="flex items-center space-x-2">
-          {editorMode && (
-            <>
-              <button onClick={handleSave} disabled={saving} className={`px-3 py-2 rounded ${saving ? "bg-gray-700 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`}>
-                {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
-              </button>
-              <button onClick={handleDelete} className="px-3 py-2 bg-red-600 rounded hover:bg-red-700">Delete</button>
-            </>
-          )}
+  return (
+    <main className="max-w-4xl mx-auto py-10">
+      <BackButton href={`/writing/novels/${novel}`} />
+
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold">{chap.title || `Chapter ${chap.number}`}</h1>
+          <p className="text-xs text-gray-500">Book: {book.title}</p>
         </div>
+
+        {editorMode && (
+          <div className="flex gap-2">
+            <button onClick={handleSave} disabled={saving} className={`px-3 py-2 rounded ${saving ? "bg-gray-700" : "bg-green-600 hover:bg-green-700"}`}>
+              {saving ? "Saving..." : saved ? "Saved ✓" : "Save"}
+            </button>
+            <button onClick={handleDeleteChapter} className="px-3 py-2 rounded bg-red-600 hover:bg-red-700">Delete</button>
+          </div>
+        )}
       </div>
 
       {editorMode ? (
         <div className="space-y-4">
-          <input value={chapter.title ?? ""} onChange={(e) => setChapter({ ...chapter, title: e.target.value })} className="w-full p-2 bg-gray-900 border border-gray-700 rounded" />
-          <textarea value={chapter.content ?? ""} onChange={(e) => setChapter({ ...chapter, content: e.target.value })} className="w-full h-72 p-2 bg-gray-900 border border-gray-700 rounded" />
+          <input value={chap.title ?? ""} onChange={(e) => setChap({ ...chap, title: e.target.value })} className="w-full p-2 bg-gray-900 border border-gray-700 rounded" placeholder="Chapter title" />
+          <textarea value={chap.content ?? ""} onChange={(e) => setChap({ ...chap, content: e.target.value })} className="w-full h-72 p-2 bg-gray-900 border border-gray-700 rounded" placeholder="Chapter content" />
         </div>
       ) : (
-        <>
-          <h1 className="text-3xl font-bold mb-2">{chapter.title}</h1>
-          <article className="prose prose-invert">
-            {String(chapter.content ?? "").split("\n").map((line, i) => (line.trim() ? <p key={i}>{line}</p> : <br key={i} />))}
-          </article>
-        </>
+        <article className="prose prose-invert">
+          {String(chap.content ?? "").split("\n").map((line: string, i: number) => (line.trim() ? <p key={i}>{line}</p> : <br key={i} />))}
+        </article>
       )}
     </main>
   );

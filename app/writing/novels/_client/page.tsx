@@ -6,33 +6,34 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { novels as initialNovels } from "@/data/writings";
-import BackButton from "@/components/BackButton";
+import BackButton from "@/app/components/BackButton";
 
-type Chapter = { slug: string; title?: string; content?: string };
-type Novel = { slug: string; title?: string; chapters?: Chapter[] };
+type Chapter = { number: number; slug: string; title?: string; content?: string };
+type Novel = { slug: string; title?: string; description?: string; chapters?: Chapter[] };
 
-export default function NovelsListPage() {
+export default function NovelsClient() {
   const router = useRouter();
   const { editorMode } = useEditor();
-
-  const [novels, setNovels] = useState<Novel[]>([]);
 
   const LOCAL_KEY = "novels";
   const DELETED_KEY = "novels_deleted";
 
+  const [novels, setNovels] = useState<Novel[]>([]);
+
   const loadLocal = (): Novel[] => {
+    if (typeof window === "undefined") return [];
     try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(LOCAL_KEY) : null;
+      const raw = localStorage.getItem(LOCAL_KEY);
       return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      console.warn("Failed to parse local novels:", e);
+    } catch {
       return [];
     }
   };
 
   const loadDeleted = (): string[] => {
+    if (typeof window === "undefined") return [];
     try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(DELETED_KEY) : null;
+      const raw = localStorage.getItem(DELETED_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -42,142 +43,141 @@ export default function NovelsListPage() {
   const persistLocal = (items: Novel[]) => {
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
-    } catch (e) {
-      console.warn("Failed to write novels to localStorage:", e);
-    }
+    } catch {}
   };
 
   const persistDeleted = (slugs: string[]) => {
     try {
       localStorage.setItem(DELETED_KEY, JSON.stringify(slugs));
-    } catch (e) {
-      console.warn("Failed to write novels_deleted:", e);
-    }
+    } catch {}
   };
 
-  // Merge defaults + local (local overrides by slug), excluding deleted novels
   const buildMerged = (local: Novel[], deleted: string[]) => {
     const del = new Set(deleted || []);
     const map = new Map<string, Novel>();
     (initialNovels ?? []).forEach((n: Novel) => {
-      if (!del.has(n.slug)) map.set(n.slug, { ...n, chapters: n.chapters ?? [] });
+      if (!del.has(n.slug)) map.set(n.slug, n);
     });
     (local ?? []).forEach((n: Novel) => {
-      if (!del.has(n.slug)) map.set(n.slug, { ...map.get(n.slug), ...n });
+      if (!del.has(n.slug)) map.set(n.slug, n);
     });
     return Array.from(map.values());
   };
 
-  useEffect(() => {
+  const reloadMerged = () => {
     const local = loadLocal();
     const deleted = loadDeleted();
     setNovels(buildMerged(local, deleted));
+  };
 
-    const onStorage = (ev: StorageEvent) => {
-      if (ev.key === LOCAL_KEY || ev.key === DELETED_KEY) {
-        const local2 = loadLocal();
-        const deleted2 = loadDeleted();
-        setNovels(buildMerged(local2, deleted2));
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    reloadMerged();
   }, []);
 
   const makeSlug = (title = "untitled") => {
-    const base = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 40) || "novel";
-    let slug = base;
-    let i = 1;
-    const existing = new Set(novels.map((n) => n.slug));
-    while (existing.has(slug)) slug = `${base}-${i++}`;
-    return slug;
+    const base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return `${base}-${Date.now()}`;
   };
 
-  const handleAddNovel = () => {
+  const handleAddNew = () => {
     const title = "Untitled Novel";
-    const slug = makeSlug(title + "-" + Date.now().toString().slice(-4));
-    const newNovel: Novel = { slug, title, chapters: [] };
+    const slug = makeSlug(title);
+    const newNovel: Novel = {
+      slug,
+      title,
+      description: "New story description...",
+      chapters: [],
+    };
 
     const local = loadLocal();
-    const updatedLocal = [...local, newNovel];
-    persistLocal(updatedLocal);
-
-    setNovels((prev) => {
-      const map = new Map(prev.map((p) => [p.slug, p]));
-      map.set(newNovel.slug, newNovel);
-      return Array.from(map.values());
-    });
-
+    persistLocal([...local, newNovel]);
+    reloadMerged();
     router.push(`/writing/novels/${slug}`);
   };
 
   const handleDelete = (slug: string) => {
-    if (!confirm("Delete this novel? This will remove local copy and hide default.")) return;
+    if (!confirm("Delete this novel?")) return;
+    const local = loadLocal().filter((n) => n.slug !== slug);
+    persistLocal(local);
 
-    // Remove local override if any
-    const local = loadLocal();
-    const updatedLocal = local.filter((n) => n.slug !== slug);
-    persistLocal(updatedLocal);
-
-    // If it exists in defaults, add tombstone
     const defaultsHave = (initialNovels || []).some((n) => n.slug === slug);
     const deleted = loadDeleted();
-    let updatedDeleted = deleted;
     if (defaultsHave && !deleted.includes(slug)) {
-      updatedDeleted = [...deleted, slug];
-      persistDeleted(updatedDeleted);
+      persistDeleted([...deleted, slug]);
     }
 
-    setNovels(buildMerged(updatedLocal, updatedDeleted));
+    reloadMerged();
   };
 
-  const localSlugs = new Set(typeof window !== "undefined" ? loadLocal().map((n) => n.slug) : []);
+  const localSlugs = new Set(
+    typeof window !== "undefined" ? loadLocal().map((n) => n.slug) : []
+  );
 
   return (
-    <main className="max-w-5xl mx-auto py-10">
-      <BackButton href="/writing" label="Back to Writing" className="mb-6" />
+    <main className="max-w-4xl mx-auto py-10">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Novels</h1>
+        <BackButton />
         {editorMode && (
-          <button onClick={handleAddNovel} className="px-3 py-2 bg-green-600 rounded hover:bg-green-700">
-            + Add novel
+          <button
+            onClick={handleAddNew}
+            className="px-3 py-2 bg-green-600 rounded hover:bg-green-700"
+          >
+            + Add Novel
           </button>
         )}
       </div>
+
+      <h1 className="text-2xl font-semibold mb-6">Novels</h1>
 
       <div className="space-y-4">
         {novels.length === 0 ? (
           <p className="text-gray-400">No novels yet.</p>
         ) : (
           novels.map((n) => (
-            <article key={n.slug} className="p-4 border border-gray-800 rounded hover:bg-gray-900">
+            <article
+              key={n.slug}
+              className="p-4 border border-gray-800 rounded hover:bg-gray-900 transition-all"
+            >
               <div className="flex justify-between items-start">
                 <div>
-                  <Link href={`/writing/novels/${n.slug}`} className="text-lg font-medium hover:underline">
-                    {n.title || "Untitled Novel"}
+                  <Link
+                    href={`/writing/novels/${n.slug}`}
+                    className="text-lg font-medium text-pink-400 hover:underline"
+                  >
+                    {n.title}
                   </Link>
-                  <p className="text-xs text-gray-500">{(n.chapters || []).length} chapters</p>
+                  <p className="text-xs text-gray-500">
+                    {n.chapters?.length || 0}{" "}
+                    {n.chapters?.length === 1 ? "chapter" : "chapters"}
+                  </p>
                 </div>
 
-                <div className="flex flex-col items-end space-y-2">
-                  <div className="text-right text-sm text-gray-400">{localSlugs.has(n.slug) ? "local" : "default"}</div>
+                <div className="flex flex-col items-end space-y-1">
+                  <span className="text-sm text-gray-400">
+                    {localSlugs.has(n.slug) ? "local" : "default"}
+                  </span>
+
                   {editorMode && (
                     <div className="flex space-x-2">
-                      <button onClick={() => router.push(`/writing/novels/${n.slug}`)} className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm">
-                        Open
+                      <button
+                        onClick={() => router.push(`/writing/novels/${n.slug}`)}
+                        className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm"
+                      >
+                        Edit
                       </button>
-                      <button onClick={() => handleDelete(n.slug)} className="px-2 py-1 bg-red-600 rounded hover:bg-red-700 text-sm">
+                      <button
+                        onClick={() => handleDelete(n.slug)}
+                        className="px-2 py-1 bg-red-600 rounded hover:bg-red-700 text-sm"
+                      >
                         Delete
                       </button>
                     </div>
                   )}
                 </div>
               </div>
+              <p className="mt-2 text-sm text-gray-300 line-clamp-3">
+                {n.description || ""}
+              </p>
             </article>
           ))
         )}

@@ -1,38 +1,25 @@
 // @ts-nocheck
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { poems as initialPoems } from "@/data/writings";
+import BackButton from "@/app/components/BackButton";
 
-export const dynamic = "force-dynamic"; // ✅ this tells Vercel to generate a client-safe route
-
-type Poem = {
-  slug: string;
-  title?: string;
-  date?: string;
-  content?: string;
-};
+type Poem = { slug: string; title?: string; date?: string; content?: string };
 
 export default function PoemSlugPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   const router = useRouter();
   const { editorMode } = useEditor();
 
-  const [poem, setPoem] = useState<Poem | null>(null);
-  const [all, setAll] = useState<Poem[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  const savedTimerRef = useRef<number | null>(null);
-
   const LOCAL_KEY = "poems";
   const DELETED_KEY = "poems_deleted";
 
   const loadLocal = (): Poem[] => {
+    if (typeof window === "undefined") return [];
     try {
-      if (typeof window === "undefined") return [];
       const raw = localStorage.getItem(LOCAL_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
@@ -41,8 +28,8 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
   };
 
   const loadDeleted = (): string[] => {
+    if (typeof window === "undefined") return [];
     try {
-      if (typeof window === "undefined") return [];
       const raw = localStorage.getItem(DELETED_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch {
@@ -53,14 +40,12 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
   const persistLocal = (items: Poem[]) => {
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
-      localStorage.setItem(`${LOCAL_KEY}_last_updated`, String(Date.now()));
     } catch {}
   };
 
   const persistDeleted = (slugs: string[]) => {
     try {
       localStorage.setItem(DELETED_KEY, JSON.stringify(slugs));
-      localStorage.setItem(`${DELETED_KEY}_last_updated`, String(Date.now()));
     } catch {}
   };
 
@@ -76,6 +61,11 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
     return Array.from(map.values());
   };
 
+  const [poem, setPoem] = useState<Poem | null>(null);
+  const [all, setAll] = useState<Poem[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
   const reloadMerged = () => {
     const local = loadLocal();
     const deleted = loadDeleted();
@@ -89,43 +79,18 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
     reloadMerged();
   }, [slug]);
 
-  useEffect(() => {
-    const onStorage = (ev: StorageEvent) => {
-      if (!ev.key) {
-        reloadMerged();
-        return;
-      }
-      if (ev.key.startsWith(LOCAL_KEY) || ev.key.startsWith(DELETED_KEY)) {
-        reloadMerged();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [slug]);
-
-  useEffect(() => {
-    return () => {
-      if (savedTimerRef.current) window.clearTimeout(savedTimerRef.current);
-    };
-  }, []);
-
   async function handleSave() {
     if (!poem) return;
     setSaving(true);
     setSaved(false);
-
     try {
       const local = loadLocal();
       const others = (local ?? []).filter((p) => p.slug !== poem.slug);
       const updatedLocal = [...others, poem];
       persistLocal(updatedLocal);
-
-      const merged = buildMerged(updatedLocal, loadDeleted());
-      setAll(merged);
-
       setSaved(true);
-      if (savedTimerRef.current) window.clearTimeout(savedTimerRef.current);
-      savedTimerRef.current = window.setTimeout(() => setSaved(false), 1500);
+      setTimeout(() => setSaved(false), 1200);
+      reloadMerged();
     } catch (err) {
       console.error("Save error:", err);
       alert("Save failed — check console.");
@@ -136,12 +101,13 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
 
   const handleDelete = () => {
     if (!poem) return;
-    if (!confirm("Delete this poem? This cannot be undone easily.")) return;
+    if (!confirm("Delete this poem?")) return;
 
-    const local = loadLocal();
-    const updatedLocal = local.filter((p) => p.slug !== poem.slug);
-    persistLocal(updatedLocal);
+    // Remove from local storage
+    const local = loadLocal().filter((p) => p.slug !== poem.slug);
+    persistLocal(local);
 
+    // If the poem exists in defaults, mark it deleted so merged results hide it
     const defaultsHave = (initialPoems || []).some((p) => p.slug === poem.slug);
     const deleted = loadDeleted();
     let updatedDeleted = deleted;
@@ -156,73 +122,57 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
   if (!poem) {
     return (
       <main className="max-w-3xl mx-auto py-10 text-center">
-        <p className="text-gray-400">Poem not found.</p>
-        <div className="mt-6 flex justify-center gap-3">
-          <button onClick={() => router.back()} className="px-4 py-2 bg-gray-800 rounded hover:bg-gray-700">
-            ← Back
-          </button>
-          <button onClick={() => router.push("/writing/poems")} className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">
-            View poems list
-          </button>
-        </div>
+        <BackButton href="/writing/poems" />
+        <p className="text-gray-400 mt-6">Poem not found.</p>
       </main>
     );
   }
 
   return (
     <main className="max-w-3xl mx-auto py-10">
+      <BackButton href="/writing/poems" />
+
       <div className="flex justify-between items-center mb-6">
-        <button onClick={() => router.back()} className="px-3 py-2 bg-gray-800 rounded hover:bg-gray-700">
-          ← Back
-        </button>
+        <h1 className="text-2xl font-semibold">{poem.title || "Untitled"}</h1>
 
-        <div className="flex items-center space-x-2">
-          {editorMode && (
-            <>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className={`px-3 py-2 rounded ${saving ? "bg-gray-700 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"}`}
-                aria-disabled={saving}
-              >
-                {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
-              </button>
-
-              <button onClick={handleDelete} className="px-3 py-2 bg-red-600 rounded hover:bg-red-700">
-                Delete
-              </button>
-            </>
-          )}
-        </div>
+        {editorMode && (
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`px-3 py-2 rounded ${saving ? "bg-gray-700" : "bg-green-600 hover:bg-green-700"}`}
+            >
+              {saving ? "Saving..." : saved ? "Saved ✓" : "Save"}
+            </button>
+            <button onClick={handleDelete} className="px-3 py-2 rounded bg-red-600 hover:bg-red-700">
+              Delete
+            </button>
+          </div>
+        )}
       </div>
 
       {editorMode ? (
         <div className="space-y-4">
           <input
-            className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
             value={poem.title ?? ""}
             onChange={(e) => setPoem({ ...poem, title: e.target.value })}
+            className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
             placeholder="Title"
-            aria-label="Title"
           />
           <textarea
-            className="w-full h-60 p-2 bg-gray-900 border border-gray-700 rounded"
             value={poem.content ?? ""}
             onChange={(e) => setPoem({ ...poem, content: e.target.value })}
-            placeholder="Write your poem..."
-            aria-label="Content"
+            className="w-full h-64 p-2 bg-gray-900 border border-gray-700 rounded"
+            placeholder="Content"
           />
         </div>
       ) : (
         <>
-          <h1 className="text-3xl font-bold mb-2">{poem.title}</h1>
-          {poem.date && <p className="text-xs text-gray-500 mb-6">{poem.date}</p>}
+          {poem.date && <p className="text-xs text-gray-500 mb-4">{poem.date}</p>}
           <article className="prose prose-invert">
             {String(poem.content ?? "")
               .split("\n")
-              .map((line: string, i: number) =>
-                line.trim() ? <p key={i}>{line}</p> : <br key={i} />
-              )}
+              .map((line: string, i: number) => (line.trim() ? <p key={i}>{line}</p> : <br key={i} />))}
           </article>
         </>
       )}
