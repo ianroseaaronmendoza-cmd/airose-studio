@@ -333,7 +333,10 @@ function SupportForm() {
         <select
           value={purpose}
           onChange={(e) => setPurpose(e.target.value as Purpose)}
-          className="mt-1 w-full rounded-md bg-transparent border border-white/6 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-pink-400"
+          className="mt-1 w-full rounded-md bg-[#0f0e13] border border-white/6 px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-pink-400 appearance-none"
+            style={{
+                colorScheme: "dark", // forces dark scrollbars and option menu on some browsers
+             }}
         >
           <option>Inquiry</option>
           <option>Collaboration</option>
