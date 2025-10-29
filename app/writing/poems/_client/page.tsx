@@ -1,15 +1,13 @@
 // @ts-nocheck
 "use client";
 
-// ✅ Force this route to render dynamically on the server
-export const dynamic = "force-dynamic";
-export const dynamicParams = true;
-export const fetchCache = "force-no-store";
-
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { poems as initialPoems } from "@/data/writings";
+import BackButton from "@/app/components/BackButton";
+
 
 type Poem = {
   slug: string;
@@ -18,15 +16,11 @@ type Poem = {
   content?: string;
 };
 
-export default function PoemSlugPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+export default function PoemsClient() {
   const router = useRouter();
   const { editorMode } = useEditor();
 
-  const [poem, setPoem] = useState<Poem | null>(null);
-  const [all, setAll] = useState<Poem[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [poems, setPoems] = useState<Poem[]>([]);
 
   const LOCAL_KEY = "poems";
   const DELETED_KEY = "poems_deleted";
@@ -51,18 +45,6 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
     }
   };
 
-  const persistLocal = (items: Poem[]) => {
-    try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
-    } catch {}
-  };
-
-  const persistDeleted = (slugs: string[]) => {
-    try {
-      localStorage.setItem(DELETED_KEY, JSON.stringify(slugs));
-    } catch {}
-  };
-
   const buildMerged = (local: Poem[], deleted: string[]) => {
     const del = new Set(deleted || []);
     const map = new Map<string, Poem>();
@@ -75,144 +57,123 @@ export default function PoemSlugPage({ params }: { params: { slug: string } }) {
     return Array.from(map.values());
   };
 
-  const reloadMerged = () => {
-    const local = loadLocal();
-    const deleted = loadDeleted();
-    const merged = buildMerged(local, deleted);
-    setAll(merged);
-    const found = merged.find((p) => p.slug === slug) || null;
-    setPoem(found);
-  };
-
   useEffect(() => {
-    reloadMerged();
-  }, [slug]);
-
-  async function handleSave() {
-    if (!poem) return;
-    setSaving(true);
-    setSaved(false);
-
-    try {
+    if (typeof window === "undefined") return;
+    const reload = () => {
       const local = loadLocal();
-      const others = (local ?? []).filter((p) => p.slug !== poem.slug);
-      const updatedLocal = [...others, poem];
-      persistLocal(updatedLocal);
-      const merged = buildMerged(updatedLocal, loadDeleted());
-      setAll(merged);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
-    } catch (err) {
-      console.error("Save error:", err);
-      alert("Save failed — check console.");
-    } finally {
-      setSaving(false);
-    }
-  }
+      const deleted = loadDeleted();
+      setPoems(buildMerged(local, deleted));
+    };
+    reload();
+    window.addEventListener("storage", reload);
+    return () => window.removeEventListener("storage", reload);
+  }, []);
 
-  const handleDelete = () => {
-    if (!poem) return;
-    if (!confirm("Delete this poem?")) return;
-
-    const local = loadLocal();
-    const updatedLocal = local.filter((p) => p.slug !== poem.slug);
-    persistLocal(updatedLocal);
-
-    const defaultsHave = (initialPoems || []).some((p) => p.slug === poem.slug);
-    const deleted = loadDeleted();
-    let updatedDeleted = deleted;
-    if (defaultsHave && !deleted.includes(poem.slug)) {
-      updatedDeleted = [...deleted, poem.slug];
-      persistDeleted(updatedDeleted);
-    }
-
-    router.push("/writing/poems");
+  const makeSlug = (title = "untitled") => {
+    const base = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 40) || "poem";
+    let slug = base;
+    let i = 1;
+    const existing = new Set(poems.map((p) => p.slug));
+    while (existing.has(slug)) slug = `${base}-${i++}`;
+    return slug;
   };
 
-  if (!poem) {
-    return (
-      <main className="max-w-3xl mx-auto py-10 text-center">
-        <p className="text-gray-400">Poem not found.</p>
-        <div className="mt-6 flex justify-center gap-3">
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 bg-gray-800 rounded hover:bg-gray-700"
-          >
-            ← Back
-          </button>
-          <button
-            onClick={() => router.push("/writing/poems")}
-            className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
-          >
-            View poems list
-          </button>
-        </div>
-      </main>
-    );
-  }
+  const handleAddNew = () => {
+    const title = "Untitled";
+    const slug = makeSlug(title + "-" + Date.now().toString().slice(-4));
+    const newPoem: Poem = {
+      slug,
+      title,
+      content: "",
+      date: new Date().toISOString().slice(0, 10),
+    };
+
+    const local = loadLocal();
+    localStorage.setItem(LOCAL_KEY, JSON.stringify([...local, newPoem]));
+    setPoems(buildMerged([...local, newPoem], loadDeleted()));
+    router.push(`/writing/poems/${slug}`);
+  };
+
+  const handleDelete = (slug: string) => {
+    if (!confirm("Delete this poem?")) return;
+    const local = loadLocal().filter((p) => p.slug !== slug);
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(local));
+    setPoems(buildMerged(local, loadDeleted()));
+  };
+
+  const localSlugs = new Set(
+    typeof window !== "undefined" ? loadLocal().map((p) => p.slug) : []
+  );
 
   return (
-    <main className="max-w-3xl mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
-        <button
-          onClick={() => router.back()}
-          className="px-3 py-2 bg-gray-800 rounded hover:bg-gray-700"
-        >
-          ← Back
-        </button>
-
+    <main className="max-w-4xl mx-auto py-10">
+      <BackButton href="/writing" label="Back to Writing" className="mb-6" />
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold">Poems</h1>
         {editorMode && (
-          <div className="flex space-x-2">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className={`px-3 py-2 rounded ${
-                saving
-                  ? "bg-gray-700 cursor-not-allowed"
-                  : "bg-green-600 hover:bg-green-700"
-              }`}
-            >
-              {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
-            </button>
-
-            <button
-              onClick={handleDelete}
-              className="px-3 py-2 bg-red-600 rounded hover:bg-red-700"
-            >
-              Delete
-            </button>
-          </div>
+          <button
+            onClick={handleAddNew}
+            className="px-3 py-2 bg-green-600 rounded hover:bg-green-700"
+          >
+            + Add poem
+          </button>
         )}
       </div>
 
-      {editorMode ? (
-        <div className="space-y-4">
-          <input
-            className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
-            value={poem.title ?? ""}
-            onChange={(e) => setPoem({ ...poem, title: e.target.value })}
-            placeholder="Title"
-          />
-          <textarea
-            className="w-full h-60 p-2 bg-gray-900 border border-gray-700 rounded"
-            value={poem.content ?? ""}
-            onChange={(e) => setPoem({ ...poem, content: e.target.value })}
-            placeholder="Write your poem..."
-          />
-        </div>
-      ) : (
-        <>
-          <h1 className="text-3xl font-bold mb-2">{poem.title}</h1>
-          {poem.date && <p className="text-xs text-gray-500 mb-6">{poem.date}</p>}
-          <article className="prose prose-invert">
-            {String(poem.content ?? "")
-              .split("\n")
-              .map((line: string, i: number) =>
-                line.trim() ? <p key={i}>{line}</p> : <br key={i} />
-              )}
-          </article>
-        </>
-      )}
+      <div className="space-y-4">
+        {poems.length === 0 ? (
+          <p className="text-gray-400">No poems yet.</p>
+        ) : (
+          poems.map((p) => (
+            <article
+              key={p.slug}
+              className="p-4 border border-gray-800 rounded hover:bg-gray-900"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <Link
+                    href={`/writing/poems/${p.slug}`}
+                    className="text-lg font-medium hover:underline"
+                  >
+                    {p.title || "Untitled"}
+                  </Link>
+                  <p className="text-xs text-gray-500">{p.date}</p>
+                </div>
+
+                <div className="flex flex-col items-end space-y-1">
+                  <div className="text-right text-sm text-gray-400">
+                    {localSlugs.has(p.slug) ? "local" : "default"}
+                  </div>
+
+                  {editorMode && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => router.push(`/writing/poems/${p.slug}`)}
+                        className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.slug)}
+                        className="px-2 py-1 bg-red-600 rounded hover:bg-red-700 text-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <p className="mt-2 text-sm text-gray-300 line-clamp-3">
+                {(p.content || "").slice(0, 250)}
+              </p>
+            </article>
+          ))
+        )}
+      </div>
     </main>
   );
 }

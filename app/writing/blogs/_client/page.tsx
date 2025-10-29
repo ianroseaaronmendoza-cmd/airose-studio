@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { blogs as initialBlogs } from "@/data/writings";
+import BackButton from "@/app/components/BackButton";
 
 type Blog = {
   slug: string;
@@ -151,6 +152,7 @@ export default function BlogsListPage() {
   // ---- Render ----
   return (
     <main className="max-w-4xl mx-auto py-10">
+      <BackButton href="/writing" label="Back to Writing" className="mb-6" />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Blogs</h1>
         {editorMode && (

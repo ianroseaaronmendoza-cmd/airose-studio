@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { novels as initialNovels } from "@/data/writings";
+import BackButton from "@/app/components/BackButton";
 
 type Chapter = { slug: string; title?: string; content?: string };
 type Novel = { slug: string; title?: string; chapters?: Chapter[] };
@@ -139,6 +140,7 @@ export default function NovelsListPage() {
 
   return (
     <main className="max-w-5xl mx-auto py-10">
+      <BackButton href="/writing" label="Back to Writing" className="mb-6" />
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Novels</h1>
         {editorMode && (
