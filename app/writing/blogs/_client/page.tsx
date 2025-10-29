@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { blogs as initialBlogs } from "@/data/writings";
-import BackButton from "@/app/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Blog = {
   slug: string;

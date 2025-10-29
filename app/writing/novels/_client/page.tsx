@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import { novels as initialNovels } from "@/data/writings";
-import BackButton from "@/app/components/BackButton";
+import BackButton from "@/components/BackButton";
 
 type Chapter = { slug: string; title?: string; content?: string };
 type Novel = { slug: string; title?: string; chapters?: Chapter[] };
