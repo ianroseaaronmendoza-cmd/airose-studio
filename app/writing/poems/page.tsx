@@ -40,7 +40,7 @@ export default function PoemsEditorPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/save", {
+      const res = await fetch("/api/writings/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
