@@ -21,13 +21,11 @@ async function getFileFromGitHub() {
   );
 
   if (res.status === 404) {
-    console.log("File not found on GitHub, will create new.");
     return { json: { poems: [], blogs: [], novels: [] }, sha: null };
   }
 
   if (!res.ok) {
     const text = await res.text();
-    console.error(`GitHub read failed: ${res.status} ${text}`);
     throw new Error(`GitHub read failed: ${res.status} ${text}`);
   }
 
@@ -46,9 +44,6 @@ async function putFileToGitHub(updatedJson: any, previousSha: string | null) {
     ...(previousSha ? { sha: previousSha } : {}),
   };
 
-  console.log("PUT URL:", `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`);
-  console.log("PUT Body:", JSON.stringify(body, null, 2));
-
   const res = await fetch(
     `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
     {
@@ -64,7 +59,6 @@ async function putFileToGitHub(updatedJson: any, previousSha: string | null) {
 
   if (!res.ok) {
     const text = await res.text();
-    console.error(`GitHub write failed: ${res.status} ${text}`);
     throw new Error(`GitHub write failed: ${res.status} ${text}`);
   }
 
