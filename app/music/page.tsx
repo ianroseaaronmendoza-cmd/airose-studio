@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import dynamic from "next/dynamic";
 import React from "react";
 
-// ✅ Proper dynamic import — relative to /components folder
+// âœ… Proper dynamic import â€” relative to /components folder
 const Music = dynamic(() => import("../../components/music.jsx").then(mod => mod.default), {
   ssr: false,
   loading: () => (
@@ -20,3 +20,4 @@ export default function MusicPage() {
     </main>
   );
 }
+

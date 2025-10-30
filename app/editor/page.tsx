@@ -1,9 +1,9 @@
-// app/editor/page.tsx
+﻿// app/editor/page.tsx
 "use client";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useEditor } from "@/app/context/EditorContext";
+import { useEditor } from "@\/app\/context\/EditorContext";
 
 export default function EditorPage() {
   const router = useRouter();
@@ -61,3 +61,4 @@ export default function EditorPage() {
     </div>
   );
 }
+

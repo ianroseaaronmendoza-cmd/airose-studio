@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { motion } from "framer-motion";
@@ -45,7 +45,7 @@ export default function AboutPage() {
                 About Airose Official
               </h1>
               <p className="text-slate-300 mt-1">
-                “Where imagination turns into craft.”
+                â€œWhere imagination turns into craft.â€
               </p>
             </div>
           </motion.div>
@@ -60,8 +60,8 @@ export default function AboutPage() {
         >
           <motion.div variants={fadeUp} custom={1} className="prose prose-invert max-w-none">
             <p>
-              Airose isn’t a company or a brand. It’s a small shelf on the internet where
-              curiosity gets to breathe — songs, poems, tiny tools, and ideas that somehow
+              Airose isnâ€™t a company or a brand. Itâ€™s a small shelf on the internet where
+              curiosity gets to breathe â€” songs, poems, tiny tools, and ideas that somehow
               turned into something you can hold. None of this was planned. Most of it was a
               happy accident.
             </p>
@@ -86,11 +86,11 @@ export default function AboutPage() {
               <CardContent>
                 <h2 className="text-xl font-medium mb-2">The story behind the name</h2>
                 <p className="text-slate-300 leading-relaxed">
-                  Funny thing — the name <strong>“Airose”</strong> wasn’t dreamed up to sound
+                  Funny thing â€” the name <strong>â€œAiroseâ€</strong> wasnâ€™t dreamed up to sound
                   poetic. It came from an online friend while I was trying to find an unused
                   username for a game. She scrambled the letters of my real name and joked,
-                  “I’ll call you Airose.” I tried it, it was available, and I’ve used it
-                  ever since. For the record — she never actually called me Airose. (Laughs.)
+                  â€œIâ€™ll call you Airose.â€ I tried it, it was available, and Iâ€™ve used it
+                  ever since. For the record â€” she never actually called me Airose. (Laughs.)
                 </p>
               </CardContent>
             </Card>
@@ -107,7 +107,7 @@ export default function AboutPage() {
             <div className="rounded-xl p-6 bg-gradient-to-tr from-black/40 to-white/2 border border-white/6 shadow-lg">
               <h3 className="text-sm font-semibold text-amber-300 mb-2">A quick note</h3>
               <p className="text-slate-300 text-sm">
-                This site holds songs, poems, small apps, and ministry — all of it a little
+                This site holds songs, poems, small apps, and ministry â€” all of it a little
                 rough, mostly honest.
               </p>
             </div>
@@ -128,7 +128,7 @@ export default function AboutPage() {
             <Card>
               <CardContent>
                 <p className="text-slate-300 leading-relaxed">
-                  I’m <strong>Ian Mendoza</strong> — a product engineer by day and a curious
+                  Iâ€™m <strong>Ian Mendoza</strong> â€” a product engineer by day and a curious
                   creator by heart. Most of what lives here began as experiments. I never set
                   out to build a product lineup; I followed small questions and watched what
                   grew.
@@ -142,7 +142,7 @@ export default function AboutPage() {
 
             <Card>
               <CardContent>
-                <h4 className="font-medium mb-3">What you’ll find here</h4>
+                <h4 className="font-medium mb-3">What youâ€™ll find here</h4>
                 <ul className="space-y-2 text-slate-300">
                   <li className="flex items-center gap-3">
                     <Music size={16} /> Music & small recordings
@@ -170,17 +170,18 @@ export default function AboutPage() {
         >
           <blockquote className="border-l-2 border-amber-400 pl-5 text-slate-200 italic bg-gradient-to-tr from-white/2 to-black/0 rounded-md p-4">
             <p className="mb-2">
-              “The creative God created us to be creative. I’m just fulfilling that role.”
+              â€œThe creative God created us to be creative. Iâ€™m just fulfilling that role.â€
             </p>
-            <cite className="not-italic text-slate-400">— Ian Mendoza</cite>
+            <cite className="not-italic text-slate-400">â€” Ian Mendoza</cite>
           </blockquote>
         </motion.section>
 
         {/* Footer */}
         <footer className="mt-10 text-center text-slate-400 text-sm">
-          <p>Made with curiosity — Airose Official</p>
+          <p>Made with curiosity â€” Airose Official</p>
         </footer>
       </div>
     </main>
   );
 }
+

@@ -1,9 +1,9 @@
-// app/writing/page.tsx
+﻿// app/writing/page.tsx
 "use client";
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useEditor } from "@/app/context/EditorContext";
+import { useEditor } from "@\/app\/context\/EditorContext";
 import { BookOpen, PenTool, FileText } from "lucide-react"; // icons!
 
 export default function WritingHub() {
@@ -19,7 +19,7 @@ export default function WritingHub() {
     },
     {
       title: "Novels",
-      desc: "Stories that breathe — faith, emotion, and imagination intertwined.",
+      desc: "Stories that breathe â€” faith, emotion, and imagination intertwined.",
       href: "/writing/novels",
       color: "from-blue-500/20 to-blue-800/20",
       icon: <BookOpen className="w-6 h-6 text-blue-400" />,
@@ -43,11 +43,11 @@ export default function WritingHub() {
       >
         <h1 className="text-4xl font-bold mb-3 text-pink-400">Writing</h1>
         <p className="text-gray-400 text-lg">
-          Explore poems, novels, and blogs — stories and thoughts written from the heart.
+          Explore poems, novels, and blogs â€” stories and thoughts written from the heart.
         </p>
         {editorMode && (
           <p className="text-xs mt-2 text-green-400">
-            ✏️ Editor Mode is ON — management tools are available inside each section.
+            âœï¸ Editor Mode is ON â€” management tools are available inside each section.
           </p>
         )}
       </motion.div>
@@ -78,4 +78,5 @@ export default function WritingHub() {
     </main>
   );
 }
+
 

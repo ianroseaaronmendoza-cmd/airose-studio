@@ -1,10 +1,10 @@
-// app/(auth)/editor-login/page.tsx
+﻿// app/(auth)/editor-login/page.tsx
 "use client";
 
 import React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEditor } from "@/app/context/EditorContext";
+import { useEditor } from "@\/app\/context\/EditorContext";
 
 export default function EditorLoginPage() {
   const router = useRouter();
@@ -70,3 +70,4 @@ export default function EditorLoginPage() {
     </div>
   );
 }
+

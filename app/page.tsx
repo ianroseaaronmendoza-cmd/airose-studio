@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 export default function Home() {
   const spotifyEmbedSrc =
@@ -15,13 +15,13 @@ export default function Home() {
         </h1>
         <p className="mt-6 text-gray-400 max-w-2xl">
           Welcome to{" "}
-          <span className="text-pink-400 font-medium">Airose Studio</span> — a
+          <span className="text-pink-400 font-medium">Airose Studio</span> â€” a
           creative space where music, tools, and stories come to life.
         </p>
 
         {/* Hero Buttons */}
         <div className="mt-8 flex gap-4 flex-wrap justify-center">
-          {/* ✅ Fixed: Readable text on pink background */}
+          {/* âœ… Fixed: Readable text on pink background */}
           <a
             href="#projects"
             className="bg-pink-500 hover:bg-pink-600 text-black font-semibold px-6 py-3 rounded-md transition"
@@ -40,7 +40,7 @@ export default function Home() {
 
       {/* Featured Projects */}
       <section id="projects" className="px-6 py-16 border-t border-gray-800">
-        <h2 className="text-2xl font-bold mb-6">✨ Featured Projects</h2>
+        <h2 className="text-2xl font-bold mb-6">âœ¨ Featured Projects</h2>
 
         <div className="grid md:grid-cols-3 gap-6">
           {/* Project 1 */}
@@ -52,7 +52,7 @@ export default function Home() {
               Create lyric videos effortlessly.
             </p>
             <div className="mt-4">
-              <button className="text-sm hover:text-pink-400">View →</button>
+              <button className="text-sm hover:text-pink-400">View â†’</button>
             </div>
           </div>
 
@@ -65,7 +65,7 @@ export default function Home() {
               Learn and practice vocal harmonies.
             </p>
             <div className="mt-4">
-              <button className="text-sm hover:text-pink-400">View →</button>
+              <button className="text-sm hover:text-pink-400">View â†’</button>
             </div>
           </div>
 
@@ -76,7 +76,7 @@ export default function Home() {
               Timestamp and sync lyrics with precision.
             </p>
             <div className="mt-4">
-              <button className="text-sm hover:text-pink-400">View →</button>
+              <button className="text-sm hover:text-pink-400">View â†’</button>
             </div>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function Home() {
         id="music"
         className="px-6 py-16 border-t border-gray-800 bg-[#0d0d0d]"
       >
-        <h2 className="text-2xl font-bold mb-6">🎵 Featured Music</h2>
+        <h2 className="text-2xl font-bold mb-6">ðŸŽµ Featured Music</h2>
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Single */}
@@ -126,7 +126,7 @@ export default function Home() {
   </div>
 
   <p className="text-gray-400 mt-6 text-sm">
-    A worship playlist by Airose Official — featuring “I Count It as Gain” and more songs of faith.
+    A worship playlist by Airose Official â€” featuring â€œI Count It as Gainâ€ and more songs of faith.
   </p>
 </div>
 
@@ -135,16 +135,17 @@ export default function Home() {
 
       {/* Writing */}
       <section id="writing" className="px-6 py-16 border-t border-gray-800">
-        <h2 className="text-2xl font-bold mb-6">🖋 Writing</h2>
+        <h2 className="text-2xl font-bold mb-6">ðŸ–‹ Writing</h2>
         <p className="text-gray-400">
-          Poems, short stories, and reflections — read more on the Writing page.
+          Poems, short stories, and reflections â€” read more on the Writing page.
         </p>
         <div className="mt-4">
           <a href="/writing" className="text-pink-400 hover:underline">
-            Open Writing →
+            Open Writing â†’
           </a>
         </div>
       </section>
     </>
   );
 }
+

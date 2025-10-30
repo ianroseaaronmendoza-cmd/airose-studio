@@ -1,125 +1,57 @@
-// @ts-nocheck
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEditor } from "@/app/context/EditorContext";
-import { novels as initialNovels } from "@/data/writings";
-import BackButton from "@/components/BackButton";
+import { useEditor } from "@\/app\/context\/EditorContext";
+import BackButton from "@\/app\/components\/BackButton";
 
-type Chapter = { number: number; slug: string; title?: string; content?: string };
-type Novel = { slug: string; title?: string; description?: string; chapters?: Chapter[] };
+type Novel = {
+  slug: string;
+  title: string;
+  description: string;
+  chapters: string[];
+};
 
 export default function NovelsClient() {
-  const router = useRouter();
   const { editorMode } = useEditor();
-
-  const LOCAL_KEY = "novels";
-  const DELETED_KEY = "novels_deleted";
-
   const [novels, setNovels] = useState<Novel[]>([]);
-
-  const loadLocal = (): Novel[] => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = localStorage.getItem(LOCAL_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const loadDeleted = (): string[] => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = localStorage.getItem(DELETED_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const persistLocal = (items: Novel[]) => {
-    try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
-    } catch {}
-  };
-
-  const persistDeleted = (slugs: string[]) => {
-    try {
-      localStorage.setItem(DELETED_KEY, JSON.stringify(slugs));
-    } catch {}
-  };
-
-  const buildMerged = (local: Novel[], deleted: string[]) => {
-    const del = new Set(deleted || []);
-    const map = new Map<string, Novel>();
-    (initialNovels ?? []).forEach((n: Novel) => {
-      if (!del.has(n.slug)) map.set(n.slug, n);
-    });
-    (local ?? []).forEach((n: Novel) => {
-      if (!del.has(n.slug)) map.set(n.slug, n);
-    });
-    return Array.from(map.values());
-  };
-
-  const reloadMerged = () => {
-    const local = loadLocal();
-    const deleted = loadDeleted();
-    setNovels(buildMerged(local, deleted));
-  };
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    reloadMerged();
+    fetch("/api/writings?type=novels")
+      .then((res) => res.json())
+      .then(setNovels)
+      .finally(() => setLoading(false));
   }, []);
 
-  const makeSlug = (title = "untitled") => {
-    const base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    return `${base}-${Date.now()}`;
-  };
-
-  const handleAddNew = () => {
-    const title = "Untitled Novel";
-    const slug = makeSlug(title);
+  const handleAdd = async () => {
     const newNovel: Novel = {
-      slug,
-      title,
+      slug: `novel-${Date.now()}`,
+      title: "Untitled Novel",
       description: "New story description...",
       chapters: [],
     };
-
-    const local = loadLocal();
-    persistLocal([...local, newNovel]);
-    reloadMerged();
-    router.push(`/writing/novels/${slug}`);
+    await fetch("/api/writings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "novels", item: newNovel }),
+    });
+    setNovels((prev) => [...prev, newNovel]);
   };
 
-  const handleDelete = (slug: string) => {
+  const handleDelete = async (slug: string) => {
     if (!confirm("Delete this novel?")) return;
-    const local = loadLocal().filter((n) => n.slug !== slug);
-    persistLocal(local);
-
-    const defaultsHave = (initialNovels || []).some((n) => n.slug === slug);
-    const deleted = loadDeleted();
-    if (defaultsHave && !deleted.includes(slug)) {
-      persistDeleted([...deleted, slug]);
-    }
-
-    reloadMerged();
+    await fetch(`/api/writings?type=novels&slug=${slug}`, { method: "DELETE" });
+    setNovels((prev) => prev.filter((n) => n.slug !== slug));
   };
-
-  const localSlugs = new Set(
-    typeof window !== "undefined" ? loadLocal().map((n) => n.slug) : []
-  );
 
   return (
     <main className="max-w-4xl mx-auto py-10">
-      <div className="flex items-center justify-between mb-6">
-        <BackButton />
+      <BackButton />
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Novels</h1>
         {editorMode && (
           <button
-            onClick={handleAddNew}
+            onClick={handleAdd}
             className="px-3 py-2 bg-green-600 rounded hover:bg-green-700"
           >
             + Add Novel
@@ -127,61 +59,29 @@ export default function NovelsClient() {
         )}
       </div>
 
-      <h1 className="text-2xl font-semibold mb-6">Novels</h1>
-
-      <div className="space-y-4">
-        {novels.length === 0 ? (
-          <p className="text-gray-400">No novels yet.</p>
-        ) : (
-          novels.map((n) => (
-            <article
-              key={n.slug}
-              className="p-4 border border-gray-800 rounded hover:bg-gray-900 transition-all"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <Link
-                    href={`/writing/novels/${n.slug}`}
-                    className="text-lg font-medium text-pink-400 hover:underline"
-                  >
-                    {n.title}
-                  </Link>
-                  <p className="text-xs text-gray-500">
-                    {n.chapters?.length || 0}{" "}
-                    {n.chapters?.length === 1 ? "chapter" : "chapters"}
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-end space-y-1">
-                  <span className="text-sm text-gray-400">
-                    {localSlugs.has(n.slug) ? "local" : "default"}
-                  </span>
-
-                  {editorMode && (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => router.push(`/writing/novels/${n.slug}`)}
-                        className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(n.slug)}
-                        className="px-2 py-1 bg-red-600 rounded hover:bg-red-700 text-sm"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <p className="mt-2 text-sm text-gray-300 line-clamp-3">
-                {n.description || ""}
-              </p>
-            </article>
-          ))
-        )}
-      </div>
+      {loading ? (
+        <p className="text-gray-400">Loading novels...</p>
+      ) : novels.length === 0 ? (
+        <p className="text-gray-400">No novels yet.</p>
+      ) : (
+        novels.map((n) => (
+          <div
+            key={n.slug}
+            className="p-4 border border-gray-800 rounded mb-3 hover:bg-gray-900"
+          >
+            <h2 className="text-lg font-medium">{n.title}</h2>
+            <p className="text-sm text-gray-400">{n.description}</p>
+            {editorMode && (
+              <button
+                onClick={() => handleDelete(n.slug)}
+                className="mt-2 px-2 py-1 bg-red-600 rounded text-sm hover:bg-red-700"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        ))
+      )}
     </main>
   );
 }

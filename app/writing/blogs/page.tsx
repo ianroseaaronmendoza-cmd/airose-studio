@@ -1,4 +1,4 @@
-// ✅ Server wrapper for /writing/blogs
+﻿// âœ… Server wrapper for /writing/blogs
 import BlogsClient from "./_client/page";
 
 // Force dynamic runtime so it always generates a lambda
@@ -13,4 +13,5 @@ export const runtime = "nodejs";
 export default function BlogsPageWrapper() {
   return <BlogsClient />;
 }
+
 

@@ -1,25 +1,36 @@
 // @ts-nocheck
 "use client";
 
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+export const runtime = "nodejs";
+
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEditor } from "@/app/context/EditorContext";
+import { useEditor } from "@/context/EditorContext";
 import { novels as initialNovels } from "@/data/writings";
 import BackButton from "@/components/BackButton";
 
 type Chapter = { number: number; slug: string; title?: string; content?: string };
-type Book = { slug: string; title?: string; description?: string; chapters?: Chapter[] };
+type Novel = { slug: string; title?: string; description?: string; chapters?: Chapter[] };
 
-export default function NovelPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+export default function NovelPage({ params }: { params: { novel: string } }) {
+  const { novel: slug } = params;
   const router = useRouter();
   const { editorMode } = useEditor();
 
   const LOCAL_KEY = "novels";
   const DELETED_KEY = "novels_deleted";
 
-  const loadLocal = (): Book[] => {
+  const [novel, setNovel] = useState<Novel | null>(null);
+  const [all, setAll] = useState<Novel[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // ---- LocalStorage Helpers ----
+  const loadLocal = (): Novel[] => {
     if (typeof window === "undefined") return [];
     try {
       const raw = localStorage.getItem(LOCAL_KEY);
@@ -39,7 +50,7 @@ export default function NovelPage({ params }: { params: { slug: string } }) {
     }
   };
 
-  const persistLocal = (items: Book[]) => {
+  const persistLocal = (items: Novel[]) => {
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(items));
     } catch {}
@@ -51,126 +62,143 @@ export default function NovelPage({ params }: { params: { slug: string } }) {
     } catch {}
   };
 
-  const buildMerged = (local: Book[], deleted: string[]) => {
+  const buildMerged = (local: Novel[], deleted: string[]) => {
     const del = new Set(deleted || []);
-    const map = new Map<string, Book>();
-    (initialNovels ?? []).forEach((b: Book) => {
-      if (!del.has(b.slug)) map.set(b.slug, b);
+    const map = new Map<string, Novel>();
+    (initialNovels ?? []).forEach((n) => {
+      if (!del.has(n.slug)) map.set(n.slug, n);
     });
-    (local ?? []).forEach((b: Book) => {
-      if (!del.has(b.slug)) map.set(b.slug, b);
+    (local ?? []).forEach((n) => {
+      if (!del.has(n.slug)) map.set(n.slug, n);
     });
     return Array.from(map.values());
   };
 
-  const [book, setBook] = useState<Book | null>(null);
-  const [all, setAll] = useState<Book[]>([]);
-  const [saving, setSaving] = useState(false);
-
+  // ---- Load / Merge ----
   const reloadMerged = () => {
     const local = loadLocal();
     const deleted = loadDeleted();
     const merged = buildMerged(local, deleted);
     setAll(merged);
-    const found = merged.find((b) => b.slug === slug) || null;
-    setBook(found);
+    const found = merged.find((n) => n.slug === slug) || null;
+    setNovel(found);
   };
 
   useEffect(() => {
     reloadMerged();
   }, [slug]);
 
-  const handleAddChapter = () => {
-    if (!book) return;
-    const newIndex = (book.chapters?.length ?? 0) + 1;
-    const slugBase = `chapter-${newIndex}-${Date.now().toString().slice(-4)}`;
-    const newChapter: Chapter = { number: newIndex, slug: slugBase, title: `Chapter ${newIndex}`, content: "" };
-
-    const local = loadLocal();
-    const others = (local ?? []).filter((b) => b.slug !== book.slug);
-    const updatedBook: Book = { ...book, chapters: [...(book.chapters ?? []), newChapter] };
-    const updatedLocal = [...others, updatedBook];
-    persistLocal(updatedLocal);
-    reloadMerged();
-    router.push(`/writing/novels/${book.slug}/${newChapter.slug}`);
+  // ---- Save / Delete ----
+  const handleSave = async () => {
+    if (!novel) return;
+    setSaving(true);
+    setSaved(false);
+    try {
+      const local = loadLocal();
+      const others = (local ?? []).filter((n) => n.slug !== novel.slug);
+      const updatedLocal = [...others, novel];
+      persistLocal(updatedLocal);
+      setAll(buildMerged(updatedLocal, loadDeleted()));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch (err) {
+      console.error("Save error:", err);
+      alert("Save failed — check console.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteBook = () => {
-    if (!book) return;
-    if (!confirm("Delete this book?")) return;
+  const handleDelete = () => {
+    if (!novel) return;
+    if (!confirm("Delete this novel?")) return;
 
-    const local = loadLocal().filter((b) => b.slug !== book.slug);
+    const local = loadLocal().filter((n) => n.slug !== novel.slug);
     persistLocal(local);
 
-    const defaultsHave = (initialNovels || []).some((p) => p.slug === book.slug);
+    const defaultsHave = (initialNovels || []).some((n) => n.slug === novel.slug);
     const deleted = loadDeleted();
-    let updatedDeleted = deleted;
-    if (defaultsHave && !deleted.includes(book.slug)) {
-      updatedDeleted = [...deleted, book.slug];
-      persistDeleted(updatedDeleted);
+    if (defaultsHave && !deleted.includes(novel.slug)) {
+      persistDeleted([...deleted, novel.slug]);
     }
 
     router.push("/writing/novels");
   };
 
-  const handleSaveMeta = async (title?: string, description?: string) => {
-    if (!book) return;
-    setSaving(true);
-    const local = loadLocal();
-    const others = (local ?? []).filter((b) => b.slug !== book.slug);
-    const updatedBook = { ...book, title: title ?? book.title, description: description ?? book.description };
-    persistLocal([...others, updatedBook]);
-    reloadMerged();
-    setSaving(false);
-  };
-
-  if (!book) {
+  // ---- Rendering ----
+  if (!novel) {
     return (
-      <main className="max-w-4xl mx-auto py-10 text-center">
-        <BackButton href="/writing/novels" />
-        <p className="text-gray-400 mt-6">Novel not found.</p>
+      <main className="max-w-3xl mx-auto py-10 text-center">
+        <BackButton />
+        <p className="text-gray-400 mt-10">Novel not found.</p>
       </main>
     );
   }
 
   return (
-    <main className="max-w-4xl mx-auto py-10">
-      <BackButton href="/writing/novels" />
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{book.title}</h1>
-          {book.description && <p className="text-gray-400 mt-1">{book.description}</p>}
-        </div>
-
-        <div className="flex gap-2">
-          {editorMode && (
-            <>
-              <button onClick={handleAddChapter} className="px-3 py-2 bg-green-600 rounded hover:bg-green-700">+ Add chapter</button>
-              <button onClick={() => handleSaveMeta(book.title, book.description)} disabled={saving} className="px-3 py-2 bg-blue-600 rounded hover:bg-blue-700">{saving ? "Saving..." : "Save"}</button>
-              <button onClick={handleDeleteBook} className="px-3 py-2 bg-red-600 rounded hover:bg-red-700">Delete Book</button>
-            </>
-          )}
-        </div>
+    <main className="max-w-4xl mx-auto py-10 space-y-8">
+      <div className="flex justify-between items-center">
+        <BackButton />
+        {editorMode && (
+          <div className="flex space-x-2">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`px-3 py-2 rounded ${
+                saving
+                  ? "bg-gray-700 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700"
+              }`}
+            >
+              {saving ? "Saving..." : saved ? "Saved ✅" : "Save"}
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-3 py-2 bg-red-600 rounded hover:bg-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
 
-      <section className="space-y-4">
-        {Array.isArray(book.chapters) && book.chapters.length > 0 ? (
-          book.chapters.map((ch) => (
-            <Link key={ch.slug} href={`/writing/novels/${book.slug}/${ch.slug}`} className="block p-4 border border-gray-800 rounded hover:bg-gray-900">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="text-sm text-gray-400">Chapter {ch.number}</div>
-                  <h3 className="font-semibold">{ch.title}</h3>
-                </div>
-                <div className="text-xs text-gray-400">Open →</div>
+      {editorMode ? (
+        <div className="space-y-4">
+          <input
+            className="w-full p-2 bg-gray-900 border border-gray-700 rounded"
+            value={novel.title ?? ""}
+            onChange={(e) => setNovel({ ...novel, title: e.target.value })}
+            placeholder="Novel title"
+          />
+          <textarea
+            className="w-full h-32 p-2 bg-gray-900 border border-gray-700 rounded"
+            value={novel.description ?? ""}
+            onChange={(e) => setNovel({ ...novel, description: e.target.value })}
+            placeholder="Novel description..."
+          />
+        </div>
+      ) : (
+        <>
+          <h1 className="text-3xl font-bold text-pink-400">{novel.title}</h1>
+          <p className="text-gray-300">{novel.description}</p>
+          <h2 className="mt-8 text-xl font-semibold">Chapters</h2>
+          <div className="space-y-2 mt-4">
+            {(novel.chapters ?? []).map((ch) => (
+              <div key={ch.slug}>
+                <a
+                  href={`/writing/novels/${novel.slug}/${ch.slug}`}
+                  className="block p-3 rounded border border-gray-800 hover:bg-gray-900 hover:text-pink-400 transition"
+                >
+                  {ch.title || `Chapter ${ch.number}`}
+                </a>
               </div>
-            </Link>
-          ))
-        ) : (
-          <p className="text-gray-400">No chapters yet.</p>
-        )}
-      </section>
+            ))}
+            {(!novel.chapters || novel.chapters.length === 0) && (
+              <p className="text-sm text-gray-500">No chapters yet.</p>
+            )}
+          </div>
+        </>
+      )}
     </main>
   );
 }
-

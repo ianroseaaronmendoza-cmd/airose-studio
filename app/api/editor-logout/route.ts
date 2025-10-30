@@ -1,4 +1,4 @@
-// app/api/editor-logout/route.ts
+﻿// app/api/editor-logout/route.ts
 import { NextResponse } from "next/server";
 
 export async function POST() {

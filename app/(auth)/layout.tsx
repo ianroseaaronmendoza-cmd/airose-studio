@@ -1,4 +1,4 @@
-// app/(auth)/layout.tsx
+﻿// app/(auth)/layout.tsx
 import React from "react";
 
 export default function AuthLayout({
@@ -15,3 +15,4 @@ export default function AuthLayout({
     </html>
   );
 }
+
