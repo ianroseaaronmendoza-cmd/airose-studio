@@ -1,31 +1,17 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
+import { promises as fs } from "fs";
 import path from "path";
-
-const musicPath = path.join(process.cwd(), "data", "music.json");
 
 export async function POST(req: Request) {
   try {
-    const { albumId, reorderedSongs } = await req.json();
+    const { albums } = await req.json();
+    if (!albums) throw new Error("Missing albums");
 
-    if (!albumId || !Array.isArray(reorderedSongs)) {
-      return NextResponse.json({ success: false, message: "Invalid request." }, { status: 400 });
-    }
-
-    if (!fs.existsSync(musicPath)) {
-      return NextResponse.json({ success: false, message: "No music data found." });
-    }
-
-    const data = JSON.parse(fs.readFileSync(musicPath, "utf-8"));
-    const albums = data.albums.map((album: any) =>
-      album.id === albumId ? { ...album, songs: reorderedSongs } : album
-    );
-
-    fs.writeFileSync(musicPath, JSON.stringify({ albums }, null, 2), "utf-8");
-
-    return NextResponse.json({ success: true, message: "Reorder successful." });
-  } catch (error) {
-    console.error("Error reordering songs:", error);
-    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+    const filePath = path.join(process.cwd(), "data", "music.json");
+    await fs.writeFile(filePath, JSON.stringify({ albums }, null, 2), "utf8");
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Reorder error:", err);
+    return NextResponse.json({ error: "Failed to reorder" }, { status: 500 });
   }
 }

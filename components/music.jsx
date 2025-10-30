@@ -894,3 +894,14 @@ function EditSongForm({ albumId, song, onSave, onCancel, onUploadFile }) {
     </div>
   );
 }
+async function syncToServer(albumsData) {
+  try {
+    await fetch("/api/music/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ albums: albumsData }),
+    });
+  } catch (err) {
+    console.warn("Server sync failed:", err);
+  }
+}
