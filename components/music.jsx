@@ -1,21 +1,25 @@
+// components/music.jsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEditor } from "@/app/context/EditorContext";
 
-// Full-featured music component with persistence (localStorage) and editor UI
-// Preserves your sidebar story/lyrics/edit panel design.
+/**
+ * components/music.jsx (updated)
+ *
+ * - Loads default data from /data/music.json for public view.
+ * - Editor mode uses localStorage overrides + tombstone deleted map.
+ * - Adds album title editing.
+ * - Keeps side panel / story UI, upload via IndexedDB, import/export, undo.
+ *
+ * Notes:
+ * - This file intentionally uses client-side features (localStorage, indexedDB).
+ * - If you later want server persistence, we can add API routes that commit to data/music.json.
+ */
 
 /* =========================
-   Default data (example)
-   ========================= */
-const DEFAULT_ALBUMS = [
-  // keep this minimal — your real data will come from data/music.json or local overrides
-];
-
-/* =========================
-   IndexedDB helpers
+   IndexedDB helpers (small wrapper)
    ========================= */
 const IDB_DB = "music_db_v1";
 const IDB_STORE = "blobs";
@@ -113,6 +117,36 @@ function persistDeleted(obj) {
   }
 }
 
+/* =========================
+   Utility helpers
+   ========================= */
+const uid = (prefix = "") => `${prefix}${Math.random().toString(36).slice(2, 9)}`;
+
+function downloadJSON(filename, obj) {
+  const data = JSON.stringify(obj, null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ====== Default fallback (used if /data/music.json can't be fetched) ====== */
+const FALLBACK_DEFAULTS = [
+  {
+    id: "sample-album",
+    title: "Untitled Album",
+    year: new Date().getFullYear(),
+    cover: "",
+    songs: [],
+  },
+];
+
+/* =========================
+   Merge defaults + local overrides while respecting deleted tombstones
+   ========================= */
 function buildMerged(defaults, local, deleted) {
   const delAlbums = new Set((deleted && deleted.albums) || []);
   const deletedSongsMap = (deleted && deleted.songs) || {};
@@ -142,66 +176,71 @@ function buildMerged(defaults, local, deleted) {
 }
 
 /* =========================
-   Utility helpers
-   ========================= */
-const uid = (prefix = "") => `${prefix}${Math.random().toString(36).slice(2, 9)}`;
-
-function downloadJSON(filename, obj) {
-  const data = JSON.stringify(obj, null, 2);
-  const blob = new Blob([data], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-/* =========================
    Component
    ========================= */
 export default function Music() {
   const { editorMode } = useEditor();
 
-  const [local, setLocal] = useState(null);
+  const [defaultAlbums, setDefaultAlbums] = useState(null); // loaded from /data/music.json or fallback
+  const [local, setLocal] = useState(null); // local overrides
   const [deleted, setDeleted] = useState({ albums: [], songs: {} });
-  const [albums, setAlbums] = useState(DEFAULT_ALBUMS);
+  const [albums, setAlbums] = useState([]);
   const [openAlbumId, setOpenAlbumId] = useState(null);
   const [activeSong, setActiveSong] = useState(null);
   const [showLyrics, setShowLyrics] = useState(false);
-  const [editing, setEditing] = useState(null);
+  const [editingSong, setEditingSong] = useState(null); // { albumId, songId, isNew }
+  const [editingAlbum, setEditingAlbum] = useState(null); // { albumId, title, year }
   const [toast, setToast] = useState(null);
   const undoRef = useRef(null);
-
   const idbUrlsRef = useRef({});
 
+  // Load default albums from /data/music.json
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch("/data/music.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("no remote data");
+        const json = await res.json();
+        if (!mounted) return;
+        setDefaultAlbums(json.albums || json || []);
+      } catch (e) {
+        setDefaultAlbums(FALLBACK_DEFAULTS);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // initial load of local + deleted storage and merged albums
   useEffect(() => {
     const l = loadLocal();
     const d = loadDeleted();
     setLocal(l || []);
     setDeleted(d || { albums: [], songs: {} });
-    setAlbums(buildMerged(DEFAULT_ALBUMS, l || [], d || { albums: [], songs: {} }));
-
+    // albums will be computed in next effect once defaultAlbums is known
     const onStorage = (e) => {
       if (e.key === LS_LOCAL) {
         const l2 = loadLocal();
         setLocal(l2 || []);
-        setAlbums(buildMerged(DEFAULT_ALBUMS, l2 || [], loadDeleted() || { albums: [], songs: {} }));
       }
       if (e.key === LS_DELETED) {
         const d2 = loadDeleted();
         setDeleted(d2 || { albums: [], songs: {} });
-        setAlbums(buildMerged(DEFAULT_ALBUMS, loadLocal() || [], d2 || { albums: [], songs: {} }));
       }
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
 
+  // recompute merged albums when defaults/local/deleted change
   useEffect(() => {
-    setAlbums(buildMerged(DEFAULT_ALBUMS, local || [], deleted || { albums: [], songs: {} }));
-  }, [local, deleted]);
+    const def = defaultAlbums || FALLBACK_DEFAULTS;
+    setAlbums(buildMerged(def, local || [], deleted || { albums: [], songs: {} }));
+  }, [defaultAlbums, local, deleted]);
 
+  // cleanup objectURLs on unmount
   useEffect(() => {
     return () => {
       Object.values(idbUrlsRef.current).forEach((url) => {
@@ -213,16 +252,7 @@ export default function Music() {
     };
   }, []);
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") {
-        closeStoryPanel();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
+  // UI helpers
   const toggleAlbum = (id) => setOpenAlbumId((prev) => (prev === id ? null : id));
 
   const openStoryPanel = (song, openWithLyrics = false) => {
@@ -234,10 +264,12 @@ export default function Music() {
   const closeStoryPanel = () => {
     setActiveSong(null);
     setShowLyrics(false);
-    setEditing(null);
+    setEditingSong(null);
+    setEditingAlbum(null);
     document.documentElement.style.overflow = "";
   };
 
+  // IDB upload helpers
   async function storeUploadGetId(file) {
     const key = `music_blob:${uid("")}`;
     await idbPut(key, file);
@@ -269,45 +301,33 @@ export default function Music() {
         URL.revokeObjectURL(idbUrlsRef.current[key]);
         delete idbUrlsRef.current[key];
       }
-    } catch (e) {}
+    } catch (e) {
+      // ignore
+    }
   }
 
-  /* =========================
-     CRUD: Add / Edit / Delete / Reorder
-     ========================= */
-  function createAlbum(title = "Untitled Album") {
-    const newAlbum = { id: `alb-${uid("")}`, title, year: new Date().getFullYear(), cover: "", songs: [] };
+  // CRUD operations (local first)
+  function createAlbum(title = "Untitled Album", year = new Date().getFullYear(), isSingle = false) {
+    const newAlbum = { id: `alb-${uid("")}`, title, year, cover: "", songs: [], single: !!isSingle };
     const updated = [...(local || []), newAlbum];
     setLocal(updated);
     persistLocal(updated);
     setToast({ message: "Album created", actionLabel: "Open", action: () => setOpenAlbumId(newAlbum.id) });
   }
 
-  function createSingle(title = "Untitled Single") {
-    const newAlbum = { id: `single-${uid("")}`, title, year: new Date().getFullYear(), cover: "", songs: [] };
-    const updated = [...(local || []), newAlbum];
-    setLocal(updated);
-    persistLocal(updated);
-    setToast({ message: "Single created", actionLabel: "Open", action: () => setOpenAlbumId(newAlbum.id) });
-  }
-
   function createSong(albumId) {
     const newSong = { id: `song-${uid("")}`, title: "Untitled", embed: "", src: "", story: "", lyrics: "" };
     const updatedLocal = [...(local || [])];
     const idx = updatedLocal.findIndex((a) => a.id === albumId);
-
     if (idx >= 0) {
       updatedLocal[idx] = { ...updatedLocal[idx], songs: [...(updatedLocal[idx].songs || []), newSong] };
     } else {
       const merged = albums.find((a) => a.id === albumId) || { id: albumId, title: albumId, songs: [] };
       updatedLocal.push({ id: albumId, title: merged.title, year: merged.year, cover: merged.cover, songs: [...(merged.songs || []), newSong] });
     }
-
     setLocal(updatedLocal);
     persistLocal(updatedLocal);
-
-    // Immediately open side panel in edit mode for the new song
-    setEditing({ albumId, songId: newSong.id, isNew: true });
+    setEditingSong({ albumId, songId: newSong.id, isNew: true });
     openStoryPanel(newSong, false);
   }
 
@@ -318,15 +338,20 @@ export default function Music() {
       updatedLocal[idx] = { ...updatedLocal[idx], songs: (updatedLocal[idx].songs || []).map((s) => (s.id === song.id ? song : s)) };
     } else {
       const merged = albums.find((a) => a.id === albumId) || { id: albumId, songs: [] };
-      updatedLocal.push({ id: albumId, title: merged.title, year: merged.year, cover: merged.cover, songs: (merged.songs || []).map((s) => (s.id === song.id ? song : s)).concat((merged.songs || []).some(s=>s.id===song.id) ? [] : [song]) });
+      updatedLocal.push({
+        id: albumId,
+        title: merged.title,
+        year: merged.year,
+        cover: merged.cover,
+        songs: (merged.songs || []).map((s) => (s.id === song.id ? song : s)).concat((merged.songs || []).some(s => s.id === song.id) ? [] : [song]),
+      });
     }
     setLocal(updatedLocal);
     persistLocal(updatedLocal);
     setToast({ message: "Saved", actionLabel: null, action: null });
-    setEditing(null);
-    if (activeSong && activeSong.id === song.id) {
-      setActiveSong(song);
-    }
+    setEditingSong(null);
+    // keep panel open and show updated content
+    setActiveSong(song);
   }
 
   function deleteSong(albumId, songId) {
@@ -342,7 +367,7 @@ export default function Music() {
       persistLocal(updatedLocal);
     }
 
-    const isDefault = DEFAULT_ALBUMS.some((a) => a.id === albumId && (a.songs || []).some((s) => s.id === songId));
+    const isDefault = (defaultAlbums || []).some((a) => a.id === albumId && (a.songs || []).some((s) => s.id === songId));
     const deletedState = loadDeleted();
     const songsMap = { ...(deletedState.songs || {}) };
     if (isDefault) {
@@ -354,6 +379,7 @@ export default function Music() {
       persistDeleted(newDeleted);
     }
 
+    // schedule undo and finalize blob delete
     undoRef.current = {
       type: "deleteSong",
       payload: { albumId, song },
@@ -363,7 +389,7 @@ export default function Music() {
         if (i >= 0) {
           curLocal[i] = { ...curLocal[i], songs: [...(curLocal[i].songs || []), song] };
         } else {
-          curLocal.push({ id: albumId, title: albums.find(a=>a.id===albumId)?.title || albumId, songs: [song] });
+          curLocal.push({ id: albumId, title: albums.find(a => a.id === albumId)?.title || albumId, songs: [song] });
         }
         persistLocal(curLocal);
         setLocal(curLocal);
@@ -404,6 +430,7 @@ export default function Music() {
     setLocal(updatedLocal);
     persistLocal(updatedLocal);
 
+    const isDefault = (defaultAlbums || []).some((a) => a.id === albumId);
     const ds = loadDeleted();
     const newDeleted = { ...ds, albums: ds.albums.includes(albumId) ? ds.albums : [...ds.albums, albumId] };
     setDeleted(newDeleted);
@@ -458,7 +485,7 @@ export default function Music() {
     const tmp = arr[i];
     arr[i] = arr[j];
     arr[j] = tmp;
-    const newLocal = [...(local || []).filter(a=>a.id!==albumId), { id: albumId, title: mergedAlb.title, year: mergedAlb.year, cover: mergedAlb.cover, songs: arr }];
+    const newLocal = [...(local || []).filter(a => a.id !== albumId), { id: albumId, title: mergedAlb.title, year: mergedAlb.year, cover: mergedAlb.cover, songs: arr }];
     setLocal(newLocal);
     persistLocal(newLocal);
   }
@@ -488,11 +515,18 @@ export default function Music() {
       const newLocal = [...(local || []).filter(a=>a.id!==albumId), { id: albumId, title: mergedAlb.title, year: mergedAlb.year, cover: mergedAlb.cover, songs: arr }];
       setLocal(newLocal);
       persistLocal(newLocal);
-    } catch (err) {}
+    } catch (err) {
+      // ignore
+    }
   }
 
+  // Import/Export
   function exportAll() {
-    const payload = { local: local || [], deleted: deleted || { albums: [], songs: {} }, timestamp: new Date().toISOString() };
+    const payload = {
+      local: local || [],
+      deleted: deleted || { albums: [], songs: {} },
+      timestamp: new Date().toISOString(),
+    };
     downloadJSON(`music-export-${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`, payload);
   }
 
@@ -516,17 +550,42 @@ export default function Music() {
     }
   }
 
+  // album editing (title/year)
+  function startAlbumEdit(albumId) {
+    const alb = albums.find((a) => a.id === albumId) || { id: albumId, title: "Untitled", year: new Date().getFullYear() };
+    setEditingAlbum({ albumId: alb.id, title: alb.title || "", year: alb.year || new Date().getFullYear() });
+  }
+
+  function saveAlbumEdits() {
+    if (!editingAlbum) return;
+    const { albumId, title, year } = editingAlbum;
+    const updatedLocal = [...(local || [])];
+    const idx = updatedLocal.findIndex((a) => a.id === albumId);
+    if (idx >= 0) {
+      updatedLocal[idx] = { ...updatedLocal[idx], title, year };
+    } else {
+      const merged = albums.find((a) => a.id === albumId) || { id: albumId, songs: [] };
+      updatedLocal.push({ id: albumId, title, year, cover: merged.cover || "", songs: merged.songs || [] });
+    }
+    setLocal(updatedLocal);
+    persistLocal(updatedLocal);
+    setEditingAlbum(null);
+    setToast({ message: "Album saved", actionLabel: null, action: null });
+    setTimeout(() => setToast(null), 1200);
+  }
+
+  // edit song entry point
   function startEditing(albumId, songId) {
     const alb = albums.find((a) => a.id === albumId);
     const song = alb?.songs?.find((s) => s.id === songId) || null;
     if (!song) return;
-    setEditing({ albumId, songId, isNew: false });
+    setEditingSong({ albumId, songId, isNew: false });
     openStoryPanel(song, false);
   }
 
   async function handleFileUpload(albumId, songId, file) {
     if (!file) return;
-    const idKey = await storeUploadGetId(file);
+    const idKey = await storeUploadGetId(file); // returns key like music_blob:<id>
     const id = idKey.replace("music_blob:", "");
     const mergedAlb = albums.find((a) => a.id === albumId);
     const song = mergedAlb?.songs?.find((s) => s.id === songId);
@@ -535,8 +594,8 @@ export default function Music() {
     saveSongEdits(albumId, updatedSong);
   }
 
+  // Playback render helper & IDBAudio subcomponent
   function renderPlayback(song) {
-    if (!song) return <div className="text-sm text-gray-400">No playable source available</div>;
     if (song.embed) {
       return <div dangerouslySetInnerHTML={{ __html: song.embed }} />;
     }
@@ -558,14 +617,16 @@ export default function Music() {
         const res = await resolveSrcToUrl(src);
         if (mounted) setUrl(res);
       })();
-      return () => { mounted = false; };
+      return () => {
+        mounted = false;
+      };
     }, [src]);
     if (!url) return <div className="text-sm text-gray-400">Loading audio…</div>;
     return <audio controls src={url} className="w-full" />;
   }
 
   /* =========================
-     UI render
+     Render UI
      ========================= */
   return (
     <div className="p-6 md:p-10 max-w-4xl mx-auto text-gray-100">
@@ -581,14 +642,35 @@ export default function Music() {
 
             <label className="px-3 py-2 rounded-md border border-neutral-700 text-sm cursor-pointer hover:bg-neutral-900">
               Import
-              <input type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) importFile(f); e.currentTarget.value = ""; }} className="hidden" />
+              <input
+                type="file"
+                accept="application/json"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) importFile(f);
+                  e.currentTarget.value = "";
+                }}
+                className="hidden"
+              />
             </label>
 
             {editorMode && (
               <>
-                <button onClick={() => createAlbum()} className="px-3 py-2 bg-green-600 rounded hover:bg-green-700 text-sm">+ Album</button>
-                <button onClick={() => createSingle()} className="px-3 py-2 bg-pink-600 rounded hover:bg-pink-700 text-sm">+ Single</button>
-                <button onClick={() => createSong(albums[0]?.id || (local && local[0]?.id) || null)} className="px-3 py-2 bg-blue-600 rounded hover:bg-blue-700 text-sm">+ Song</button>
+                <button onClick={() => createAlbum("Untitled Album")} className="px-3 py-2 bg-green-600 rounded hover:bg-green-700 text-sm">+ Album</button>
+                <button onClick={() => createAlbum("Untitled Single", new Date().getFullYear(), true)} className="px-3 py-2 bg-pink-600 rounded hover:bg-pink-700 text-sm">+ Single</button>
+                <button onClick={() => {
+                  // global add song: if there are no albums, create an album first
+                  if (albums.length === 0) {
+                    createAlbum("Untitled Album");
+                    setTimeout(() => {
+                      const first = (local || []).slice(-1)[0];
+                      if (first) createSong(first.id);
+                    }, 200);
+                  } else {
+                    // add to first album by default
+                    createSong(albums[0].id);
+                  }
+                }} className="px-3 py-2 bg-blue-600 rounded hover:bg-blue-700 text-sm">+ Song</button>
               </>
             )}
           </div>
@@ -600,15 +682,24 @@ export default function Music() {
       <div className="flex flex-col gap-6">
         {albums.map((album) => (
           <div key={album.id} className="bg-neutral-900/60 backdrop-blur-sm rounded-2xl p-4 shadow-lg">
-            <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleAlbum(album.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") toggleAlbum(album.id); }}>
+            <div
+              className="flex items-center justify-between cursor-pointer"
+              onClick={() => toggleAlbum(album.id)}
+              role="button"
+              tabIndex={0}
+            >
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-pink-500/30 to-violet-500/30 flex items-center justify-center text-sm">
-                  {album.cover ? <img src={album.cover} alt={album.title} className="w-full h-full object-cover rounded-lg" /> : <span className="text-xs opacity-80">{(album.songs||[]).length} tracks</span>}
+                  {album.cover ? (
+                    <img src={album.cover} alt={album.title} className="w-full h-full object-cover rounded-lg" />
+                  ) : (
+                    <span className="text-xs opacity-80">{(album.songs || []).length} tracks</span>
+                  )}
                 </div>
 
                 <div>
                   <div className="font-semibold text-lg">{album.title}</div>
-                  <div className="text-xs opacity-70">{album.year} • { (album.songs||[]).length <= 1 ? 'Single' : 'Album' }</div>
+                  <div className="text-xs opacity-70">{album.year} • {album.single ? "Single" : "Album"}</div>
                 </div>
               </div>
 
@@ -616,7 +707,7 @@ export default function Music() {
                 <div>{openAlbumId === album.id ? "Hide" : "Open"}</div>
                 {editorMode && (
                   <div className="flex items-center gap-2">
-                    <button onClick={(ev) => { ev.stopPropagation(); setEditing({ albumId: album.id, songId: null, isNew: false }); }} className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm">Edit</button>
+                    <button onClick={(ev) => { ev.stopPropagation(); startAlbumEdit(album.id); }} className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm">Edit</button>
 
                     <button onClick={(ev) => { ev.stopPropagation(); createSong(album.id); }} className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm">+ Song</button>
 
@@ -628,7 +719,7 @@ export default function Music() {
 
             <AnimatePresence initial={false}>
               {openAlbumId === album.id && (
-                <motion.div key="songs" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden mt-4">
+                <motion.div key="songs" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden mt-4">
                   <div className="space-y-4">
                     {(album.songs || []).map((song) => (
                       <div key={song.id} className="bg-neutral-800/50 rounded-xl p-3" draggable={editorMode} onDragStart={(e) => onDragStart(e, album.id, song.id)} onDragOver={onDragOver} onDrop={(e) => onDrop(e, album.id, song.id)}>
@@ -641,23 +732,23 @@ export default function Music() {
                             <div className="font-medium">{song.title}</div>
 
                             <div className="flex gap-2 mt-2 flex-wrap">
-                              <button onClick={() => openStoryPanel(song, false)} className="px-3 py-1 rounded-md bg-pink-500/80 hover:bg-pink-500 text-black text-sm font-medium">Story</button>
-
-                              <button onClick={() => openStoryPanel(song, true)} className="px-3 py-1 rounded-md border border-neutral-700 text-sm hover:bg-neutral-800">Lyrics</button>
+                              <button onClick={() => openStoryPanel(song, false)} className="px-3 py-1 rounded-md bg-pink-500/80 text-black text-sm font-medium">Story</button>
+                              <button onClick={() => openStoryPanel(song, true)} className="px-3 py-1 rounded-md border border-neutral-700 text-sm">Lyrics</button>
                             </div>
 
                             {editorMode && (
                               <div className="flex gap-2 mt-3 flex-wrap">
-                                <button onClick={(ev) => { ev.stopPropagation(); startEditing(album.id, song.id); }} className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm">Edit</button>
-                                <button onClick={(ev) => { ev.stopPropagation(); deleteSong(album.id, song.id); }} className="px-2 py-1 bg-red-600 rounded hover:bg-red-700 text-sm">Delete</button>
-                                <button onClick={(ev) => { ev.stopPropagation(); moveSong(album.id, song.id, "up"); }} className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm">▲</button>
-                                <button onClick={(ev) => { ev.stopPropagation(); moveSong(album.id, song.id, "down"); }} className="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-sm">▼</button>
+                                <button onClick={(ev) => { ev.stopPropagation(); startEditing(album.id, song.id); }} className="px-2 py-1 bg-blue-600 rounded text-sm">Edit</button>
+                                <button onClick={(ev) => { ev.stopPropagation(); deleteSong(album.id, song.id); }} className="px-2 py-1 bg-red-600 rounded text-sm">Delete</button>
+                                <button onClick={(ev) => { ev.stopPropagation(); moveSong(album.id, song.id, "up"); }} className="px-2 py-1 bg-gray-700 rounded text-sm">▲</button>
+                                <button onClick={(ev) => { ev.stopPropagation(); moveSong(album.id, song.id, "down"); }} className="px-2 py-1 bg-gray-700 rounded text-sm">▼</button>
                               </div>
                             )}
                           </div>
                         </div>
                       </div>
                     ))}
+                    {(!album.songs || album.songs.length === 0) && <div className="text-sm text-gray-400 p-3">No songs yet.</div>}
                   </div>
                 </motion.div>
               )}
@@ -680,15 +771,16 @@ export default function Music() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {editing ? (
-                    <button onClick={() => { setEditing(null); }} className="px-3 py-1 rounded-md border border-neutral-700 text-sm hover:bg-neutral-900">Close edit</button>
+                  {editingSong ? (
+                    <button onClick={() => setEditingSong(null)} className="px-3 py-1 rounded-md border border-neutral-700 text-sm">Close edit</button>
                   ) : (
-                    editorMode && (
-                      <button onClick={() => { const album = albums.find((a) => (a.songs||[]).some((s) => s.id === activeSong.id)); if (album) startEditing(album.id, activeSong.id); }} className="px-3 py-1 rounded-md border border-neutral-700 text-sm hover:bg-neutral-900">Edit</button>
-                    )
+                    editorMode && <button onClick={() => {
+                      const album = albums.find((a) => (a.songs || []).some((s) => s.id === activeSong.id));
+                      if (album) startEditing(album.id, activeSong.id);
+                    }} className="px-3 py-1 rounded-md border border-neutral-700 text-sm">Edit</button>
                   )}
 
-                  <button onClick={() => setShowLyrics((s) => !s)} className="px-3 py-1 rounded-md border border-neutral-700 text-sm hover:bg-neutral-900">{showLyrics ? "Hide lyrics" : "Show lyrics"}</button>
+                  <button onClick={() => setShowLyrics((s) => !s)} className="px-3 py-1 rounded-md border border-neutral-700 text-sm">{showLyrics ? "Hide lyrics" : "Show lyrics"}</button>
 
                   <button onClick={closeStoryPanel} aria-label="Close story panel" className="p-2 rounded-md hover:bg-neutral-900">✕</button>
                 </div>
@@ -699,27 +791,28 @@ export default function Music() {
                   {renderPlayback(activeSong)}
                 </div>
 
-                {editing && editing.songId === activeSong.id ? (
-                  <EditSongForm albumId={editing.albumId} song={activeSong} onSave={async (updated) => {
-                    if (updated._uploadFile instanceof File) {
-                      const key = await storeUploadGetId(updated._uploadFile);
-                      const id = key.replace("music_blob:", "");
-                      updated = { ...updated, src: `idb://${id}`, embed: "" };
-                      delete updated._uploadFile;
-                    }
-                    saveSongEdits(editing.albumId, updated);
-                    setActiveSong(updated);
-                    setEditing(null);
-                  }} onCancel={() => { setEditing(null); }} onUploadFile={handleFileUpload} />
+                {editingSong && editingSong.songId === activeSong.id ? (
+                  <EditSongForm
+                    albumId={editingSong.albumId}
+                    song={activeSong}
+                    onSave={async (updated) => {
+                      if (updated._uploadFile instanceof File) {
+                        const key = await storeUploadGetId(updated._uploadFile);
+                        const id = key.replace("music_blob:", "");
+                        updated = { ...updated, src: `idb://${id}`, embed: "" };
+                        delete updated._uploadFile;
+                      }
+                      saveSongEdits(editingSong.albumId, updated);
+                      setActiveSong(updated);
+                      setEditingSong(null);
+                    }}
+                    onCancel={() => setEditingSong(null)}
+                    onUploadFile={handleFileUpload}
+                  />
                 ) : (
                   <>
-                    {!showLyrics && (
-                      <div className="prose prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">{activeSong.story}</div>
-                    )}
-
-                    {showLyrics && (
-                      <div className="bg-neutral-900/40 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap">{activeSong.lyrics || "Lyrics not available."}</div>
-                    )}
+                    {!showLyrics && <div className="prose prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">{activeSong.story}</div>}
+                    {showLyrics && <div className="bg-neutral-900/40 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap">{activeSong.lyrics || "Lyrics not available."}</div>}
                   </>
                 )}
               </div>
@@ -728,13 +821,32 @@ export default function Music() {
         )}
       </AnimatePresence>
 
+      {/* ALBUM EDIT MODAL (inline) */}
+      <AnimatePresence>
+        {editingAlbum && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} exit={{ opacity: 0 }} onClick={() => setEditingAlbum(null)} className="fixed inset-0 bg-black z-40" />
+            <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} className="fixed z-50 right-4 top-20 w-96 bg-neutral-900/95 border border-neutral-800 rounded p-4">
+              <div className="text-sm text-gray-300 mb-2">Edit Album</div>
+              <input className="w-full p-2 bg-gray-900 border border-neutral-800 rounded mb-2" value={editingAlbum.title} onChange={(e) => setEditingAlbum({ ...editingAlbum, title: e.target.value })} />
+              <input className="w-full p-2 bg-gray-900 border border-neutral-800 rounded mb-2" type="number" value={editingAlbum.year} onChange={(e) => setEditingAlbum({ ...editingAlbum, year: Number(e.target.value) })} />
+              <div className="flex gap-2">
+                <button onClick={saveAlbumEdits} className="px-3 py-2 bg-green-600 rounded">Save</button>
+                <button onClick={() => setEditingAlbum(null)} className="px-3 py-2 bg-gray-800 rounded">Cancel</button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Toast */}
       <div className="fixed bottom-6 right-6 z-50">
         <AnimatePresence>
           {toast && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="bg-neutral-900/95 border border-neutral-800 p-3 rounded-md shadow">
               <div className="flex items-center gap-4">
                 <div className="text-sm">{toast.message}</div>
-                {toast.actionLabel && (<button onClick={() => { toast.action && toast.action(); setToast(null); }} className="px-2 py-1 bg-blue-600 rounded text-xs">{toast.actionLabel}</button>)}
+                {toast.actionLabel && <button onClick={() => { toast.action && toast.action(); setToast(null); }} className="px-2 py-1 bg-blue-600 rounded text-xs">{toast.actionLabel}</button>}
                 <button onClick={() => setToast(null)} className="px-2 py-1 text-xs opacity-60">✕</button>
               </div>
             </motion.div>
@@ -746,7 +858,7 @@ export default function Music() {
 }
 
 /* =========================
-   EditSongForm component
+   EditSongForm component (used in side panel)
    ========================= */
 function EditSongForm({ albumId, song, onSave, onCancel, onUploadFile }) {
   const [form, setForm] = useState({ ...song, _uploadFile: null });
@@ -761,7 +873,12 @@ function EditSongForm({ albumId, song, onSave, onCancel, onUploadFile }) {
       <textarea value={form.embed || ""} onChange={(e) => setForm({ ...form, embed: e.target.value })} rows={3} className="w-full p-2 bg-gray-900 border border-neutral-800 rounded" />
 
       <div className="text-xs text-gray-400">Or upload an audio file (mp3, m4a):</div>
-      <input type="file" accept="audio/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setForm({ ...form, _uploadFile: f, src: "" }); } }} />
+      <input type="file" accept="audio/*" onChange={(e) => {
+        const f = e.target.files?.[0];
+        if (f) {
+          setForm({ ...form, _uploadFile: f, src: "" });
+        }
+      }} />
 
       <label className="block text-xs text-gray-400">Story</label>
       <textarea value={form.story || ""} onChange={(e) => setForm({ ...form, story: e.target.value })} rows={6} className="w-full p-2 bg-gray-900 border border-neutral-800 rounded" />
