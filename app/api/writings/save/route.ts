@@ -44,6 +44,8 @@ async function putFileToGitHub(updatedJson: any, previousSha: string | null) {
     ...(previousSha ? { sha: previousSha } : {}),
   };
 
+  console.log("GitHub PUT body:", JSON.stringify(body, null, 2));
+
   const res = await fetch(
     `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
     {
@@ -59,6 +61,7 @@ async function putFileToGitHub(updatedJson: any, previousSha: string | null) {
 
   if (!res.ok) {
     const text = await res.text();
+    console.error(`GitHub write failed: ${res.status} ${text}`);
     throw new Error(`GitHub write failed: ${res.status} ${text}`);
   }
 
@@ -89,7 +92,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing type or slug" }, { status: 400 });
     }
 
-    const { json: current, sha } = await getFileFromGitHub();
+    let { json: current, sha } = await getFileFromGitHub();
 
     const list = (current as any)[type] as Array<any> | undefined;
     const arr = Array.isArray(list) ? list : [];
@@ -106,7 +109,17 @@ export async function POST(req: NextRequest) {
       (current as any)[type] = arr;
     }
 
-    await putFileToGitHub(current, sha);
+    try {
+      await putFileToGitHub(current, sha);
+    } catch (err: any) {
+      if (err.message.includes("404")) {
+        // Retry once if SHA is stale
+        const fresh = await getFileFromGitHub();
+        await putFileToGitHub(current, fresh.sha);
+      } else {
+        throw err;
+      }
+    }
 
     await triggerDeploy();
 
