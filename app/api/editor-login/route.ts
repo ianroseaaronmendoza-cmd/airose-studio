@@ -9,10 +9,7 @@ export async function POST(req: Request) {
 
     if (!adminPassword || !secret) {
       console.error("Missing ADMIN_PASSWORD or JWT_SECRET in environment");
-      return NextResponse.json(
-        { error: "Server misconfiguration" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
     }
 
     if (password !== adminPassword) {
@@ -21,22 +18,19 @@ export async function POST(req: Request) {
 
     const token = jwt.sign({ role: "admin" }, secret, { expiresIn: "999y" });
 
-    const response = NextResponse.json({ success: true });
+    const res = NextResponse.json({ success: true });
 
-    // Set HttpOnly cookie with token
-    response.cookies.set("editor_token", token, {
+    res.cookies.set("editor_token", token, {
       httpOnly: true,
-      path: "/",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 365 * 10, // 10 years
       sameSite: "lax",
+      secure: process.env.NODE_ENV === "production", // true in prod, false in dev
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365 * 10, // 10 years
     });
 
-    return response;
+    return res;
   } catch (err) {
     console.error("Editor login failed:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
-
-
