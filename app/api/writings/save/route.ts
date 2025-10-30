@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const OWNER = "ianroseaaaronmendoza-cmd";
+const OWNER = "ianroseaaronmendoza-cmd";
 const REPO = "airose-studio";
 const BRANCH = "main";
 const FILE_PATH = "data/writings.json";
