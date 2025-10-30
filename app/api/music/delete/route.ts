@@ -1,67 +1,39 @@
 import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
+
+const musicPath = path.join(process.cwd(), "data", "music.json");
 
 export async function POST(req: Request) {
   try {
-    const { albumId, songId, singleId } = await req.json();
-    const token = process.env.GITHUB_PAT;
-    const repo = "ianroseaaronmendoza-cmd/airose-studio";
-    const path = "data/music.json";
+    const { albumId, songId } = await req.json();
 
-    if (!token) return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
-
-    // fetch current
-    const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error("Fetch current failed:", txt);
-      return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
+    if (!fs.existsSync(musicPath)) {
+      return NextResponse.json({ success: false, message: "No music file found." });
     }
-    const json = await res.json();
-    const current = JSON.parse(Buffer.from(json.content, "base64").toString("utf-8"));
-    let albums = current.albums || [];
-    let singles = current.singles || [];
 
-    if (singleId) {
-      // delete single (our unified structure keeps singles as type 'single' inside albums array)
-      albums = albums.filter((a: any) => a.id !== singleId);
-    } else if (albumId && songId) {
+    const data = JSON.parse(fs.readFileSync(musicPath, "utf-8"));
+    let albums = data.albums || [];
+
+    if (albumId && songId) {
+      // delete song
       albums = albums.map((a: any) =>
-        a.id === albumId ? { ...a, songs: (a.songs || []).filter((s: any) => s.id !== songId) } : a
+        a.id === albumId
+          ? { ...a, songs: a.songs.filter((s: any) => s.id !== songId) }
+          : a
       );
     } else if (albumId) {
+      // delete album
       albums = albums.filter((a: any) => a.id !== albumId);
     } else {
-      return NextResponse.json({ error: "Nothing to delete" }, { status: 400 });
+      return NextResponse.json({ success: false, message: "Invalid parameters." });
     }
 
-    const newData = JSON.stringify({ albums, singles }, null, 2);
-    const encoded = Buffer.from(newData).toString("base64");
+    fs.writeFileSync(musicPath, JSON.stringify({ albums }, null, 2), "utf-8");
 
-    const update = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: singleId ? `Delete single ${singleId}` : songId ? `Delete song ${songId}` : `Delete album ${albumId}`,
-        content: encoded,
-        sha: json.sha,
-      }),
-    });
-
-    if (!update.ok) {
-      const err = await update.text();
-      console.error("GitHub update failed:", err);
-      return NextResponse.json({ error: "GitHub update failed" }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("Music delete error:", err);
-    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
+    return NextResponse.json({ success: true, message: "Item deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting music data:", error);
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
 }

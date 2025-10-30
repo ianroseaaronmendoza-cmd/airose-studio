@@ -1,22 +1,21 @@
 import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
 export async function GET() {
   try {
-    const repo = "ianroseaaronmendoza-cmd/airose-studio";
-    const path = "data/music.json";
+    const musicPath = path.join(process.cwd(), "data", "music.json");
 
-    const res = await fetch(`https://raw.githubusercontent.com/${repo}/main/${path}`, { cache: "no-store" });
-
-    if (!res.ok) {
-      console.warn("Music load fetch failed:", res.status);
-      // If remote missing, return empty base
+    if (!fs.existsSync(musicPath)) {
       return NextResponse.json({ albums: [] });
     }
 
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch (err) {
-    console.error("Music load error:", err);
+    const data = fs.readFileSync(musicPath, "utf-8");
+    const json = JSON.parse(data);
+
+    return NextResponse.json(json);
+  } catch (error) {
+    console.error("Error loading music data:", error);
     return NextResponse.json({ albums: [] }, { status: 500 });
   }
 }
