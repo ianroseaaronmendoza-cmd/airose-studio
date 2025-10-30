@@ -11,6 +11,7 @@ export function middleware(req: NextRequest) {
     "/editor-login",
     "/api/editor-login",
     "/api/auth",
+    "/api/writings/save",  // <-- added this line
     "/favicon.ico",
   ]);
 
