@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// CONFIG — update these two values to match your repo and branch
 const OWNER = "ianroseaaaronmendoza-cmd"; // your GitHub username/org
 const REPO = "airose-studio";             // repo name
-const BRANCH = "main";                     // branch to commit to
-const FILE_PATH = "data/writings.json";    // the file we will update
+const BRANCH = "main";                    // branch to commit to
+const FILE_PATH = "data/writings.json";  // file path in repo
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Helper: fetch a file (blob) and its sha from GitHub
+// Fetch file content and SHA from GitHub
 async function getFileFromGitHub() {
   const res = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FILE_PATH)}?ref=${BRANCH}`,
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}?ref=${BRANCH}`,
     {
       headers: {
         Authorization: `Bearer ${process.env.GITHUB_PAT}`,
@@ -28,7 +27,8 @@ async function getFileFromGitHub() {
   }
 
   if (!res.ok) {
-    throw new Error(`GitHub read failed: ${res.status} ${await res.text()}`);
+    const text = await res.text();
+    throw new Error(`GitHub read failed: ${res.status} ${text}`);
   }
 
   const data = await res.json();
@@ -37,18 +37,18 @@ async function getFileFromGitHub() {
   return { json, sha: data.sha as string };
 }
 
-// Helper: commit a new version of the file
+// Commit updated file to GitHub
 async function putFileToGitHub(updatedJson: any, previousSha: string | null) {
   const message = `chore(content): update ${FILE_PATH} via editor`;
   const body = {
     message,
     content: Buffer.from(JSON.stringify(updatedJson, null, 2)).toString("base64"),
     branch: BRANCH,
-    ...(previousSha ? { sha: previousSha } : {}),
+    ...(previousSha ? { sha: previousSha } : {}), // omit sha if creating new file
   };
 
   const res = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FILE_PATH)}`,
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
     {
       method: "PUT",
       headers: {
@@ -61,30 +61,27 @@ async function putFileToGitHub(updatedJson: any, previousSha: string | null) {
   );
 
   if (!res.ok) {
-    throw new Error(`GitHub write failed: ${res.status} ${await res.text()}`);
+    const text = await res.text();
+    throw new Error(`GitHub write failed: ${res.status} ${text}`);
   }
 
   return res.json();
 }
 
-// Helper: trigger Vercel deploy hook
+// Trigger Vercel deploy hook
 async function triggerDeploy() {
   const url = process.env.VERCEL_DEPLOY_HOOK_URL;
-  if (!url) return; // silently skip if not set
+  if (!url) return;
   await fetch(url, { method: "POST" });
 }
 
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.GITHUB_PAT) {
-      return NextResponse.json(
-        { error: "GITHUB_PAT not configured" },
-        { status: 501 }
-      );
+      return NextResponse.json({ error: "GITHUB_PAT not configured" }, { status: 501 });
     }
 
     const body = await req.json();
-    // Expect: { type: "poems" | "blogs" | "novels", slug, title?, content? }
     const { type, slug, title, content } = body as {
       type: "poems" | "blogs" | "novels";
       slug: string;
@@ -99,7 +96,7 @@ export async function POST(req: NextRequest) {
     // 1) Load current JSON from GitHub
     const { json: current, sha } = await getFileFromGitHub();
 
-    // 2) Apply mutation
+    // 2) Update or add item
     const list = (current as any)[type] as Array<any> | undefined;
     const arr = Array.isArray(list) ? list : [];
     const idx = arr.findIndex((i) => i.slug === slug);
@@ -115,15 +112,15 @@ export async function POST(req: NextRequest) {
       (current as any)[type] = arr;
     }
 
-    // 3) Commit file back to GitHub
+    // 3) Commit updated file to GitHub
     await putFileToGitHub(current, sha);
 
-    // 4) Trigger deploy
+    // 4) Trigger Vercel deploy
     await triggerDeploy();
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error(err);
+    console.error("Save error:", err);
     return NextResponse.json({ error: err.message ?? "Save failed" }, { status: 500 });
   }
 }
