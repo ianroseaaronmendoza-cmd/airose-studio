@@ -14,18 +14,25 @@ export async function POST(req: Request) {
 
     const path = "data/music.json";
 
-    // 1️⃣ Get current file SHA (needed to update existing file)
-    const getRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-    });
-    const getJson = await getRes.json();
-    const sha = getJson.sha || null;
+    // Step 1: Try to fetch existing file to get SHA
+    let sha: string | null = null;
+    const getRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
+      { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
+    );
 
-    // 2️⃣ Create commit payload
+    if (getRes.ok) {
+      const getJson = await getRes.json();
+      sha = getJson.sha || null;
+    } else {
+      console.log("No existing music.json found — will create new file");
+    }
+
+    // Step 2: Prepare commit payload
     const newContent = JSON.stringify({ albums }, null, 2);
     const b64 = Buffer.from(newContent).toString("base64");
 
-    // 3️⃣ PUT to GitHub (commit)
+    // Step 3: Commit to GitHub
     const putRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
       method: "PUT",
       headers: {
@@ -33,10 +40,10 @@ export async function POST(req: Request) {
         Accept: "application/vnd.github+json",
       },
       body: JSON.stringify({
-        message: `Update music.json (${new Date().toISOString()})`,
+        message: `Save music.json (${new Date().toISOString()})`,
         content: b64,
-        sha,
         branch,
+        ...(sha ? { sha } : {}), // include sha only if updating
       }),
     });
 
