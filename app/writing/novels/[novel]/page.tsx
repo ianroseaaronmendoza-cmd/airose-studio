@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEditor } from "@/context/EditorContext";
+import { useEditor } from "@\/app\/context\/EditorContext";
 import { novels as initialNovels } from "@/data/writings";
 import BackButton from "@/components/BackButton";
 

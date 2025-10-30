@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import { useEditor } from "@\/app\/context\/EditorContext";
@@ -85,4 +85,6 @@ export default function BlogsClient() {
     </main>
   );
 }
+
+
 

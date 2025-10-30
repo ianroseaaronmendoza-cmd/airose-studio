@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import "./globals.css";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { EditorProvider, useEditor } from "@\/app\/context\/EditorContext";
 
 /**
- * Root Layout â€” provides EditorContext to the whole app
+ * Root Layout — provides EditorContext to the whole app
  */
 export default function RootLayout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {!isAuthPage && (
             <footer className="border-t border-gray-800 py-8 mt-8 text-center bg-[#0a0a0a]">
               <p className="text-sm text-gray-400">
-                Â© 2025 Airose Studio by Airose Official | Soli Deo Gloria
+                © 2025 Airose Studio by Airose Official | Soli Deo Gloria
               </p>
 
               <div className="mt-4 flex justify-center gap-6 text-sm">
@@ -207,7 +207,7 @@ function Header({
                     aria-label="Close menu"
                     className="p-2 rounded-md hover:bg-neutral-900"
                   >
-                    âœ•
+                    ✕
                   </button>
                 </div>
 
@@ -298,4 +298,6 @@ function NavLinks({
     </>
   );
 }
+
+
 

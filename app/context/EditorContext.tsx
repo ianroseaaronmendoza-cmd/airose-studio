@@ -1,4 +1,4 @@
-﻿// app/context/EditorContext.tsx
+// app/context/EditorContext.tsx
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -129,4 +129,6 @@ export function useEditor() {
   if (!ctx) throw new Error("useEditor must be used within EditorProvider");
   return ctx;
 }
+
+
 

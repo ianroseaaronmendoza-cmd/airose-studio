@@ -1,4 +1,4 @@
-﻿// app/(auth)/editor-login/page.tsx
+// app/(auth)/editor-login/page.tsx
 "use client";
 
 import React from "react";
@@ -70,4 +70,6 @@ export default function EditorLoginPage() {
     </div>
   );
 }
+
+
 

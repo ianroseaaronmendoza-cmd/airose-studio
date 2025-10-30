@@ -1,4 +1,4 @@
-﻿// File: app/support/page.tsx
+// File: app/support/page.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -56,8 +56,8 @@ function SupportHero() {
             Support Airose Studio
           </h1>
           <p className="mt-3 text-slate-300">
-            Your support keeps the Airose tools alive â€” from small fixes to new
-            creative features. Whether youâ€™d like to contribute, collab, or send
+            Your support keeps the Airose tools alive — from small fixes to new
+            creative features. Whether you’d like to contribute, collab, or send
             ideas, this page is our two-way bridge.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
@@ -65,13 +65,13 @@ function SupportHero() {
               href="#donate"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-600 text-white font-medium shadow-lg transform transition hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-pink-400"
             >
-              Donate â¤ï¸
+              Donate ❤️
             </a>
             <a
               href="#contact"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-slate-100 hover:bg-white/3 transition"
             >
-              Contact ðŸ¤
+              Contact 🤝
             </a>
           </div>
         </div>
@@ -79,7 +79,7 @@ function SupportHero() {
         <div className="w-full lg:w-72 h-40 rounded-xl bg-gradient-to-tr from-white/3 to-white/2 border border-white/5 p-4 flex items-center justify-center">
           <div className="text-center">
             <p className="text-sm text-slate-300">Current focus</p>
-            <p className="mt-2 font-medium">Stability Â· UX Â· New features</p>
+            <p className="mt-2 font-medium">Stability · UX · New features</p>
             <p className="mt-2 text-xs text-slate-400">Airose Official</p>
           </div>
         </div>
@@ -96,14 +96,14 @@ function DonationCards() {
     <section id="donate" className="space-y-6 animate-fadeUp">
       <h2 className="text-2xl font-semibold">Support Airose</h2>
       <p className="text-slate-300">
-        Small contributions help keep development moving â€” bug fixes, hosting,
+        Small contributions help keep development moving — bug fixes, hosting,
         and new experiments. Pick a method that works for you.
       </p>
 
       <div className="grid sm:grid-cols-3 gap-4">
         <DonationCard
           title="Ko-fi"
-          desc="One-time or monthly tips â€” quick and friendly."
+          desc="One-time or monthly tips — quick and friendly."
           href="https://ko-fi.com/airoseofficial"
           cta="Support on Ko-fi"
         />
@@ -117,7 +117,7 @@ function DonationCards() {
 
         <DonationCard
           title="GCash (Philippines)"
-          desc="Local mobile payment â€” tap to view QR."
+          desc="Local mobile payment — tap to view QR."
           href="#gcash"
           cta="Show GCash QR"
           isGcash
@@ -126,7 +126,7 @@ function DonationCards() {
 
       <p className="text-xs text-slate-500 mt-2">
         Tip: if you prefer a different method (bank transfer, crypto), mention it
-        in the contact form and weâ€™ll arrange details.
+        in the contact form and we’ll arrange details.
       </p>
     </section>
   );
@@ -213,7 +213,7 @@ function GcashQrModal({ onClose }: { onClose: () => void }) {
             className="text-slate-300 hover:text-white ml-auto"
             aria-label="Close"
           >
-            âœ•
+            ✕
           </button>
         </div>
 
@@ -226,7 +226,7 @@ function GcashQrModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="mt-4 text-sm text-slate-400">
-          <p>Tip: Open your GCash app and scan this QR to send a donation. If you prefer, include your message or contact details after sending and Iâ€™ll reply via email.</p>
+          <p>Tip: Open your GCash app and scan this QR to send a donation. If you prefer, include your message or contact details after sending and I’ll reply via email.</p>
         </div>
 
         <div className="mt-4 flex justify-end">
@@ -251,7 +251,7 @@ function SupportFormCard() {
       <h2 className="text-2xl font-semibold">Get in touch</h2>
       <p className="text-slate-300 mt-2">
         Send inquiries, collaboration invites, commissions, suggestions, or report issues.
-        Weâ€™ll respond as soon as possible.
+        We’ll respond as soon as possible.
       </p>
 
       <SupportForm />
@@ -371,7 +371,7 @@ function SupportForm() {
           onClick={() => {
             // quick prefill suggestion template
             setMessage(
-              `Hello â€” I'd like to discuss a collaboration. Briefly:\n\n- Project / Org:\n- What I'm proposing:\n- Best contact:\n`
+              `Hello — I'd like to discuss a collaboration. Briefly:\n\n- Project / Org:\n- What I'm proposing:\n- Best contact:\n`
             );
           }}
           className="text-sm px-3 py-2 rounded-lg border border-white/6"
@@ -380,13 +380,13 @@ function SupportForm() {
         </button>
 
         <div className="ml-auto text-sm text-slate-400">
-          {sent && <span className="text-green-400">Opened mail client â€” please send.</span>}
+          {sent && <span className="text-green-400">Opened mail client — please send.</span>}
           {error && <span className="text-pink-400">{error}</span>}
         </div>
       </div>
 
       <p className="text-xs text-slate-500">
-        Note: For file uploads (logs/screenshots), please include a link (e.g. Dropbox, GDrive) in your message, or tell me and Iâ€™ll add server-side upload support.
+        Note: For file uploads (logs/screenshots), please include a link (e.g. Dropbox, GDrive) in your message, or tell me and I’ll add server-side upload support.
       </p>
     </form>
   );
@@ -403,7 +403,7 @@ function OtherWays() {
         <ul className="mt-3 text-slate-300 space-y-2 list-inside list-disc">
           <li>Star the public repo(s) on GitHub and open issues to report bugs.</li>
           <li>Share Airose tools with friends, forums, or social media.</li>
-          <li>Provide feedback â€” your use cases guide priorities.</li>
+          <li>Provide feedback — your use cases guide priorities.</li>
         </ul>
       </div>
     </section>
@@ -411,7 +411,7 @@ function OtherWays() {
 }
 
 /* -------------------------
-   Outro (Option B â€” standalone)
+   Outro (Option B — standalone)
    ------------------------- */
 
 function OutroSection() {
@@ -442,13 +442,13 @@ function OutroSection() {
       <div className="max-w-4xl mx-auto text-center px-6">
         <div className="rounded-3xl p-10 bg-gradient-to-tr from-[#0b0510]/60 to-[#1b0b1f]/40 border border-white/6 backdrop-blur-md shadow-xl">
           <p className="text-xl sm:text-2xl leading-relaxed text-slate-100">
-            <strong className="block mb-3">â€œAirose Studio is not just a website â€” itâ€™s where creativity finds harmony.</strong>
+            <strong className="block mb-3">“Airose Studio is not just a website — it’s where creativity finds harmony.</strong>
             <span className="block text-slate-300 mt-2">
               Your support keeps every project alive, one spark at a time.
             </span>
           </p>
 
-          <p className="mt-6 text-sm text-slate-400 italic">â€” <span className="not-italic">Airose Official</span></p>
+          <p className="mt-6 text-sm text-slate-400 italic">— <span className="not-italic">Airose Official</span></p>
         </div>
       </div>
     </section>
@@ -476,4 +476,6 @@ if (typeof document !== "undefined") {
     document.head.appendChild(tag);
   }
 }
+
+
 

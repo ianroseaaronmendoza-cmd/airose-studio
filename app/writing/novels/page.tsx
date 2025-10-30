@@ -1,4 +1,4 @@
-﻿// âœ… Server wrapper for /writing/novels
+// ✅ Server wrapper for /writing/novels
 import NovelsClient from "./_client/page";
 
 // Always dynamic to force lambda creation
@@ -13,5 +13,7 @@ export const runtime = "nodejs";
 export default function NovelsPageWrapper() {
   return <NovelsClient />;
 }
+
+
 
 
