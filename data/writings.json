@@ -1,11 +1,5 @@
 {
-  "poems": [
-    {
-      "slug": "test-poem",
-      "title": "asdasd",
-      "content": "asdasdasdas"
-    }
-  ],
+  "poems": [],
   "blogs": [],
   "novels": []
 }
