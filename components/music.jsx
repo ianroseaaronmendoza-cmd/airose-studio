@@ -6,16 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEditor } from "@/app/context/EditorContext";
 
 /**
- * components/music.jsx (updated)
+ * components/music.jsx (Final — Manual GitHub Sync Edition)
  *
- * - Loads default data from /data/music.json for public view.
- * - Editor mode uses localStorage overrides + tombstone deleted map.
- * - Adds album title editing.
- * - Keeps side panel / story UI, upload via IndexedDB, import/export, undo.
- *
- * Notes:
- * - This file intentionally uses client-side features (localStorage, indexedDB).
- * - If you later want server persistence, we can add API routes that commit to data/music.json.
+ * - Manual "Sync Now" button (editor mode) to POST albums -> /api/music/save
+ * - Success/failure toast feedback
+ * - Public view loads from /data/music.json
+ * - Editor mode keeps localStorage overrides and tombstones
+ * - All UI / side panel / features preserved
  */
 
 /* =========================
@@ -191,6 +188,7 @@ export default function Music() {
   const [editingSong, setEditingSong] = useState(null); // { albumId, songId, isNew }
   const [editingAlbum, setEditingAlbum] = useState(null); // { albumId, title, year }
   const [toast, setToast] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const undoRef = useRef(null);
   const idbUrlsRef = useRef({});
 
@@ -306,6 +304,35 @@ export default function Music() {
     }
   }
 
+  // Manual sync helper (calls your /api/music/save route)
+  async function syncToServer(albumsData) {
+    try {
+      setIsSyncing(true);
+      const res = await fetch("/api/music/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ albums: albumsData }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        const err = json?.error || "Sync failed";
+        setToast({ message: `Sync failed: ${err}`, actionLabel: null, action: null });
+        setTimeout(() => setToast(null), 4000);
+        console.warn("Server sync failed:", json);
+      } else {
+        setToast({ message: "✅ Music synced to GitHub", actionLabel: null, action: null });
+        setTimeout(() => setToast(null), 3000);
+        console.log("✅ Synced to GitHub");
+      }
+    } catch (err) {
+      console.warn("Server sync failed:", err);
+      setToast({ message: `Sync failed: ${err?.message || err}`, actionLabel: null, action: null });
+      setTimeout(() => setToast(null), 4000);
+    } finally {
+      setIsSyncing(false);
+    }
+  }
+
   // CRUD operations (local first)
   function createAlbum(title = "Untitled Album", year = new Date().getFullYear(), isSingle = false) {
     const newAlbum = { id: `alb-${uid("")}`, title, year, cover: "", songs: [], single: !!isSingle };
@@ -350,7 +377,6 @@ export default function Music() {
     persistLocal(updatedLocal);
     setToast({ message: "Saved", actionLabel: null, action: null });
     setEditingSong(null);
-    // keep panel open and show updated content
     setActiveSong(song);
   }
 
@@ -671,6 +697,15 @@ export default function Music() {
                     createSong(albums[0].id);
                   }
                 }} className="px-3 py-2 bg-blue-600 rounded hover:bg-blue-700 text-sm">+ Song</button>
+
+                {/* Sync Now — manual commit to GitHub */}
+                <button
+                  onClick={() => syncToServer(albums)}
+                  disabled={isSyncing}
+                  className={`px-3 py-2 rounded-md text-sm ${isSyncing ? "bg-yellow-700 opacity-80" : "bg-yellow-600 hover:bg-yellow-700"}`}
+                >
+                  {isSyncing ? "Syncing…" : "Sync Now"}
+                </button>
               </>
             )}
           </div>
@@ -893,15 +928,4 @@ function EditSongForm({ albumId, song, onSave, onCancel, onUploadFile }) {
       </div>
     </div>
   );
-}
-async function syncToServer(albumsData) {
-  try {
-    await fetch("/api/music/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ albums: albumsData }),
-    });
-  } catch (err) {
-    console.warn("Server sync failed:", err);
-  }
 }

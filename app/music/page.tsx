@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import React from "react";
 
+// @ts-expect-error
 // ✅ Proper dynamic import — relative to /components folder
 const Music = dynamic(() => import("../../components/music.jsx").then(mod => mod.default), {
   ssr: false,
