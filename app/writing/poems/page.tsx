@@ -13,14 +13,11 @@ export default function PoemsPage() {
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
   const { editorMode } = useEditor();
 
-  // Load poems
   useEffect(() => {
     async function loadPoems() {
       try {
-        setLoading(true);
         const res = await fetch("/api/writings/poems", { cache: "no-store" });
         const json = await res.json();
         setData(json);
@@ -33,7 +30,7 @@ export default function PoemsPage() {
     loadPoems();
   }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError("");
@@ -48,13 +45,11 @@ export default function PoemsPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Save failed");
 
-      // Clear form and hide editor
       setSlug("");
       setTitle("");
       setContent("");
       setShowForm(false);
 
-      // Refresh list
       const updated = await fetch("/api/writings/poems", { cache: "no-store" });
       setData(await updated.json());
     } catch (err: any) {
@@ -72,20 +67,14 @@ export default function PoemsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "poems", slug }),
       });
-      if (!res.ok) throw new Error();
 
-      const refresh = await fetch("/api/writings/poems", { cache: "no-store" });
-      setData(await refresh.json());
+      if (!res.ok) throw new Error("Delete failed");
+
+      const updated = await fetch("/api/writings/poems", { cache: "no-store" });
+      setData(await updated.json());
     } catch {
       alert("Error deleting poem");
     }
-  };
-
-  const handleEdit = (poem: any) => {
-    setSlug(poem.slug);
-    setTitle(poem.title);
-    setContent(poem.content);
-    setShowForm(true);
   };
 
   return (
@@ -104,60 +93,57 @@ export default function PoemsPage() {
       )}
 
       {showForm && (
-        <section className="mb-8 rounded-lg border border-gray-700 bg-gray-900/70 p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            Create or Update Poem
-          </h2>
+        <form
+          onSubmit={handleAdd}
+          className="mb-8 rounded-lg border border-gray-700 bg-gray-900/70 p-6 space-y-4"
+        >
+          <input
+            type="text"
+            placeholder="Slug"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            className="w-full bg-gray-800 rounded px-3 py-2 border border-gray-700"
+            required
+          />
 
-          <form onSubmit={handleSave} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Slug"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              className="w-full bg-gray-800 rounded px-3 py-2 border border-gray-700"
-              required
-            />
+          <input
+            type="text"
+            placeholder="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full bg-gray-800 rounded px-3 py-2 border border-gray-700"
+            required
+          />
 
-            <input
-              type="text"
-              placeholder="Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-gray-800 rounded px-3 py-2 border border-gray-700"
-              required
-            />
+          <textarea
+            rows={8}
+            placeholder="Write your poem..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full bg-gray-800 rounded px-3 py-2 border border-gray-700"
+            required
+          />
 
-            <textarea
-              rows={8}
-              placeholder="Write your poem..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="w-full bg-gray-800 rounded px-3 py-2 border border-gray-700"
-              required
-            />
+          {error && <p className="text-red-500">{error}</p>}
 
-            {error && <p className="text-red-500">{error}</p>}
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-6 py-2 bg-pink-600 rounded-md hover:bg-pink-700 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save & Publish"}
+            </button>
 
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-6 py-2 bg-pink-600 rounded-md hover:bg-pink-700 disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save & Publish"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-6 py-2 bg-gray-700 rounded-md hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </section>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="px-6 py-2 bg-gray-700 rounded-md hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       )}
 
       <section>
@@ -182,12 +168,11 @@ export default function PoemsPage() {
 
                 {editorMode && (
                   <div className="flex gap-3">
-                    <button
-                      onClick={() => handleEdit(poem)}
-                      className="px-4 py-1 border border-gray-500 rounded hover:bg-gray-800"
-                    >
-                      Edit
-                    </button>
+                    <Link href={`/writing/poems/${poem.slug}`}>
+                      <button className="px-4 py-1 border border-gray-500 rounded hover:bg-gray-800">
+                        Edit
+                      </button>
+                    </Link>
                     <button
                       onClick={() => handleDelete(poem.slug)}
                       className="px-4 py-1 border border-red-600 text-red-400 rounded hover:bg-red-900/40"

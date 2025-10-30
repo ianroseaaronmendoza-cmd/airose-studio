@@ -17,8 +17,9 @@ async function getFileFromGitHub() {
     }
   );
 
-  if (res.status === 404)
+  if (res.status === 404) {
     return { json: { poems: [], blogs: [], novels: [] }, sha: null };
+  }
 
   if (!res.ok) {
     const text = await res.text();
@@ -27,15 +28,16 @@ async function getFileFromGitHub() {
 
   const data = await res.json();
   const content = Buffer.from(data.content, "base64").toString("utf-8");
-  return { json: JSON.parse(content), sha: data.sha as string };
+  const json = JSON.parse(content);
+  return { json, sha: data.sha as string };
 }
 
-async function putFileToGitHub(updatedJson: any, sha: string | null) {
+async function putFileToGitHub(updatedJson: any, previousSha: string | null) {
   const body = {
-    message: `delete from ${FILE_PATH} via Airose Editor`,
+    message: `Delete poem from ${FILE_PATH} via Airose Studio`,
     content: Buffer.from(JSON.stringify(updatedJson, null, 2)).toString("base64"),
     branch: BRANCH,
-    ...(sha ? { sha } : {}),
+    ...(previousSha ? { sha: previousSha } : {}),
   };
 
   const res = await fetch(
@@ -62,22 +64,31 @@ async function putFileToGitHub(updatedJson: any, sha: string | null) {
 export async function POST(req: NextRequest) {
   try {
     const { type, slug } = await req.json();
-    if (!type || !slug)
-      return NextResponse.json({ error: "Missing type or slug" }, { status: 400 });
 
-    // Always get latest SHA
+    if (!type || !slug) {
+      return NextResponse.json({ error: "Missing type or slug" }, { status: 400 });
+    }
+
+    // 1️⃣ Always get the latest file and SHA
     let { json: current, sha } = await getFileFromGitHub();
 
-    const list = Array.isArray(current[type]) ? current[type] : [];
-    const filtered = list.filter((i: any) => i.slug !== slug);
+    if (!current[type]) current[type] = [];
 
-    current[type] = filtered;
+    // 2️⃣ Filter out the deleted poem
+    const before = current[type].length;
+    current[type] = current[type].filter((item: any) => item.slug !== slug);
 
+    // If no change, stop early
+    if (current[type].length === before) {
+      return NextResponse.json({ error: "Poem not found" }, { status: 404 });
+    }
+
+    // 3️⃣ Attempt to write to GitHub
     try {
       await putFileToGitHub(current, sha);
     } catch (err: any) {
+      // Retry once if SHA went stale
       if (err.message.includes("404")) {
-        console.log("Retrying delete with fresh SHA...");
         const fresh = await getFileFromGitHub();
         await putFileToGitHub(current, fresh.sha);
       } else {
@@ -88,6 +99,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error("Delete error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Delete failed" }, { status: 500 });
   }
 }
