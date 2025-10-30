@@ -76,6 +76,8 @@ async function triggerDeploy() {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("Using GitHub PAT:", process.env.GITHUB_PAT ? "Yes" : "No");
+
     if (!process.env.GITHUB_PAT) {
       return NextResponse.json({ error: "GITHUB_PAT not configured" }, { status: 501 });
     }
@@ -93,6 +95,8 @@ export async function POST(req: NextRequest) {
     }
 
     let { json: current, sha } = await getFileFromGitHub();
+
+    console.log("Fetched SHA:", sha);
 
     const list = (current as any)[type] as Array<any> | undefined;
     const arr = Array.isArray(list) ? list : [];
