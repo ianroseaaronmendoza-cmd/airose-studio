@@ -1,135 +1,77 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-const OWNER = "ianroseaaronmendoza-cmd";
-const REPO = "airose-studio";
-const BRANCH = "main";
-const FILE_PATH = "data/writings.json";
+export async function POST(req: Request) {
+  try {
+    const { type, slug, title, content } = await req.json();
+    if (type !== "poems") throw new Error("Invalid type");
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+    const OWNER = process.env.GITHUB_OWNER || "ianroseaaronmendoza-cmd";
+    const REPO = process.env.GITHUB_REPO || "airose-studio";
+    const BRANCH = process.env.GITHUB_BRANCH || "main";
+    const FILE_PATH = process.env.GITHUB_FILE_PATH_WRITING || "data/writings.json";
+    const TOKEN =
+      process.env.GITHUB_PAT_WRITING ||
+      process.env.GITHUB_TOKEN ||
+      process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+    const DEPLOY_HOOK = process.env.VERCEL_DEPLOY_HOOK_URL_WRITING;
 
-async function getFileFromGitHub() {
-  const res = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}?ref=${BRANCH}`,
-    {
+    if (!TOKEN) throw new Error("Missing GitHub token");
+
+    // Fetch existing file
+    const baseUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
+    const getRes = await fetch(`${baseUrl}?ref=${BRANCH}`, {
       headers: {
-        Authorization: `Bearer ${process.env.GITHUB_PAT}`,
+        Authorization: `Bearer ${TOKEN}`,
         Accept: "application/vnd.github+json",
       },
-      cache: "no-store",
-    }
-  );
+    });
+    if (!getRes.ok) throw new Error(`Failed to fetch current writings.json`);
+    const fileJson = await getRes.json();
+    const sha = fileJson.sha;
+    const current = JSON.parse(
+      Buffer.from(fileJson.content, "base64").toString("utf8")
+    );
 
-  if (res.status === 404) {
-    return { json: { poems: [], blogs: [], novels: [] }, sha: null };
-  }
+    // Update or add poem
+    const poems = current.poems || [];
+    const safeSlug =
+      slug?.trim() ||
+      title
+        ?.toLowerCase()
+        .replace(/[^\w]+/g, "-")
+        .replace(/^-+|-+$/g, "");
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GitHub read failed: ${res.status} ${text}`);
-  }
+    const updated = poems.filter((p: any) => p.slug !== safeSlug);
+    updated.push({ slug: safeSlug, title, content });
 
-  const data = await res.json();
-  const content = Buffer.from(data.content, "base64").toString("utf-8");
-  const json = JSON.parse(content);
-  return { json, sha: data.sha as string };
-}
+    const newData = { ...current, poems: updated };
+    const b64 = Buffer.from(JSON.stringify(newData, null, 2)).toString("base64");
 
-async function putFileToGitHub(updatedJson: any, previousSha: string | null) {
-  const message = `chore(content): update ${FILE_PATH} via editor`;
-  const body = {
-    message,
-    content: Buffer.from(JSON.stringify(updatedJson, null, 2)).toString("base64"),
-    branch: BRANCH,
-    ...(previousSha ? { sha: previousSha } : {}),
-  };
-
-  console.log("GitHub PUT body:", JSON.stringify(body, null, 2));
-
-  const res = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
-    {
+    const putRes = await fetch(baseUrl, {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${process.env.GITHUB_PAT}`,
+        Authorization: `Bearer ${TOKEN}`,
         Accept: "application/vnd.github+json",
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
-    }
-  );
+      body: JSON.stringify({
+        message: `Update poem: ${title}`,
+        content: b64,
+        sha,
+        branch: BRANCH,
+      }),
+    });
 
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`GitHub write failed: ${res.status} ${text}`);
-    throw new Error(`GitHub write failed: ${res.status} ${text}`);
-  }
-
-  return res.json();
-}
-
-async function triggerDeploy() {
-  const url = process.env.VERCEL_DEPLOY_HOOK_URL;
-  if (!url) return;
-  await fetch(url, { method: "POST" });
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    console.log("Using GitHub PAT:", process.env.GITHUB_PAT ? "Yes" : "No");
-
-    if (!process.env.GITHUB_PAT) {
-      return NextResponse.json({ error: "GITHUB_PAT not configured" }, { status: 501 });
+    if (!putRes.ok) {
+      const err = await putRes.text();
+      throw new Error(`GitHub PUT failed: ${err}`);
     }
 
-    const body = await req.json();
-    const { type, slug, title, content } = body as {
-      type: "poems" | "blogs" | "novels";
-      slug: string;
-      title?: string;
-      content?: string;
-    };
+    // Optionally trigger a Vercel redeploy
+    if (DEPLOY_HOOK) fetch(DEPLOY_HOOK).catch(() => null);
 
-    if (!type || !slug) {
-      return NextResponse.json({ error: "Missing type or slug" }, { status: 400 });
-    }
-
-    let { json: current, sha } = await getFileFromGitHub();
-
-    console.log("Fetched SHA:", sha);
-
-    const list = (current as any)[type] as Array<any> | undefined;
-    const arr = Array.isArray(list) ? list : [];
-    const idx = arr.findIndex((i) => i.slug === slug);
-
-    if (idx === -1) {
-      (current as any)[type] = [{ slug, title: title ?? "Untitled", content: content ?? "" }, ...arr];
-    } else {
-      arr[idx] = {
-        ...arr[idx],
-        ...(title !== undefined ? { title } : {}),
-        ...(content !== undefined ? { content } : {}),
-      };
-      (current as any)[type] = arr;
-    }
-
-    try {
-      await putFileToGitHub(current, sha);
-    } catch (err: any) {
-      if (err.message.includes("404")) {
-        // Retry once if SHA is stale
-        const fresh = await getFileFromGitHub();
-        await putFileToGitHub(current, fresh.sha);
-      } else {
-        throw err;
-      }
-    }
-
-    await triggerDeploy();
-
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, slug: safeSlug });
   } catch (err: any) {
-    console.error("Save error:", err);
-    return NextResponse.json({ error: err.message ?? "Save failed" }, { status: 500 });
+    console.error("Save poem error:", err);
+    return NextResponse.json({ error: err.message || "Save failed" }, { status: 500 });
   }
 }

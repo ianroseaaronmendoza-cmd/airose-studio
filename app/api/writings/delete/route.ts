@@ -1,104 +1,59 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-const OWNER = "ianroseaaronmendoza-cmd";
-const REPO = "airose-studio";
-const BRANCH = "main";
-const FILE_PATH = "data/writings.json";
-
-async function getFileFromGitHub() {
-  const res = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}?ref=${BRANCH}`,
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.GITHUB_PAT}`,
-        Accept: "application/vnd.github+json",
-        "Cache-Control": "no-cache",
-      },
-    }
-  );
-
-  if (res.status === 404) {
-    return { json: { poems: [], blogs: [], novels: [] }, sha: null };
-  }
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GitHub read failed: ${res.status} ${text}`);
-  }
-
-  const data = await res.json();
-  const content = Buffer.from(data.content, "base64").toString("utf-8");
-  const json = JSON.parse(content);
-  return { json, sha: data.sha as string };
-}
-
-async function putFileToGitHub(updatedJson: any, previousSha: string | null) {
-  const body = {
-    message: `Delete poem from ${FILE_PATH} via Airose Studio`,
-    content: Buffer.from(JSON.stringify(updatedJson, null, 2)).toString("base64"),
-    branch: BRANCH,
-    ...(previousSha ? { sha: previousSha } : {}),
-  };
-
-  const res = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${process.env.GITHUB_PAT}`,
-        Accept: "application/vnd.github+json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    }
-  );
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GitHub write failed: ${res.status} ${text}`);
-  }
-
-  return res.json();
-}
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const { type, slug } = await req.json();
+    if (type !== "poems") throw new Error("Invalid type");
+    if (!slug) throw new Error("Missing slug");
 
-    if (!type || !slug) {
-      return NextResponse.json({ error: "Missing type or slug" }, { status: 400 });
+    const OWNER = process.env.GITHUB_OWNER || "ianroseaaronmendoza-cmd";
+    const REPO = process.env.GITHUB_REPO || "airose-studio";
+    const BRANCH = process.env.GITHUB_BRANCH || "main";
+    const FILE_PATH = process.env.GITHUB_FILE_PATH_WRITING || "data/writings.json";
+    const TOKEN =
+      process.env.GITHUB_PAT_WRITING ||
+      process.env.GITHUB_TOKEN ||
+      process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
+    const DEPLOY_HOOK = process.env.VERCEL_DEPLOY_HOOK_URL_WRITING;
+
+    if (!TOKEN) throw new Error("Missing GitHub token");
+
+    const baseUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
+    const getRes = await fetch(`${baseUrl}?ref=${BRANCH}`, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+    if (!getRes.ok) throw new Error("Failed to fetch current file");
+    const fileJson = await getRes.json();
+    const sha = fileJson.sha;
+    const current = JSON.parse(
+      Buffer.from(fileJson.content, "base64").toString("utf8")
+    );
+
+    const poems = current.poems?.filter((p: any) => p.slug !== slug) || [];
+    const newData = { ...current, poems };
+    const b64 = Buffer.from(JSON.stringify(newData, null, 2)).toString("base64");
+
+    const putRes = await fetch(baseUrl, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${TOKEN}`, Accept: "application/vnd.github+json" },
+      body: JSON.stringify({
+        message: `Delete poem: ${slug}`,
+        content: b64,
+        sha,
+        branch: BRANCH,
+      }),
+    });
+
+    if (!putRes.ok) {
+      const err = await putRes.text();
+      throw new Error(`GitHub PUT failed: ${err}`);
     }
 
-    // 1️⃣ Always get the latest file and SHA
-    let { json: current, sha } = await getFileFromGitHub();
-
-    if (!current[type]) current[type] = [];
-
-    // 2️⃣ Filter out the deleted poem
-    const before = current[type].length;
-    current[type] = current[type].filter((item: any) => item.slug !== slug);
-
-    // If no change, stop early
-    if (current[type].length === before) {
-      return NextResponse.json({ error: "Poem not found" }, { status: 404 });
-    }
-
-    // 3️⃣ Attempt to write to GitHub
-    try {
-      await putFileToGitHub(current, sha);
-    } catch (err: any) {
-      // Retry once if SHA went stale
-      if (err.message.includes("404")) {
-        const fresh = await getFileFromGitHub();
-        await putFileToGitHub(current, fresh.sha);
-      } else {
-        throw err;
-      }
-    }
+    if (DEPLOY_HOOK) fetch(DEPLOY_HOOK).catch(() => null);
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error("Delete error:", err);
+    console.error("Delete poem error:", err);
     return NextResponse.json({ error: err.message || "Delete failed" }, { status: 500 });
   }
 }
