@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import BackButton from "@/components/BackButton";
@@ -9,64 +9,45 @@ interface Poem {
   slug: string;
   title: string;
   content: string;
+  date?: string;
 }
 
-export default function PoemPage() {
-  const { editorMode } = useEditor();
-  const params = useParams() as { slug?: string };
-  const slug = params?.slug ?? "";
+export default function PoemViewPage() {
   const router = useRouter();
+  const params = useParams();
+  const slug = params?.slug as string;
+  const { editorMode } = useEditor();
 
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [poem, setPoem] = useState<Poem | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    async function load() {
+    async function loadPoem() {
       try {
-        if (slug === "new" || !slug) {
-          setTitle("");
-          setContent("");
-          setLoading(false);
-          return;
-        }
-        const res = await fetch("/api/writings/poems", { cache: "no-store" });
-        const json = await res.json();
-        const poem = (json.poems || []).find((p: Poem) => p.slug === slug);
-        if (!poem) {
-          setTitle("Not found");
-          setContent("");
-        } else {
-          setTitle(poem.title);
-          setContent(poem.content);
-        }
-      } catch (e) {
-        console.error(e);
+        const res = await fetch("/api/writings/poems");
+        const data = await res.json();
+        const found = data.poems?.find((p: Poem) => p.slug === slug);
+        setPoem(found || null);
+      } catch (err) {
+        console.error("Failed to fetch poem:", err);
       } finally {
         setLoading(false);
       }
     }
-    load();
+
+    loadPoem();
   }, [slug]);
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/writings/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "poems", slug, title, content }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Save failed");
-      router.push("/writing/poems");
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setSaving(false);
-    }
-  };
+  if (loading)
+    return <p className="text-center text-gray-400 mt-10">Loading poem...</p>;
+
+  if (!poem)
+    return (
+      <div className="text-center text-gray-400 mt-10">
+        <BackButton label="Back to Poems" />
+        <p className="mt-4">Poem not found.</p>
+      </div>
+    );
 
   const handleDelete = async () => {
     if (!confirm("Delete this poem?")) return;
@@ -76,73 +57,47 @@ export default function PoemPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "poems", slug }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Delete failed");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete poem");
       router.push("/writing/poems");
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete poem.");
     }
   };
 
-  if (loading) return <p className="p-6 text-gray-400">Loading poem…</p>;
-
-  if (!editorMode && slug !== "new")
-    return (
-      <div className="max-w-3xl mx-auto px-6 py-6 text-gray-100">
-        <BackButton label="Back to Poems" />
-        <h1 className="text-3xl font-bold mb-4 mt-6">{title}</h1>
-        <pre className="whitespace-pre-wrap text-gray-300">{content}</pre>
-      </div>
-    );
-
   return (
-    <div className="max-w-3xl mx-auto px-6 py-6 text-gray-100">
+    <div className="max-w-3xl mx-auto px-6 py-8 text-gray-100">
       <BackButton label="Back to Poems" />
 
-      <h1 className="text-2xl font-semibold mb-3 mt-6">
-        {slug === "new" ? "Create Poem" : "Edit Poem"}
-      </h1>
+      <h1 className="text-3xl font-bold mt-6 mb-2">{poem.title}</h1>
+      {poem.date && (
+        <p className="text-sm text-gray-500 mb-6">
+          {new Date(poem.date).toLocaleDateString()}
+        </p>
+      )}
 
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm text-gray-400 mb-1">Title</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded"
-            placeholder="Poem title"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm text-gray-400 mb-1">Content</label>
-          <textarea
-            rows={10}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded"
-            placeholder="Write your poem..."
-          />
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 bg-pink-600 rounded text-white"
-          >
-            {saving ? "Saving..." : "Save"}
-          </button>
-          {slug !== "new" && (
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2 border border-red-500 text-red-500 rounded"
-            >
-              Delete
-            </button>
-          )}
-        </div>
+      <div className="whitespace-pre-wrap text-gray-200 leading-relaxed">
+        {poem.content}
       </div>
+
+      {/* Editor-only options */}
+      {editorMode && (
+        <div className="flex gap-3 mt-8">
+          <button
+            onClick={() => router.push(`/writing/poems/edit/${poem.slug}`)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white"
+          >
+            Edit
+          </button>
+          <button
+            onClick={handleDelete}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white"
+          >
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }
