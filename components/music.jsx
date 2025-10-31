@@ -176,7 +176,7 @@ function buildMerged(defaults, local, deleted) {
    Component
    ========================= */
 export default function Music({ initialAlbums = null }) {
-  const { editorMode } = useEditor();
+  const { isAuthenticated, editorMode } = useEditor();
 
   const [defaultAlbums, setDefaultAlbums] = useState(null); // loaded from /data/music.json or fallback
   const [local, setLocal] = useState(null); // local overrides
@@ -688,7 +688,7 @@ export default function Music({ initialAlbums = null }) {
               />
             </label>
 
-            {editorMode && (
+            {isAuthenticated && editorMode && (
               <>
                 <button onClick={() => createAlbum("Untitled Album")} className="px-3 py-2 bg-green-600 rounded hover:bg-green-700 text-sm">+ Album</button>
                 <button onClick={() => createAlbum("Untitled Single", new Date().getFullYear(), true)} className="px-3 py-2 bg-pink-600 rounded hover:bg-pink-700 text-sm">+ Single</button>
@@ -748,7 +748,7 @@ export default function Music({ initialAlbums = null }) {
 
               <div className="text-sm opacity-80 flex items-center gap-3">
                 <div>{openAlbumId === album.id ? "Hide" : "Open"}</div>
-                {editorMode && (
+                {isAuthenticated && editorMode && (
                   <div className="flex items-center gap-2">
                     <button onClick={(ev) => { ev.stopPropagation(); startAlbumEdit(album.id); }} className="px-2 py-1 bg-blue-600 rounded hover:bg-blue-700 text-sm">Edit</button>
 
@@ -779,7 +779,7 @@ export default function Music({ initialAlbums = null }) {
                               <button onClick={() => openStoryPanel(song, true)} className="px-3 py-1 rounded-md border border-neutral-700 text-sm">Lyrics</button>
                             </div>
 
-                            {editorMode && (
+                            {isAuthenticated && editorMode && (
                               <div className="flex gap-2 mt-3 flex-wrap">
                                 <button onClick={(ev) => { ev.stopPropagation(); startEditing(album.id, song.id); }} className="px-2 py-1 bg-blue-600 rounded text-sm">Edit</button>
                                 <button onClick={(ev) => { ev.stopPropagation(); deleteSong(album.id, song.id); }} className="px-2 py-1 bg-red-600 rounded text-sm">Delete</button>
