@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       throw new Error("Missing GitHub credentials");
     }
 
-    const path = "data/music.json";
+    const path = process.env.GITHUB_FILE_PATH_MUSIC || "data/music.json";
     const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
 
     // 1️⃣ Get current SHA (required for updating)
