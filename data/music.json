@@ -1,3 +1,10 @@
 {
-  "albums": []
+  "albums": [
+    {
+      "id": "alb-test",
+      "title": "Manual Sync Test",
+      "year": 2025,
+      "songs": []
+    }
+  ]
 }
