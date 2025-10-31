@@ -175,7 +175,7 @@ function buildMerged(defaults, local, deleted) {
 /* =========================
    Component
    ========================= */
-export default function Music() {
+export default function Music({ initialAlbums = null }) {
   const { editorMode } = useEditor();
 
   const [defaultAlbums, setDefaultAlbums] = useState(null); // loaded from /data/music.json or fallback
@@ -197,13 +197,21 @@ export default function Music() {
     let mounted = true;
     (async () => {
       try {
-        const res = await fetch("/data/music.json", { cache: "no-store" });
-        if (!res.ok) throw new Error("no remote data");
-        const json = await res.json();
-        if (!mounted) return;
-        setDefaultAlbums(json.albums || json || []);
-      } catch (e) {
-        setDefaultAlbums(FALLBACK_DEFAULTS);
+        if (initialAlbums && initialAlbums.length > 0) {
+        setDefaultAlbums(initialAlbums);
+        return;
+      } 
+      const res = await fetch(
+        "https://raw.githubusercontent.com/ianroseaaronmendoza-cmd/airose-studio/main/data/music.json",
+        { cache: "no-store" }
+      );
+      if (!res.ok) throw new Error("no remote data");
+      const json = await res.json();
+      if (!mounted) return;
+      setDefaultAlbums(json.albums || json || []);
+    } catch (e) {
+      console.warn("music.jsx: using fallback defaults", e);
+      setDefaultAlbums(FALLBACK_DEFAULTS);
       }
     })();
     return () => {
