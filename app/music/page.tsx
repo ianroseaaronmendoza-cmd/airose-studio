@@ -1,13 +1,12 @@
-import dynamic from "next/dynamic";
-import type { FC } from "react";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client"; // This directive makes the component client-side only
+
+import dynamic from "next/dynamic"; // Only import dynamic from 'next/dynamic'
 
 // Dynamically import Music component (client-only)
 const Music = dynamic<{ initialAlbums: any[] }>(
-  () => import("@/components/music.jsx") as Promise<FC<{ initialAlbums: any[] }>>,
+  () => import("@/components/music.jsx"), // Import the component normally
   {
-    ssr: false,
+    ssr: false, // Disables SSR for this component
     loading: () => (
       <div className="text-center text-gray-400 py-20">
         Loading music section...
