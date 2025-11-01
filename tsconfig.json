@@ -17,7 +17,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx", // For React 17 and above
+    "jsx": "react-jsx", // Ensure using the new JSX transform for React 17+
     "incremental": true,
     "baseUrl": ".",
     "paths": {
@@ -32,7 +32,7 @@
     ]
   },
   "include": [
-    "next-env.d.ts",
+    "next-env.d.ts", // Ensure Next.js environment is included
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",

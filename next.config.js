@@ -4,4 +4,7 @@ module.exports = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    turboMode: false, // Disable Turbopack and use Webpack instead
+  },
 };

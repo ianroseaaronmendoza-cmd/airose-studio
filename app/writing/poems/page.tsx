@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useEditor } from "@/app/context/EditorContext";
 import BackButton from "@/components/BackButton";
+import { useRouter } from "next/navigation"; // Add router for programmatic navigation
 
 export default function PoemsPage() {
+  const router = useRouter(); // Initialize the router
   const { editorMode } = useEditor();
   const [poems, setPoems] = useState([]);
 
@@ -25,7 +27,7 @@ export default function PoemsPage() {
         <h1 className="text-3xl font-semibold">Poems</h1>
         {editorMode && (
           <button
-            onClick={() => (window.location.href = "/writing/poems/new")}
+            onClick={() => router.push("/writing/poems/new")} // Navigate to new poem page
             className="px-4 py-2 bg-pink-600 rounded hover:bg-pink-700"
           >
             + New Poem

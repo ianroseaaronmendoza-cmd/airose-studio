@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor } from "@/app/context/EditorContext";
 import BackButton from "@/components/BackButton";
+import { slugify } from "slugify"; // You can use a utility to slugify titles
 
 export default function NewPoemPage() {
   const router = useRouter();
@@ -18,26 +19,25 @@ export default function NewPoemPage() {
     setSaving(true);
 
     try {
+      const newSlug = slugify(title, { lower: true }); // Generating a new slug
+
       const res = await fetch("/api/writings/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "poems",
-          slug: "", // Empty slug so backend generates a new one
+          slug: newSlug, // New poem will have a unique slug
           title,
           content,
         }),
       });
 
-      const result = await res.json();
-
-      if (res.ok && result.success) {
-        // Redirect to the new poem after successful creation
-        const newSlug = result.commit.files.find((file: any) => file.filename.includes("poems")).content.slice(0, 16); // Extract new slug
-        router.push(`/writing/poems/${newSlug}`);
-      } else {
-        throw new Error(result.error || "Failed to save poem");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to save poem");
       }
+
+      router.push(`/writing/poems/${newSlug}`); // Redirect to the newly created poem
     } catch (err: any) {
       console.error("Save error:", err);
       alert("Save failed — check console for details");
