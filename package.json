@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "db:push": "npx prisma db push",
-    "postinstall": "prisma generate",
+    "postinstall": "npx prisma generate",
     "update-password": "tsx scripts/update-admin-password.ts"
   },
   "dependencies": {
@@ -18,30 +18,31 @@
     "framer-motion": "^11.18.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.548.0",
-    "next": "^14.2.5",
+    "next": "^16.0.1",
     "prisma": "^6.18.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "slugify": "^1.6.6"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "20.19.24",
     "@types/react": "18.3.26",
-    "@types/react-dom": "^18.3.7",
+    "@types/react-dom": "^18.0.9",
     "autoprefixer": "^10.4.21",
     "dotenv-cli": "^10.0.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.5",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.18",
+    "tailwindcss": "^3.4.14",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"
   },
-  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "description": "Airose Studio — Next.js powered creative platform.",
   "main": "next.config.js",
   "directories": {
     "lib": "lib"
@@ -51,7 +52,7 @@
     "url": "git+https://github.com/ianroseaaronmendoza-cmd/airose-studio.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Ian Mendoza",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/ianroseaaronmendoza-cmd/airose-studio/issues"
