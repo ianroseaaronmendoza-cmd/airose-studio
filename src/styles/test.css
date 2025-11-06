@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .bg-airose-dark {
+    background-color: #0f0f10;
+  }
+}

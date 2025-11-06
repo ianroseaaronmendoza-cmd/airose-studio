@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "react/jsx-runtime": ["./node_modules/react/jsx-runtime.js"]
+    }
+  }
+}
