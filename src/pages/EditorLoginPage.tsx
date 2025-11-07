@@ -1,15 +1,13 @@
-// src/pages/EditorLoginPage.tsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEditor } from "../context/EditorContext";
+import { useEditor, LoginResult } from "../context/EditorContext"; // ✅ import shared type
 
-/// <reference types="react" />
 export default function EditorLoginPage() {
   const navigate = useNavigate();
   const { login } = useEditor();
 
-  const [password, setPassword] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -18,13 +16,14 @@ export default function EditorLoginPage() {
     setLoading(true);
 
     try {
-      const result = await login(password);
-      if (!result.ok) {
-        setError(result.error || "Login failed");
+      const result: LoginResult = await login(password);
+
+      if (result.ok === false) {
+        setError(result.error ?? "Login failed");
       } else {
         navigate("/editor", { replace: true });
       }
-    } catch (err: unknown) {
+    } catch (err) {
       console.error("Login error:", err);
       setError("Unexpected error occurred");
     } finally {
@@ -40,9 +39,7 @@ export default function EditorLoginPage() {
           <input
             type="password"
             value={password}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setPassword(e.target.value)
-            }
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter password"
             className="w-full px-4 py-2 mb-4 rounded-lg bg-neutral-900 text-white border border-gray-800 focus:outline-none"
             required

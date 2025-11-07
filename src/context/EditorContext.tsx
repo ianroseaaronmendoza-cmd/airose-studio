@@ -1,4 +1,3 @@
-// src/context/EditorContext.tsx
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 /**
@@ -14,18 +13,20 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
  * - This file is safe for production if server cookie settings are configured correctly
  */
 
-type LoginResult = { ok: true } | { ok: false; error: string };
+// ✅ Exported so EditorLoginPage can reuse it
+export type LoginResult = { ok: true } | { ok: false; error?: string };
 
-type EditorContextType = {
+export interface EditorContextType {
   isAuthenticated: boolean;
+  setAuthenticated: (v: boolean) => void;
   loading: boolean;
   editorMode: boolean;
   setEditorMode: (v: boolean) => void;
-  toggleEditor: () => void; // ✅ added for header toggle
+  toggleEditor: () => void;
   login: (password: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
-};
+}
 
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
@@ -36,9 +37,9 @@ export const useEditor = (): EditorContextType => {
 };
 
 export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [editorMode, setEditorMode] = useState<boolean>(() => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [editorMode, setEditorMode] = useState(() => {
     try {
       const raw = localStorage.getItem("editor_mode_v1");
       return raw ? JSON.parse(raw) === true : false;
@@ -47,7 +48,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   });
 
-  // ✅ Added toggleEditor handler (persistent)
+  const setAuthenticated = (v: boolean) => setIsAuthenticated(v);
+
   const toggleEditor = () => {
     setEditorMode((prev) => {
       const newValue = !prev;
@@ -58,14 +60,12 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
-  // persist editor mode in localStorage (so toggling survives refresh)
   useEffect(() => {
     try {
       localStorage.setItem("editor_mode_v1", JSON.stringify(editorMode));
     } catch {}
   }, [editorMode]);
 
-  // checkAuth: call backend to see if editor cookie is valid
   const checkAuth = async (): Promise<boolean> => {
     try {
       const res = await fetch("/api/check-editor", {
@@ -90,7 +90,6 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // run initial check on mount
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -100,10 +99,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // login: post password, then re-check via /api/check-editor to confirm cookie is present
   const login = async (password: string): Promise<LoginResult> => {
     if (!password || typeof password !== "string") {
       return { ok: false, error: "Missing password" };
@@ -145,7 +142,6 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // logout: ask backend to clear cookie, then clear client state
   const logout = async (): Promise<void> => {
     try {
       await fetch("/api/editor-logout", {
@@ -167,10 +163,11 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const value = useMemo(
     () => ({
       isAuthenticated,
+      setAuthenticated,
       loading,
       editorMode,
       setEditorMode,
-      toggleEditor, // ✅ added here
+      toggleEditor,
       login,
       logout,
       checkAuth,
@@ -178,9 +175,5 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     [isAuthenticated, loading, editorMode]
   );
 
-  return (
-    <EditorContext.Provider value={value}>
-      {children}
-    </EditorContext.Provider>
-  );
+  return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
 };
