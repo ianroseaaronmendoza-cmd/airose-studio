@@ -1,12 +1,6 @@
 {
   "albums": [
     {
-      "id": "alb-test",
-      "title": "Manual Sync Test",
-      "year": 2025,
-      "songs": []
-    },
-    {
       "id": "5bc43a05-981f-44cd-9b94-b59eed0ca8e5",
       "title": "I count it as gain",
       "year": 2025,
