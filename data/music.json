@@ -1,6 +1,20 @@
 {
   "albums": [
     {
+      "id": "alb-1762498397232",
+      "title": "Untitled Album",
+      "year": 2025,
+      "songs": [
+        {
+          "id": "song-1762498401432",
+          "title": "Ikaw lang, Hesus",
+          "spotifyEmbed": "<iframe data-testid=\"embed-iframe\" style=\"border-radius:12px\" src=\"https://open.spotify.com/embed/track/7CDwsfGOr3qlBarBSCi6cQ?utm_source=generator\" width=\"100%\" height=\"152\" frameBorder=\"0\" allowfullscreen=\"\" allow=\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\" loading=\"lazy\"></iframe>",
+          "lyrics": "(Verse 1)\nSa puso ko, Ikaw lang, Hesus\nSa isip ko, Ikaw lang, Hesus\nAng pag-ibig Mo, sapat sa 'kin\nAng presensya Mo, aking hiling\n\n(Chorus)\nIkaw lang, Ikaw lang, Hesus\nPanginoon, Ikaw lang, Hesus\nSa buhay ko, Ikaw lang, Hesus\nAking Diyos, Ikaw lang, Hesus\n\n(Verse 2)\nSa bawat araw, Ikaw ang gabay\nSa bawat hakbang, Ikaw ang tanglaw\nAng kapayapaan, sa 'Yo natagpuan\nAng kalakasan, sa 'Yo nagmumula\n\n(Chorus)\nIkaw lang, Ikaw lang, Hesus\nPanginoon, Ikaw lang, Hesus\nSa buhay ko, Ikaw lang, Hesus\nAking Diyos, Ikaw lang, Hesus\n\n(Instrumental)\n\n(Bridge)\nWalang iba, walang hihigit\nSa pag-ibig Mong walang patid\nPuso'y sumisigaw, Ikaw ang buhay\nSa 'Yo lang, Hesus, ako'y magtatagal\n\nWalang iba, walang hihigit\nSa pag-ibig Mong walang patid\nPuso'y sumisigaw, Ikaw ang buhay\nSa 'Yo lang, Hesus, ako'y magtatagal\n\nWalang iba, walang hihigit\nSa pag-ibig Mong walang patid\nPuso'y sumisigaw, Ikaw ang buhay\nSa 'Yo lang, Hesus, ako'y magtatagal\n\nWalang iba, walang hihigit\nSa pag-ibig Mong walang patid\nPuso'y sumisigaw, Ikaw ang buhay\nSa 'Yo lang, Hesus, ako'y magtatagal\n\n\n(Chorus)\nIkaw lang, Ikaw lang, Hesus\nPanginoon, Ikaw lang, Hesus\nSa buhay ko, Ikaw lang, Hesus\nAking Diyos, Ikaw lang, Hesus\n\nIkaw lang, Ikaw lang, Hesus\nPanginoon, Ikaw lang, Hesus\nSa buhay ko, Ikaw lang, Hesus\nAking Diyos, Ikaw lang, Hesus\n\nIkaw lang, Hesus\n\nIkaw lang, Hesus",
+          "story": "I have only one goal in making this song - Just You, Jesus. A tagalog worship song that is admittedly very simple. No flairs, no acrobatics. Just Jesus. But simplicity has its own charm. Making a point cross is simpler if we make it clear. This song is an attempt to do that. I don't want anything, just You, Jesus. In my heart, just You, Jesus. Day and night, it's just You, Jesus. Why should I make it so complicated? If Jesus likes it, then everything is good. It's not for our ears to enjoy, it is for Jesus, for God alone."
+        }
+      ]
+    },
+    {
       "id": "5bc43a05-981f-44cd-9b94-b59eed0ca8e5",
       "title": "I count it as gain",
       "year": 2025,
