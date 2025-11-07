@@ -1,10 +1,28 @@
 {
   "albums": [
     {
-      "id": "alb-test",
-      "title": "Manual Sync Test",
+      "id": "alb-ikaw",
+      "title": "Ikaw Lang, Hesus",
       "year": 2025,
-      "songs": []
+      "cover": "/assets/music/ikaw.jpg",
+      "spotifyEmbed": "https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC",
+      "story": "This song was written as a personal testimony of faith.\nEach verse recalls moments of surrender and restoration.",
+      "songs": [
+        { "id": "1", "title": "Ikaw Lang, Hesus" },
+        { "id": "2", "title": "Ikaw Lang (Instrumental)" }
+      ]
+    },
+    {
+      "id": "alb-count",
+      "title": "I Count It As Gain",
+      "year": 2025,
+      "cover": "/assets/music/count.jpg",
+      "spotifyEmbed": "https://open.spotify.com/embed/album/0sNOF9WDwhWunNAHPD3Baj",
+      "story": "An album celebrating joy in trials — inspired by Philippians 3:7–8.",
+      "songs": [
+        { "id": "1", "title": "I Count It As Gain" },
+        { "id": "2", "title": "This Song Is For You" }
+      ]
     }
   ]
 }
