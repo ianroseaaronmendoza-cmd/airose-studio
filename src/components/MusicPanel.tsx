@@ -1,5 +1,17 @@
+// src/components/MusicPanel.tsx
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+interface MusicPanelProps {
+  open: boolean;
+  onClose: () => void;
+  album: any;
+  song: any;
+  editorMode?: boolean;
+  mode?: string;
+  onSaveSong?: (albumId: string, song: any) => void;
+  onSave?: (albumId: string, song: any) => void; // ✅ compatibility alias
+}
 
 export default function MusicPanel({
   open,
@@ -8,8 +20,9 @@ export default function MusicPanel({
   song,
   editorMode = false,
   mode = "view",
-  onSaveSong, // ✅ added callback prop
-}) {
+  onSaveSong,
+  onSave,
+}: MusicPanelProps) {
   const [activeTab, setActiveTab] = useState("lyrics");
   const [localSong, setLocalSong] = useState(song || {});
   const [editMode, setEditMode] = useState(mode === "edit");
@@ -18,13 +31,14 @@ export default function MusicPanel({
     setLocalSong(song || {});
   }, [song]);
 
-  const handleChange = (field, value) => {
+  const handleChange = (field: string, value: any) => {
     setLocalSong({ ...localSong, [field]: value });
   };
 
   const handleSave = () => {
-    if (onSaveSong && album) {
-      onSaveSong(album.id, localSong);
+    if (album) {
+      if (onSave) onSave(album.id, localSong);
+      if (onSaveSong) onSaveSong(album.id, localSong);
       alert("✅ Song saved locally!");
     }
     setEditMode(false);

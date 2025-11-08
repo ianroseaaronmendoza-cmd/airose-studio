@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "jsx": "react-jsx",
+    "jsx": "react-jsx",                       // ✅ React 17+ automatic JSX runtime
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "esModuleInterop": true,
@@ -11,9 +11,15 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "baseUrl": "src",               // ✅ base of all imports
+
+    // ✅ Add these two lines ↓
+    "types": ["react", "react-dom"],         // Ensures hooks + JSX types available
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],// Fixes Selection / Node type errors
+
+    // ✅ Base imports
+    "baseUrl": "src",
     "paths": {
-      "@/*": ["*"],                // ✅ enables '@/...' aliases
+      "@/*": ["*"],
       "@api/*": ["api/*"],
       "@types/*": ["types/*"]
     }

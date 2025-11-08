@@ -30,7 +30,6 @@ if (!ADMIN_PASSWORD || !JWT_SECRET) {
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 
-// Explicit CORS — must be before routes
 const FRONTEND_DEV = "http://localhost:3000";
 
 app.use(
@@ -42,13 +41,12 @@ app.use(
   })
 );
 
-// Enable proxy trust in production (needed for secure cookies)
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
 
 // ──────────────────────────────────────────────
-// 🧩 Logging (helpful diagnostics)
+// 🧩 Logging (diagnostics)
 // ──────────────────────────────────────────────
 console.log("🚀 Starting Airose Studio Backend...");
 console.log("🌿 Environment:", process.env.NODE_ENV);
@@ -92,6 +90,21 @@ app.use(loadRoute);
 app.use(reorderRoute);
 
 // ──────────────────────────────────────────────
+// 📝 BLOG ROUTES (Neon + Prisma)
+// ──────────────────────────────────────────────
+import blogsGetAll from "./src/api/blogs/getAll";
+import blogsGetBySlug from "./src/api/blogs/getBySlug";
+import blogsCreate from "./src/api/blogs/create";
+import blogsUpdate from "./src/api/blogs/update";
+import blogsDelete from "./src/api/blogs/delete";
+
+app.use("/api", blogsGetAll);
+app.use("/api", blogsGetBySlug);
+app.use("/api", blogsCreate);
+app.use("/api", blogsUpdate);
+app.use("/api", blogsDelete);
+
+// ──────────────────────────────────────────────
 // 🩺 Health Check
 // ──────────────────────────────────────────────
 app.get("/api/health", (_req: Request, res: Response) => {
@@ -103,14 +116,12 @@ app.get("/api/health", (_req: Request, res: Response) => {
 
 // ──────────────────────────────────────────────
 // 🌐 Serve frontend (SPA fallback)
-// Express 5.x compatible — no PathError
 // ──────────────────────────────────────────────
 const __dirnamePath = path.resolve();
-const clientPath = path.join(__dirnamePath, "dist"); // or "build" if you use CRA
+const clientPath = path.join(__dirnamePath, "dist"); // or "build" for CRA
 
 app.use(express.static(clientPath));
 
-// Regex-based fallback route (Express 5 safe)
 app.get(/.*/, (_req: Request, res: Response) => {
   res.sendFile(path.join(clientPath, "index.html"));
 });

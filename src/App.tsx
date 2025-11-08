@@ -18,6 +18,11 @@ import PoemViewPage from "./pages/writing/poems/[slug]";
 import NewPoemPage from "./pages/writing/poems/new";
 import EditPoemPage from "./pages/writing/poems/edit/[slug]";
 
+// 🩷 Writing → Blogs
+import BlogListPage from "./pages/writing/blogs/index";
+import BlogViewPage from "./pages/writing/blogs/[slug]";
+import NewBlogPage from "./pages/writing/blogs/new";
+
 // Editor
 import EditorLoginPage from "./pages/EditorLoginPage";
 import EditorDashboard from "./pages/EditorDashboard";
@@ -44,8 +49,7 @@ function RootApp() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0a0a0a] text-white">
-      <Header menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} />
-
+      <Header />
       <main className="flex-1 p-6 pb-28">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -61,7 +65,12 @@ function RootApp() {
           <Route path="/writing/poems/:slug" element={<PoemViewPage />} />
           <Route path="/writing/poems" element={<PoemsIndexPage />} />
 
-          {/* Editor */}
+          {/* 🩶 WRITING — BLOGS */}
+          <Route path="/writing/blogs/new" element={<NewBlogPage />} />
+          <Route path="/writing/blogs/:slug" element={<BlogViewPage />} />
+          <Route path="/writing/blogs" element={<BlogListPage />} />
+
+          {/* 🛠 Editor */}
           <Route path="/editor-login" element={<EditorLoginPage />} />
           <Route
             path="/editor"
@@ -78,7 +87,9 @@ function RootApp() {
             element={
               <div className="text-center text-gray-400 mt-10">
                 <h1 className="text-2xl font-semibold">404 — Page Not Found</h1>
-                <p className="opacity-60 mt-2">Try using the navigation bar above.</p>
+                <p className="opacity-60 mt-2">
+                  Try using the navigation bar above.
+                </p>
               </div>
             }
           />

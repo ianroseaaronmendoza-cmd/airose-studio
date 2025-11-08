@@ -17,7 +17,8 @@ export default function Header() {
 
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 sticky top-0 bg-[#080808]/95 backdrop-blur z-50">
-      <div className="text-lg font-semibold tracking-wide">
+      {/* Brand */}
+      <div className="text-lg font-semibold tracking-wide select-none">
         <span className="text-pink-400">Airose Studio</span> by Airose Official
       </div>
 
@@ -31,7 +32,10 @@ export default function Header() {
         <Link to="/support" className="hover:text-pink-400 transition">Support</Link>
 
         {!isAuthenticated && (
-          <Link to="/editor-login" className="text-sm text-pink-400 hover:text-white transition">
+          <Link
+            to="/editor-login"
+            className="text-sm text-pink-400 hover:text-white transition"
+          >
             Editor Login
           </Link>
         )}
@@ -62,6 +66,7 @@ export default function Header() {
       <button
         className="md:hidden p-2 rounded-md hover:bg-neutral-900 text-gray-300"
         onClick={toggleMenu}
+        aria-label="Toggle menu"
       >
         {menuOpen ? "✕" : "☰"}
       </button>
@@ -81,10 +86,12 @@ export default function Header() {
               <button
                 onClick={closeMenu}
                 className="p-2 rounded-md hover:bg-neutral-900"
+                aria-label="Close menu"
               >
                 ✕
               </button>
             </div>
+
             <nav className="flex flex-col gap-4 mt-6">
               <Link to="/" onClick={closeMenu}>Home</Link>
               <Link to="/music" onClick={closeMenu}>Music</Link>
@@ -102,6 +109,7 @@ export default function Header() {
                   Editor Login
                 </Link>
               )}
+
               {isAuthenticated && (
                 <>
                   <button
