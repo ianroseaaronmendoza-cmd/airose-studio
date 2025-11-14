@@ -40,7 +40,13 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
       Bold,
       Italic,
       Underline,
-      Link.configure({ openOnClick: false }),
+      Link.configure({
+        openOnClick: true,
+        HTMLAttributes: {
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
+      }),
       ResizableImage,
       Heading.configure({ levels: [1, 2, 3] }),
       TextAlign.configure({ types: ["heading", "paragraph", "image"] }),
@@ -58,10 +64,7 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
           "prose prose-invert max-w-none min-h-[300px] p-4 border border-neutral-800 rounded-lg bg-[#0d0d0d] text-gray-100 focus:outline-none",
       },
 
-      /**
-       * 🖼️ Smart drag-drop with auto-compression
-       * Compresses images before embedding to prevent save failures.
-       */
+      // Drag-drop + compression
       handleDrop(view, event) {
         const files = event.dataTransfer?.files;
         if (files && files.length) {
@@ -76,7 +79,6 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
               const ctx = canvas.getContext("2d");
               if (!ctx) return;
 
-              // ⚙️ Compression settings
               const MAX_WIDTH = 1000;
               const MAX_HEIGHT = 1000;
               let { width, height } = img;
@@ -91,10 +93,8 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
               canvas.height = height;
               ctx.drawImage(img, 0, 0, width, height);
 
-              // Compress to JPEG, medium quality
               const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
 
-              // Insert compressed image into editor
               view.dispatch(
                 view.state.tr.replaceSelectionWith(
                   view.state.schema.nodes.image.create({ src: compressedDataUrl })
@@ -142,6 +142,7 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
       </h1>
 
       <div className="bg-neutral-950 border border-neutral-800 p-6 rounded-2xl space-y-6 shadow-lg">
+        
         {/* Title */}
         <div className="space-y-2">
           <label className="text-sm text-gray-400">Title</label>
@@ -153,7 +154,7 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
           />
         </div>
 
-        {/* Cover */}
+        {/* Cover Image */}
         <div className="space-y-2">
           <label className="text-sm text-gray-400">Cover Image URL (optional)</label>
           <input
@@ -166,16 +167,44 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
 
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2 border border-neutral-800 rounded-lg p-3 bg-neutral-950">
+
           <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} label="B" />
           <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} label="I" />
           <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} label="U" />
+
           <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} label="H1" />
           <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} label="H2" />
           <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} label="H3" />
+
           <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("left").run()} label="←" />
           <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("center").run()} label="↔" />
           <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("right").run()} label="→" />
 
+          {/* Link Button */}
+          <ToolbarButton
+            label="Link"
+            onClick={() => {
+              const url = prompt("Enter URL:");
+              if (!url) return;
+              const text = prompt("Text to display:", url) || url;
+
+              editor
+                .chain()
+                .focus()
+                .extendMarkRange("link")
+                .setLink({ href: url, target: "_blank", rel: "noopener noreferrer" })
+                .insertContent(text)
+                .run();
+            }}
+          />
+
+          {/* Unlink */}
+          <ToolbarButton
+            label="Unlink"
+            onClick={() => editor.chain().focus().unsetLink().run()}
+          />
+
+          {/* Font family */}
           <select
             onChange={(e) => editor.chain().focus().setFontFamily(e.target.value).run()}
             className="bg-neutral-800 text-gray-300 rounded-md px-2 py-1"
@@ -186,6 +215,7 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
             <option value="cursive">Cursive</option>
           </select>
 
+          {/* Font color */}
           <input
             type="color"
             title="Text Color"
@@ -197,6 +227,7 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
             className="w-8 h-8 cursor-pointer border border-neutral-700 rounded-md"
           />
 
+          {/* Highlight */}
           <input
             type="color"
             title="Highlight"
@@ -207,17 +238,6 @@ export default function BlogEditor({ mode, slug, initialData }: BlogEditorProps)
             }}
             className="w-8 h-8 cursor-pointer border border-neutral-700 rounded-md"
           />
-
-          {/* Add image via URL */}
-          <button
-            className="px-2 py-1 bg-neutral-800 hover:bg-neutral-700 text-sm rounded-lg"
-            onClick={() => {
-              const url = prompt("Enter image URL");
-              if (url) editor.chain().focus().setImage({ src: url }).run();
-            }}
-          >
-            🖼 Add Image
-          </button>
         </div>
 
         <EditorContent editor={editor} />

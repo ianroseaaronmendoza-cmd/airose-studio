@@ -5,8 +5,9 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
+import multer from "multer";
 
-// 🧩 Fix BigInt JSON serialization (Prisma BigInt safety)
+// 🧩 Fix BigInt JSON serialization
 if (typeof (BigInt.prototype as any).toJSON !== "function") {
   (BigInt.prototype as any).toJSON = function () {
     return this.toString();
@@ -33,7 +34,7 @@ if (!process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 
-// Request logger (helps debug routing)
+// Request logger
 app.use((req, _res, next) => {
   console.log(`[REQ] ${req.method} ${req.path}`);
   next();
@@ -50,7 +51,7 @@ if (process.env.FRONTEND_PROD) {
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // allow curl & server-to-server
+      if (!origin) return cb(null, true);
       if (allowedOrigins.includes(origin)) return cb(null, true);
       return cb(new Error("CORS origin denied"));
     },
@@ -59,10 +60,6 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-if (process.env.NODE_ENV === "production") {
-  app.set("trust proxy", 1);
-}
 
 // ──────────────────────────────────────────────
 // 🔐 AUTH ROUTES
@@ -76,15 +73,19 @@ app.use("/api", checkEditor);
 app.use("/api", editorLogout);
 
 // ──────────────────────────────────────────────
-// 📝 BLOGS ROUTE — Unified + Prisma
+// 📝 BLOG ROUTES
 // ──────────────────────────────────────────────
 import blogsRouter from "./src/api/blogs";
-app.use("/api/blogs", blogsRouter); // <— single clean mount
-
-// (All old blog routes removed)
+app.use("/api/blogs", blogsRouter);
 
 // ──────────────────────────────────────────────
-// ✍️ POEMS (Legacy local storage API)
+// 📦 PROJECT ROUTES
+// ──────────────────────────────────────────────
+import projectsRouter from "./src/api/projects";
+app.use("/api/projects", projectsRouter);
+
+// ──────────────────────────────────────────────
+// ✍️ POEMS ROUTES (Legacy)
 // ──────────────────────────────────────────────
 import writingsPoems from "./src/api/writings/poems";
 import writingsSave from "./src/api/writings/save";
@@ -95,7 +96,7 @@ app.use("/api/writings", writingsSave);
 app.use("/api/writings", writingsDelete);
 
 // ──────────────────────────────────────────────
-// 🎵 MUSIC ROUTES (local storage API)
+// 🎵 MUSIC ROUTES (Local Storage)
 // ──────────────────────────────────────────────
 import saveRoute from "./src/api/music/save";
 import deleteRoute from "./src/api/music/delete";
@@ -108,7 +109,7 @@ app.use(loadRoute);
 app.use(reorderRoute);
 
 // ──────────────────────────────────────────────
-// 📚 NOVELS + CHAPTERS ROUTES — Prisma + Neon
+// 📚 NOVELS + CHAPTERS ROUTES
 // ──────────────────────────────────────────────
 import novelsGetAll from "./src/api/novels/getAll";
 import novelsGetBySlug from "./src/api/novels/getBySlug";
@@ -123,14 +124,12 @@ import chaptersUpdate from "./src/api/novels/chapters/update";
 import chaptersDelete from "./src/api/novels/chapters/delete";
 import chaptersReorder from "./src/api/novels/chapters/reorder";
 
-// Register Novel routes
 app.use("/api", novelsGetAll);
 app.use("/api", novelsGetBySlug);
 app.use("/api", novelsCreate);
 app.use("/api", novelsUpdate);
 app.use("/api", novelsDelete);
 
-// Register Chapter routes
 app.use("/api", chaptersGetAll);
 app.use("/api", chaptersGetBySlug);
 app.use("/api", chaptersCreate);
@@ -139,11 +138,37 @@ app.use("/api", chaptersDelete);
 app.use("/api", chaptersReorder);
 
 // ──────────────────────────────────────────────
-// 📤 UPLOAD ROUTE
+// 📤 IMAGE UPLOADS — PROJECTS (existing)
 // ──────────────────────────────────────────────
-import uploadRoute from "./src/api/upload";
-app.use(uploadRoute);
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const folder = path.join("uploads/projects");
+    fs.mkdirSync(folder, { recursive: true });
+    cb(null, folder);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, Date.now() + ext);
+  },
+});
 
+const uploader = multer({ storage });
+
+app.post("/api/uploads/projects", uploader.single("image"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  const fileUrl = `/uploads/projects/${req.file.filename}`;
+  const fullUrl = `${req.protocol}://${req.get("host")}${fileUrl}`;
+  res.json({ url: fullUrl });
+});
+
+// ──────────────────────────────────────────────
+// 📤 IMAGE UPLOADS — BLOGS + GENERAL UPLOAD
+// ──────────────────────────────────────────────
+import uploadRouter from "./src/api/upload";
+app.use(uploadRouter);
+
+// serve static uploaded files
 app.use("/uploads", express.static("uploads"));
 
 // ──────────────────────────────────────────────
@@ -154,7 +179,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 // ──────────────────────────────────────────────
-// API 404 handler
+// API 404 CATCHER
 // ──────────────────────────────────────────────
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "API endpoint not found" });
@@ -178,7 +203,7 @@ if (fs.existsSync(clientPath)) {
 }
 
 // ──────────────────────────────────────────────
-// Centralized Error Handler
+// 🐛 Centralized Error Handler
 // ──────────────────────────────────────────────
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error("💥 Unhandled error:", err);
@@ -191,7 +216,6 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 
   res.status(500).send("Internal Server Error");
 });
-
 
 // ──────────────────────────────────────────────
 // 🚀 Start server

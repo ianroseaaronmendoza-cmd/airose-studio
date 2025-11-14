@@ -9,10 +9,15 @@ import Footer from "./components/Footer";
 /* ------------------ Static Pages ------------------ */
 import Home from "./pages/Home";
 import MusicPage from "./pages/MusicPage";
-import ProjectsPage from "./pages/ProjectsPage";
+import ProjectsPage from "./pages/projects/index";
 import WritingPage from "./pages/writing/page";
 import About from "./pages/About";
 import Support from "./pages/Support";
+
+/* ------------------ ⭐ PROJECTS ------------------ */
+import NewProjectPage from "./pages/projects/new";
+import ProjectViewPage from "./pages/projects/[slug]/index";           
+import ProjectEditorPage from "./pages/projects/edit/[slug]/index";    
 
 /* ------------------ WRITING — POEMS ------------------ */
 import PoemsIndexPage from "./pages/writing/poems/index";
@@ -24,6 +29,12 @@ import EditPoemPage from "./pages/writing/poems/edit/[slug]";
 import BlogListPage from "./pages/writing/blogs/index";
 import BlogViewPage from "./pages/writing/blogs/[slug]";
 import NewBlogPage from "./pages/writing/blogs/new";
+
+/* ---- EDIT BLOG PAGE (important) ----
+   Make sure this file exists at: src/pages/writing/blogs/edit/[slug]/index.tsx
+   It should render the blog editor in "edit" mode.
+*/
+import EditBlogPage from "./pages/writing/blogs/[slug]";
 
 /* ------------------ WRITING — NOVELS ------------------ */
 import NovelListPage from "./pages/writing/novels/index";
@@ -63,12 +74,20 @@ function RootApp() {
   return (
     <div className="flex flex-col min-h-screen bg-[#0a0a0a] text-white">
       <Header />
+
       <main className="flex-1 p-6 pb-28">
         <Routes>
+
           {/* 🌸 Core pages */}
           <Route path="/" element={<Home />} />
           <Route path="/music" element={<MusicPage />} />
+
+          {/* ⭐ PROJECTS */}
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/new" element={<NewProjectPage />} />
+          <Route path="/projects/:slug" element={<ProjectViewPage />} />      
+          <Route path="/projects/:slug/edit" element={<ProjectEditorPage />} />
+
           <Route path="/writing" element={<WritingPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/support" element={<Support />} />
@@ -79,8 +98,15 @@ function RootApp() {
           <Route path="/writing/poems/:slug" element={<PoemViewPage />} />
           <Route path="/writing/poems" element={<PoemsIndexPage />} />
 
-          {/* 🩶 WRITING — BLOGS */}
+          {/* 🩶 WRITING — BLOGS
+              ROUTE ORDER MATTERS:
+              - new
+              - :slug/edit   <- required for edit button
+              - :slug        <- view page
+              - index
+          */}
           <Route path="/writing/blogs/new" element={<NewBlogPage />} />
+          <Route path="/writing/blogs/:slug/edit" element={<EditBlogPage />} />
           <Route path="/writing/blogs/:slug" element={<BlogViewPage />} />
           <Route path="/writing/blogs" element={<BlogListPage />} />
 
@@ -106,13 +132,13 @@ function RootApp() {
             element={<NewChapterPage />}
           />
 
-          {/* ✔ EDIT CHAPTER (Tiptap editor) */}
+          {/* ✔ EDIT CHAPTER */}
           <Route
             path="/writing/novels/edit/:novelSlug/chapters/:chapterSlug"
             element={<ChapterEditorPage />}
           />
 
-          {/* ⭐ PUBLIC READ CHAPTER (not editor mode) */}
+          {/* ⭐ PUBLIC READ CHAPTER */}
           <Route
             path="/writing/novels/:novelSlug/chapters/:chapterSlug"
             element={<ReadChapterPage />}
@@ -129,7 +155,7 @@ function RootApp() {
             }
           />
 
-          {/* 404 Fallback */}
+          {/* 404 */}
           <Route
             path="*"
             element={
@@ -141,8 +167,10 @@ function RootApp() {
               </div>
             }
           />
+
         </Routes>
       </main>
+
       <Footer />
     </div>
   );

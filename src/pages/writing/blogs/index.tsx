@@ -15,9 +15,7 @@ export default function BlogsIndexPage() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /** --------------------------
-   * 🔥 Load Blogs
-   * --------------------------*/
+  /** LOAD BLOGS */
   useEffect(() => {
     (async () => {
       try {
@@ -31,9 +29,7 @@ export default function BlogsIndexPage() {
     })();
   }, []);
 
-  /** --------------------------
-   * 🗑 DELETE BLOG
-   * --------------------------*/
+  /** DELETE BLOG */
   async function handleDelete(slug: string) {
     if (!window.confirm("Delete this blog post?")) return;
 
@@ -48,15 +44,15 @@ export default function BlogsIndexPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-      {/* 🔙 Header Section */}
+      {/* BACK + ADD */}
       <div className="flex items-center justify-between">
         <BackButton label="Back to Writing" />
+
         {canEdit && (
           <motion.button
-            key="add-blog"
-            onClick={() => navigate("/writing/blogs/new")}
             whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.96 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate("/writing/blogs/new")}
             className="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white rounded-lg font-medium shadow-md transition"
           >
             + New Blog
@@ -64,7 +60,7 @@ export default function BlogsIndexPage() {
         )}
       </div>
 
-      {/* 🩷 Section Header */}
+      {/* TITLE */}
       <div>
         <h1 className="text-3xl font-bold text-pink-400 mb-1">Blogs</h1>
         <p className="text-sm text-gray-400">
@@ -72,7 +68,7 @@ export default function BlogsIndexPage() {
         </p>
       </div>
 
-      {/* 📜 Blog Grid */}
+      {/* BLOG GRID */}
       {loading ? (
         <p className="text-gray-500 text-center mt-10">Loading blogs...</p>
       ) : blogs.length === 0 ? (
@@ -85,41 +81,41 @@ export default function BlogsIndexPage() {
               whileHover={{ scale: 1.02 }}
               className="bg-neutral-950 border border-neutral-800 rounded-2xl p-5 shadow-md hover:shadow-lg transition-all relative"
             >
-              {/* Clickable content area */}
+              {/* CLICK = VIEW (or edit if editorMode) */}
               <div
                 className="cursor-pointer"
                 onClick={() =>
                   canEdit
-                    ? navigate(`/writing/blogs/edit/${blog.slug}`)
+                    ? navigate(`/writing/blogs/${blog.slug}/edit`)
                     : navigate(`/writing/blogs/${blog.slug}`)
                 }
               >
                 <h2 className="text-lg font-semibold text-gray-100 mb-1">
                   {blog.title}
                 </h2>
+
                 <p className="text-xs text-gray-500 mb-2">
                   {new Date(blog.createdAt).toLocaleDateString()}
                 </p>
+
                 <p className="text-sm text-gray-400 line-clamp-3">
                   {stripHTML(blog.content).slice(0, 150)}...
                 </p>
               </div>
 
-              {/* Editor Buttons */}
+              {/* EDITOR BUTTONS */}
               {canEdit && (
                 <div className="flex gap-3 mt-4">
                   <button
-                    onClick={() =>
-                      navigate(`/writing/blogs/edit/${blog.slug}`)
-                    }
-                    className="text-blue-400 hover:text-blue-300 text-sm"
+                    onClick={() => navigate(`/writing/blogs/${blog.slug}/edit`)}
+                    className="px-3 py-1 text-sm rounded-md bg-blue-500 hover:bg-blue-400 text-white transition"
                   >
-                    Edit →
+                    Edit
                   </button>
 
                   <button
                     onClick={() => handleDelete(blog.slug)}
-                    className="text-red-400 hover:text-red-300 text-sm"
+                    className="px-3 py-1 text-sm rounded-md bg-red-500 hover:bg-red-400 text-white transition"
                   >
                     Delete
                   </button>
@@ -133,7 +129,7 @@ export default function BlogsIndexPage() {
   );
 }
 
-/** Utility: remove HTML tags for preview text */
+/** Remove HTML tags for preview text */
 function stripHTML(html: string): string {
   const tmp = document.createElement("div");
   tmp.innerHTML = html;
