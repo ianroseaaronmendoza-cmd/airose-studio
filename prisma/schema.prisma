@@ -8,11 +8,38 @@ datasource db {
 }
 
 model Blog {
-  id          Int      @id @default(autoincrement())
-  title       String
-  slug        String   @unique
-  content     String?
-  coverImage  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  title      String
+  slug       String   @unique
+  content    String?
+  coverImage String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Novel {
+  id         Int       @id @default(autoincrement())
+  title      String
+  slug       String    @unique
+  summary    String?
+  note       String?
+  coverUrl   String?
+  hasUpdates Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  chapters   Chapter[]
+}
+
+model Chapter {
+  id        Int      @id @default(autoincrement())
+  title     String
+  slug      String
+  body      String
+  position  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  novelId   Int
+  novel     Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@unique([novelId, slug])
 }

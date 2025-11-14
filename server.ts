@@ -1,9 +1,17 @@
 // server.ts
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
+
+// 🧩 Fix BigInt JSON serialization (Prisma BigInt safety)
+if (typeof (BigInt.prototype as any).toJSON !== "function") {
+  (BigInt.prototype as any).toJSON = function () {
+    return this.toString();
+  };
+}
 
 // ──────────────────────────────────────────────
 // 🔧 Load environment
@@ -11,30 +19,41 @@ import path from "path";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT || 4000);
 
-// ──────────────────────────────────────────────
-// 🩵 Environment validation
-// ──────────────────────────────────────────────
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!ADMIN_PASSWORD || !JWT_SECRET) {
+// Validate required secrets
+if (!process.env.ADMIN_PASSWORD || !process.env.JWT_SECRET) {
   console.error("❌ Missing ADMIN_PASSWORD or JWT_SECRET in .env");
   process.exit(1);
 }
 
 // ──────────────────────────────────────────────
-// ⚙️ Middleware setup
+// ⚙ Middleware
 // ──────────────────────────────────────────────
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 
-const FRONTEND_DEV = "http://localhost:3000";
+// Request logger (helps debug routing)
+app.use((req, _res, next) => {
+  console.log(`[REQ] ${req.method} ${req.path}`);
+  next();
+});
+
+// CORS
+const allowedOrigins = [
+  process.env.FRONTEND_DEV || "http://localhost:3000",
+];
+if (process.env.FRONTEND_PROD) {
+  allowedOrigins.push(process.env.FRONTEND_PROD);
+}
 
 app.use(
   cors({
-    origin: [FRONTEND_DEV],
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true); // allow curl & server-to-server
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error("CORS origin denied"));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -44,15 +63,6 @@ app.use(
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
-
-// ──────────────────────────────────────────────
-// 🧩 Logging (diagnostics)
-// ──────────────────────────────────────────────
-console.log("🚀 Starting Airose Studio Backend...");
-console.log("🌿 Environment:", process.env.NODE_ENV);
-console.log("📁 Port:", PORT);
-console.log("🔒 Admin Password:", ADMIN_PASSWORD ? "✔ Loaded" : "❌ Missing");
-console.log("🔑 JWT Secret:", JWT_SECRET ? "✔ Loaded" : "❌ Missing");
 
 // ──────────────────────────────────────────────
 // 🔐 AUTH ROUTES
@@ -66,7 +76,15 @@ app.use("/api", checkEditor);
 app.use("/api", editorLogout);
 
 // ──────────────────────────────────────────────
-// 🖋 WRITINGS ROUTES
+// 📝 BLOGS ROUTE — Unified + Prisma
+// ──────────────────────────────────────────────
+import blogsRouter from "./src/api/blogs";
+app.use("/api/blogs", blogsRouter); // <— single clean mount
+
+// (All old blog routes removed)
+
+// ──────────────────────────────────────────────
+// ✍️ POEMS (Legacy local storage API)
 // ──────────────────────────────────────────────
 import writingsPoems from "./src/api/writings/poems";
 import writingsSave from "./src/api/writings/save";
@@ -77,7 +95,7 @@ app.use("/api/writings", writingsSave);
 app.use("/api/writings", writingsDelete);
 
 // ──────────────────────────────────────────────
-// 🎵 MUSIC ROUTES
+// 🎵 MUSIC ROUTES (local storage API)
 // ──────────────────────────────────────────────
 import saveRoute from "./src/api/music/save";
 import deleteRoute from "./src/api/music/delete";
@@ -90,45 +108,97 @@ app.use(loadRoute);
 app.use(reorderRoute);
 
 // ──────────────────────────────────────────────
-// 📝 BLOG ROUTES (Neon + Prisma)
+// 📚 NOVELS + CHAPTERS ROUTES — Prisma + Neon
 // ──────────────────────────────────────────────
-import blogsGetAll from "./src/api/blogs/getAll";
-import blogsGetBySlug from "./src/api/blogs/getBySlug";
-import blogsCreate from "./src/api/blogs/create";
-import blogsUpdate from "./src/api/blogs/update";
-import blogsDelete from "./src/api/blogs/delete";
+import novelsGetAll from "./src/api/novels/getAll";
+import novelsGetBySlug from "./src/api/novels/getBySlug";
+import novelsCreate from "./src/api/novels/create";
+import novelsUpdate from "./src/api/novels/update";
+import novelsDelete from "./src/api/novels/delete";
 
-app.use("/api", blogsGetAll);
-app.use("/api", blogsGetBySlug);
-app.use("/api", blogsCreate);
-app.use("/api", blogsUpdate);
-app.use("/api", blogsDelete);
+import chaptersGetAll from "./src/api/novels/chapters/getAll";
+import chaptersGetBySlug from "./src/api/novels/chapters/getBySlug";
+import chaptersCreate from "./src/api/novels/chapters/create";
+import chaptersUpdate from "./src/api/novels/chapters/update";
+import chaptersDelete from "./src/api/novels/chapters/delete";
+import chaptersReorder from "./src/api/novels/chapters/reorder";
+
+// Register Novel routes
+app.use("/api", novelsGetAll);
+app.use("/api", novelsGetBySlug);
+app.use("/api", novelsCreate);
+app.use("/api", novelsUpdate);
+app.use("/api", novelsDelete);
+
+// Register Chapter routes
+app.use("/api", chaptersGetAll);
+app.use("/api", chaptersGetBySlug);
+app.use("/api", chaptersCreate);
+app.use("/api", chaptersUpdate);
+app.use("/api", chaptersDelete);
+app.use("/api", chaptersReorder);
+
+// ──────────────────────────────────────────────
+// 📤 UPLOAD ROUTE
+// ──────────────────────────────────────────────
+import uploadRoute from "./src/api/upload";
+app.use(uploadRoute);
+
+app.use("/uploads", express.static("uploads"));
 
 // ──────────────────────────────────────────────
 // 🩺 Health Check
 // ──────────────────────────────────────────────
-app.get("/api/health", (_req: Request, res: Response) => {
-  res.json({
-    status: "ok",
-    message: "Server running successfully 🚀",
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", message: "Server running successfully 🚀" });
+});
+
+// ──────────────────────────────────────────────
+// API 404 handler
+// ──────────────────────────────────────────────
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "API endpoint not found" });
+});
+
+// ──────────────────────────────────────────────
+// SPA Frontend Fallback
+// ──────────────────────────────────────────────
+const __root = path.resolve();
+const clientPath = path.join(__root, "dist");
+
+if (fs.existsSync(clientPath)) {
+  console.log("📦 Serving frontend from:", clientPath);
+  app.use(express.static(clientPath));
+
+  app.get(/.*/, (_req, res) => {
+    res.sendFile(path.join(clientPath, "index.html"));
   });
+} else {
+  console.warn("⚠️ Frontend build not found — skipping static serve.");
+}
+
+// ──────────────────────────────────────────────
+// Centralized Error Handler
+// ──────────────────────────────────────────────
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error("💥 Unhandled error:", err);
+
+  if (req.path.startsWith("/api")) {
+    return res.status(500).json({
+      error: err?.message || "Internal Server Error",
+    });
+  }
+
+  res.status(500).send("Internal Server Error");
 });
 
-// ──────────────────────────────────────────────
-// 🌐 Serve frontend (SPA fallback)
-// ──────────────────────────────────────────────
-const __dirnamePath = path.resolve();
-const clientPath = path.join(__dirnamePath, "dist"); // or "build" for CRA
 
-app.use(express.static(clientPath));
-
-app.get(/.*/, (_req: Request, res: Response) => {
-  res.sendFile(path.join(clientPath, "index.html"));
+// ──────────────────────────────────────────────
+// 🚀 Start server
+// ──────────────────────────────────────────────
+const server = app.listen(PORT, () => {
+  console.log(`✅ Backend running at http://localhost:${PORT}`);
+  console.log(`📚 API available at http://localhost:${PORT}/api`);
 });
 
-// ──────────────────────────────────────────────
-// 🚀 Start Server
-// ──────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`✅ Backend running on http://localhost:${PORT}`);
-});
+export default app;

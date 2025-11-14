@@ -1,4 +1,3 @@
-// webpack.config.js
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
@@ -11,10 +10,23 @@ module.exports = {
     clean: true,
     publicPath: "/",
   },
+
+  // ✅ Updated alias section
   resolve: {
     extensions: [".ts", ".tsx", ".js", ".jsx"],
+    alias: {
+      "@": path.resolve(__dirname, "src"), // <-- 💡 add this for "@/..." imports
+      components: path.resolve(__dirname, "src/components"),
+      context: path.resolve(__dirname, "src/context"),
+      hooks: path.resolve(__dirname, "src/hooks"),
+      lib: path.resolve(__dirname, "src/lib"),
+      pages: path.resolve(__dirname, "src/pages"),
+      assets: path.resolve(__dirname, "src/assets"),
+    },
   },
+
   devtool: "source-map",
+
   module: {
     rules: [
       {
@@ -30,12 +42,14 @@ module.exports = {
       },
     ],
   },
+
   plugins: [
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "public", "index.html"),
       filename: "index.html",
     }),
   ],
+
   devServer: {
     port: 3000,
     historyApiFallback: true,

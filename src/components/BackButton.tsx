@@ -1,20 +1,26 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
 
-export default function BackButton({ label = "Back" }: { label?: string }) {
+interface BackButtonProps {
+  to?: string; // optional target route
+  label?: string; // button label
+  className?: string; // optional styling
+}
+
+export default function BackButton({ to, label = "Back", className }: BackButtonProps) {
   const navigate = useNavigate();
 
+  const handleClick = () => {
+    if (to) navigate(to);
+    else navigate(-1);
+  };
+
   return (
-    <motion.button
-      onClick={() => navigate(-1)} // equivalent of router.back()
-      whileHover={{ x: -4, scale: 1.03 }}
-      whileTap={{ scale: 0.96 }}
-      className="flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-700 hover:border-pink-400 hover:bg-neutral-800 text-gray-300 rounded-lg transition-all"
+    <button
+      onClick={handleClick}
+      className={`px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium transition ${className || ""}`}
     >
-      <ArrowLeft size={16} className="text-pink-400" />
-      <span>{label}</span>
-    </motion.button>
+      {label}
+    </button>
   );
 }

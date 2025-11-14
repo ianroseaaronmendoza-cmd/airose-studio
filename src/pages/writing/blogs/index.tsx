@@ -2,15 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useEditor } from "../../../context/EditorContext";
-import { getAllBlogs } from "../../../client/api/blogs";
+import { getAllBlogs, deleteBlog } from "../../../client/api/blogs";
 import BackButton from "../../../components/BackButton";
 
-interface Blog {
-  slug: string;
-  title: string;
-  content: string;
-  createdAt: string;
-}
+import type { Blog } from "../../../client/api/blogs";
 
 export default function BlogsIndexPage() {
   const navigate = useNavigate();
@@ -20,6 +15,9 @@ export default function BlogsIndexPage() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /** --------------------------
+   * 🔥 Load Blogs
+   * --------------------------*/
   useEffect(() => {
     (async () => {
       try {
@@ -32,6 +30,21 @@ export default function BlogsIndexPage() {
       }
     })();
   }, []);
+
+  /** --------------------------
+   * 🗑 DELETE BLOG
+   * --------------------------*/
+  async function handleDelete(slug: string) {
+    if (!window.confirm("Delete this blog post?")) return;
+
+    try {
+      await deleteBlog(slug);
+      setBlogs((prev) => prev.filter((b) => b.slug !== slug));
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete blog.");
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
@@ -70,18 +83,48 @@ export default function BlogsIndexPage() {
             <motion.div
               key={blog.slug}
               whileHover={{ scale: 1.02 }}
-              onClick={() => navigate(`/writing/blogs/${blog.slug}`)}
-              className="cursor-pointer bg-neutral-950 border border-neutral-800 rounded-2xl p-5 shadow-md hover:shadow-lg transition-all"
+              className="bg-neutral-950 border border-neutral-800 rounded-2xl p-5 shadow-md hover:shadow-lg transition-all relative"
             >
-              <h2 className="text-lg font-semibold text-gray-100 mb-1">
-                {blog.title}
-              </h2>
-              <p className="text-xs text-gray-500 mb-2">
-                {new Date(blog.createdAt).toLocaleDateString()}
-              </p>
-              <p className="text-sm text-gray-400 line-clamp-3">
-                {stripHTML(blog.content).slice(0, 150)}...
-              </p>
+              {/* Clickable content area */}
+              <div
+                className="cursor-pointer"
+                onClick={() =>
+                  canEdit
+                    ? navigate(`/writing/blogs/edit/${blog.slug}`)
+                    : navigate(`/writing/blogs/${blog.slug}`)
+                }
+              >
+                <h2 className="text-lg font-semibold text-gray-100 mb-1">
+                  {blog.title}
+                </h2>
+                <p className="text-xs text-gray-500 mb-2">
+                  {new Date(blog.createdAt).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-gray-400 line-clamp-3">
+                  {stripHTML(blog.content).slice(0, 150)}...
+                </p>
+              </div>
+
+              {/* Editor Buttons */}
+              {canEdit && (
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() =>
+                      navigate(`/writing/blogs/edit/${blog.slug}`)
+                    }
+                    className="text-blue-400 hover:text-blue-300 text-sm"
+                  >
+                    Edit →
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(blog.slug)}
+                    className="text-red-400 hover:text-red-300 text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
