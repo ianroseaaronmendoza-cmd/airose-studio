@@ -11,7 +11,7 @@ module.exports = {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].[contenthash].js",
     clean: true,
-    publicPath: "/",   // IMPORTANT for React Router
+    publicPath: "/", // required for React Router
   },
 
   resolve: {
@@ -34,9 +34,7 @@ module.exports = {
       {
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
-        use: {
-          loader: "babel-loader",
-        },
+        use: { loader: "babel-loader" },
       },
       {
         test: /\.css$/i,
@@ -51,11 +49,10 @@ module.exports = {
       filename: "index.html",
     }),
 
-    // ⭐ CRITICAL FIX: Copy JSON + static data folder
+    // ⭐ IMPORTANT: copy JSON data folder into dist
     new CopyWebpackPlugin({
       patterns: [
-        { from: "data", to: "data" },          // <-- your music.json lives here
-        { from: "public/assets", to: "assets" } // optional, if you want assets copied
+        { from: "data", to: "data" }, // 🎵 music.json, writings.json, etc.
       ],
     }),
   ],
