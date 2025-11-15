@@ -40,21 +40,11 @@ app.use((req, _res, next) => {
   next();
 });
 
-// CORS
-const allowedOrigins = [
-  process.env.FRONTEND_DEV || "http://localhost:3000",
-];
-if (process.env.FRONTEND_PROD) {
-  allowedOrigins.push(process.env.FRONTEND_PROD);
-}
-
+// 🌐 CORS — TEMPORARY OPEN FOR RENDER DEPLOYMENT
+// (we will restrict it after you get your final Render URL)
 app.use(
   cors({
-    origin: (origin, cb) => {
-      if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error("CORS origin denied"));
-    },
+    origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -138,11 +128,11 @@ app.use("/api", chaptersDelete);
 app.use("/api", chaptersReorder);
 
 // ──────────────────────────────────────────────
-// 📤 IMAGE UPLOADS — PROJECTS (existing)
+// 📤 IMAGE UPLOADS — PROJECTS
 // ──────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const folder = path.join("uploads/projects");
+    const folder = path.join(process.cwd(), "uploads/projects");
     fs.mkdirSync(folder, { recursive: true });
     cb(null, folder);
   },
@@ -168,8 +158,8 @@ app.post("/api/uploads/projects", uploader.single("image"), (req, res) => {
 import uploadRouter from "./src/api/upload";
 app.use(uploadRouter);
 
-// serve static uploaded files
-app.use("/uploads", express.static("uploads"));
+// serve static uploaded files (absolute path)
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ──────────────────────────────────────────────
 // 🩺 Health Check
@@ -186,15 +176,15 @@ app.use("/api", (_req, res) => {
 });
 
 // ──────────────────────────────────────────────
-// SPA Frontend Fallback
+// 🖥️ SPA Frontend Fallback (React Router)
 // ──────────────────────────────────────────────
-const __root = path.resolve();
-const clientPath = path.join(__root, "dist");
+const clientPath = path.join(process.cwd(), "dist");
 
 if (fs.existsSync(clientPath)) {
   console.log("📦 Serving frontend from:", clientPath);
   app.use(express.static(clientPath));
 
+  // React Router fallback (must be last non-error route)
   app.get(/.*/, (_req, res) => {
     res.sendFile(path.join(clientPath, "index.html"));
   });
