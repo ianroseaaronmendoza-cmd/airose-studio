@@ -24,6 +24,6 @@
       "@types/*": ["types/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "src/lib/config.ts"],
   "exclude": ["node_modules", "dist"]
 }

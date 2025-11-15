@@ -1,5 +1,5 @@
 import React from "react";
-import { API_BASE } from "@/config";
+import { API_BASE } from "@/lib/config";
 
 type Props = {
   title: string;

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import BackButton from "../../../components/BackButton";
 import { useEditor } from "../../../context/EditorContext";
-import { API_BASE } from "../../../config";
+import { API_BASE } from "../../../lib/config";
 
 type Novel = {
   id: number;

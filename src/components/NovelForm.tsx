@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import slugify from "slugify";
 import { useNavigate } from "react-router-dom";
-import { API_BASE } from "@/config";
+import { API_BASE } from "@/lib/config";
 
 type NovelFormProps = {
   mode: "create" | "edit";
@@ -25,10 +25,10 @@ export default function NovelForm({ mode, novel }: NovelFormProps) {
   const [summary, setSummary] = useState(novel?.summary || "");
   const [note, setNote] = useState(novel?.note || "");
 
-  // Correct field for DB storage:
+  // Stored value for backend
   const [coverUrl, setCoverUrl] = useState<string>(novel?.coverUrl || "");
 
-  // Separate preview value (to avoid saving blob: URLs)
+  // UI preview only
   const [previewUrl, setPreviewUrl] = useState<string>(
     novel?.coverUrl ? `${API_BASE}${novel.coverUrl}` : ""
   );
@@ -36,7 +36,7 @@ export default function NovelForm({ mode, novel }: NovelFormProps) {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Auto-generate slug (create mode only)
+  // Auto-generate slug only in create mode
   useEffect(() => {
     if (mode === "create" && title.trim()) {
       const cleanSlug = slugify(title, {
@@ -48,19 +48,26 @@ export default function NovelForm({ mode, novel }: NovelFormProps) {
     }
   }, [title, mode]);
 
-  // Upload logic
+  // ===============================
+  //  IMAGE UPLOAD HANDLER
+  // ===============================
   async function handleImageUpload(file: File): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
 
     const response = await axios.post(`${API_BASE}/api/upload`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      withCredentials: true,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     });
 
-    // backend returns: { url: "/uploads/novels/..." }
-    return response.data.url;
+    return response.data.url; // e.g. "/uploads/cover-123.jpg"
   }
 
+  // ===============================
+  //  FORM SUBMIT HANDLER
+  // ===============================
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
@@ -68,9 +75,10 @@ export default function NovelForm({ mode, novel }: NovelFormProps) {
 
       let finalCoverUrl = coverUrl;
 
-      // upload only when user selects a NEW file
+      // Upload file only if user picked a new one
       if (coverFile) {
         finalCoverUrl = await handleImageUpload(coverFile);
+        setCoverUrl(finalCoverUrl);
       }
 
       const payload = {
@@ -78,13 +86,17 @@ export default function NovelForm({ mode, novel }: NovelFormProps) {
         slug,
         summary,
         note,
-        coverUrl: finalCoverUrl, // correct DB field
+        coverUrl: finalCoverUrl,
       };
 
       if (mode === "create") {
-        await axios.post(`${API_BASE}/api/novels`, payload);
+        await axios.post(`${API_BASE}/api/novels`, payload, {
+          withCredentials: true,
+        });
       } else if (mode === "edit" && novel?.slug) {
-        await axios.put(`${API_BASE}/api/novels/${novel.slug}`, payload);
+        await axios.put(`${API_BASE}/api/novels/${novel.slug}`, payload, {
+          withCredentials: true,
+        });
       }
 
       navigate("/writing/novels");
@@ -149,13 +161,12 @@ export default function NovelForm({ mode, novel }: NovelFormProps) {
             const file = e.target.files?.[0];
             if (file) {
               setCoverFile(file);
-              setPreviewUrl(URL.createObjectURL(file)); // do NOT save this in DB
+              setPreviewUrl(URL.createObjectURL(file));
             }
           }}
           className="text-gray-300"
         />
 
-        {/* Preview block */}
         {previewUrl && (
           <div className="mt-3">
             <img
@@ -167,7 +178,7 @@ export default function NovelForm({ mode, novel }: NovelFormProps) {
         )}
       </div>
 
-      {/* Save / Create */}
+      {/* Save Button */}
       <div className="pt-4">
         <button
           type="submit"

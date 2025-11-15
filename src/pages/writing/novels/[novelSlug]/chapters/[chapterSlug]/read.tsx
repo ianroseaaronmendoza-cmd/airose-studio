@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import BackButton from "@/components/BackButton";
-import { API_BASE } from "@/config";
+import { API_BASE } from "@/lib/config";
 
 type Chapter = {
   id: number;
