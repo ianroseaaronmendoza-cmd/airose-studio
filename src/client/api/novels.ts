@@ -1,12 +1,18 @@
 import axios from "axios";
 
-const BASE =
-  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL?.replace(/\/$/, "")) ||
-  (typeof process !== "undefined" && process.env?.REACT_APP_API_URL?.replace(/\/$/, "")) ||
-  "http://localhost:4000/api";
+/* ---------------------------------------------------------
+   SMART BASE URL (WORKS IN DEV + RENDER)
+--------------------------------------------------------- */
+const BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://airose-studio.onrender.com/api"
+    : "http://localhost:4000/api";
 
-const API = `${BASE}/novels`;
+const API = `${BASE_URL}/novels`;
 
+/* ---------------------------------------------------------
+   TYPES
+--------------------------------------------------------- */
 export type Novel = {
   id: number;
   title: string;
@@ -19,27 +25,54 @@ export type Novel = {
   chapters?: any[];
 };
 
+/* ---------------------------------------------------------
+   GET ALL NOVELS
+--------------------------------------------------------- */
 export async function getAllNovels(): Promise<Novel[]> {
   const res = await axios.get(API, { withCredentials: true });
   return res.data;
 }
 
+/* ---------------------------------------------------------
+   GET ONE NOVEL
+--------------------------------------------------------- */
 export async function getNovel(slug: string): Promise<Novel> {
-  const res = await axios.get(`${API}/${encodeURIComponent(slug)}`, { withCredentials: true });
+  const res = await axios.get(`${API}/${encodeURIComponent(slug)}`, {
+    withCredentials: true,
+  });
   return res.data;
 }
 
+/* ---------------------------------------------------------
+   CREATE NOVEL
+--------------------------------------------------------- */
 export async function createNovel(payload: Partial<Novel>): Promise<Novel> {
   const res = await axios.post(API, payload, { withCredentials: true });
   return res.data;
 }
 
-export async function updateNovel(slug: string, payload: Partial<Novel>): Promise<Novel> {
-  const res = await axios.put(`${API}/${encodeURIComponent(slug)}`, payload, { withCredentials: true });
+/* ---------------------------------------------------------
+   UPDATE NOVEL
+--------------------------------------------------------- */
+export async function updateNovel(
+  slug: string,
+  payload: Partial<Novel>
+): Promise<Novel> {
+  const res = await axios.put(
+    `${API}/${encodeURIComponent(slug)}`,
+    payload,
+    { withCredentials: true }
+  );
   return res.data;
 }
 
+/* ---------------------------------------------------------
+   DELETE NOVEL
+--------------------------------------------------------- */
 export async function deleteNovel(slug: string): Promise<any> {
-  const res = await axios.delete(`${API}/${encodeURIComponent(slug)}`, { withCredentials: true });
+  const res = await axios.delete(
+    `${API}/${encodeURIComponent(slug)}`,
+    { withCredentials: true }
+  );
   return res.data;
 }
