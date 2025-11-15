@@ -41,7 +41,6 @@ app.use((req, _res, next) => {
 });
 
 // 🌐 CORS — TEMPORARY OPEN FOR RENDER DEPLOYMENT
-// (we will restrict it after you get your final Render URL)
 app.use(
   cors({
     origin: true,
@@ -86,7 +85,7 @@ app.use("/api/writings", writingsSave);
 app.use("/api/writings", writingsDelete);
 
 // ──────────────────────────────────────────────
-// 🎵 MUSIC ROUTES (Local Storage)
+// 🎵 MUSIC ROUTES
 // ──────────────────────────────────────────────
 import saveRoute from "./src/api/music/save";
 import deleteRoute from "./src/api/music/delete";
@@ -153,12 +152,12 @@ app.post("/api/uploads/projects", uploader.single("image"), (req, res) => {
 });
 
 // ──────────────────────────────────────────────
-// 📤 IMAGE UPLOADS — BLOGS + GENERAL UPLOAD
+// 📤 IMAGE UPLOADS — BLOGS + GENERAL
 // ──────────────────────────────────────────────
 import uploadRouter from "./src/api/upload";
 app.use(uploadRouter);
 
-// serve static uploaded files (absolute path)
+// serve static uploaded files (absolute)
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ──────────────────────────────────────────────
@@ -184,7 +183,6 @@ if (fs.existsSync(clientPath)) {
   console.log("📦 Serving frontend from:", clientPath);
   app.use(express.static(clientPath));
 
-  // React Router fallback (must be last non-error route)
   app.get(/.*/, (_req, res) => {
     res.sendFile(path.join(clientPath, "index.html"));
   });
@@ -208,11 +206,11 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 });
 
 // ──────────────────────────────────────────────
-// 🚀 Start server
+// 🚀 Start server (IMPORTANT: bind to 0.0.0.0)
 // ──────────────────────────────────────────────
-const server = app.listen(PORT, () => {
-  console.log(`✅ Backend running at http://localhost:${PORT}`);
-  console.log(`📚 API available at http://localhost:${PORT}/api`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Backend running at http://0.0.0.0:${PORT}`);
+  console.log(`📚 API available at http://0.0.0.0:${PORT}/api`);
 });
 
 export default app;
