@@ -1,21 +1,23 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
   mode: process.env.NODE_ENV || "development",
+
   entry: path.resolve(__dirname, "src", "main.tsx"),
+
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].[contenthash].js",
     clean: true,
-    publicPath: "/",
+    publicPath: "/",   // IMPORTANT for React Router
   },
 
-  // ✅ Updated alias section
   resolve: {
     extensions: [".ts", ".tsx", ".js", ".jsx"],
     alias: {
-      "@": path.resolve(__dirname, "src"), // <-- 💡 add this for "@/..." imports
+      "@": path.resolve(__dirname, "src"),
       components: path.resolve(__dirname, "src/components"),
       context: path.resolve(__dirname, "src/context"),
       hooks: path.resolve(__dirname, "src/hooks"),
@@ -47,6 +49,14 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "public", "index.html"),
       filename: "index.html",
+    }),
+
+    // ⭐ CRITICAL FIX: Copy JSON + static data folder
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: "data", to: "data" },          // <-- your music.json lives here
+        { from: "public/assets", to: "assets" } // optional, if you want assets copied
+      ],
     }),
   ],
 
