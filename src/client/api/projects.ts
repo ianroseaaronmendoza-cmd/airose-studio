@@ -1,7 +1,10 @@
 // src/client/api/projects.ts
 import axios from "axios";
 
-const API = "http://localhost:4000/api/projects";  // ✅ absolute URL to backend
+const API =
+  process.env.NODE_ENV === "production"
+    ? "https://airose-studio.onrender.com/api/projects"
+    : "http://localhost:4000/api/projects";
 
 /* ---------------------------------------------------------
    TYPES
