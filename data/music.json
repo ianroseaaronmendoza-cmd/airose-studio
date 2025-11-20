@@ -9,14 +9,6 @@
       "story": "This song was written as a personal testimony of faith.\nEach verse recalls moments of surrender and restoration.",
       "songs": [
         {
-          "id": "1",
-          "title": "Ikaw Lang, Hesus"
-        },
-        {
-          "id": "2",
-          "title": "Ikaw Lang (Instrumental)"
-        },
-        {
           "id": "song-1762498401432",
           "title": "Ikaw lang, Hesus",
           "spotifyEmbed": "<iframe data-testid=\\\"embed-iframe\\\" style=\\\"border-radius:12px\\\" src=\\\"https://open.spotify.com/embed/track/7CDwsfGOr3qlBarBSCi6cQ?utm_source=generator\\\" width=\\\"100%\\\" height=\\\"152\\\" frameBorder=\\\"0\\\" allowfullscreen=\\\"\\\" allow=\\\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\\\" loading=\\\"lazy\\\"></iframe>",
