@@ -26,14 +26,6 @@
       "story": "An album celebrating joy in trials — inspired by Philippians 3:7–8.",
       "songs": [
         {
-          "id": "1",
-          "title": "I Count It As Gain"
-        },
-        {
-          "id": "2",
-          "title": "This Song Is For You"
-        },
-        {
           "id": "866d933a-834a-4d92-ba8e-e70a7fc511c9",
           "title": "I count it as gain",
           "spotifyEmbed": "<iframe data-testid=\\\"embed-iframe\\\" style=\\\"border-radius:12px\\\" src=\\\"https://open.spotify.com/embed/track/51qUsWUPNmdCwpEbWgpnBh?utm_source=generator\\\" width=\\\"100%\\\" height=\\\"152\\\" frameBorder=\\\"0\\\" allowfullscreen=\\\"\\\" allow=\\\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\\\" loading=\\\"lazy\\\"></iframe>",
