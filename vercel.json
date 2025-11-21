@@ -1,46 +1,23 @@
 {
   "version": 2,
   "builds": [
-    { "src": "dist/**", "use": "@vercel/static" }
+    {
+      "src": "dist/**",
+      "use": "@vercel/static"
+    }
   ],
   "routes": [
-    {
-      "src": "/data/(.*)",
-      "dest": "/dist/data/$1"
-    },
-    {
-      "src": "/(.*\\.js)",
-      "dest": "/dist/$1"
-    },
-    {
-      "src": "/(.*\\.css)",
-      "dest": "/dist/$1"
-    },
-    {
-      "src": "/(assets/.*)",
-      "dest": "/dist/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/dist/favicon.ico"
-    },
-    {
-      "src": "/logo192.png",
-      "dest": "/dist/logo192.png"
-    },
-    {
-      "src": "/logo512.png",
-      "dest": "/dist/logo512.png"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/dist/manifest.json"
-    },
+    { "src": "/data/(.*)", "dest": "/dist/data/$1" },
+    { "src": "/(.*\\.js)", "dest": "/dist/$1" },
+    { "src": "/(.*\\.css)", "dest": "/dist/$1" },
+    { "src": "/assets/(.*)", "dest": "/dist/assets/$1" },
+    { "src": "/favicon.ico", "dest": "/dist/favicon.ico" },
+    { "src": "/manifest.json", "dest": "/dist/manifest.json" },
 
     {
       "src": "/(.*)",
       "dest": "/dist/index.html"
     }
   ],
-  "ignoreCommand": "echo Clean static SPA — skip Next.js detection"
+  "ignoreCommand": "echo static-only"
 }
