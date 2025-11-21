@@ -2,6 +2,8 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
+const isDev = process.env.NODE_ENV !== "production";
+
 module.exports = {
   mode: process.env.NODE_ENV || "development",
 
@@ -18,12 +20,6 @@ module.exports = {
     extensions: [".ts", ".tsx", ".js", ".jsx"],
     alias: {
       "@": path.resolve(__dirname, "src"),
-      components: path.resolve(__dirname, "src/components"),
-      context: path.resolve(__dirname, "src/context"),
-      hooks: path.resolve(__dirname, "src/hooks"),
-      lib: path.resolve(__dirname, "src/lib"),
-      pages: path.resolve(__dirname, "src/pages"),
-      assets: path.resolve(__dirname, "src/assets"),
     },
   },
 
@@ -49,10 +45,14 @@ module.exports = {
       filename: "index.html",
     }),
 
-    // ⭐ IMPORTANT: copy JSON data folder into dist
+    // ⭐ ALWAYS copy the JSON folder, even in production
+    // This is REQUIRED for Vercel static deployment
     new CopyWebpackPlugin({
       patterns: [
-        { from: "data", to: "data" }, // 🎵 music.json, writings.json, etc.
+        {
+          from: "data",
+          to: "data",
+        },
       ],
     }),
   ],
@@ -61,10 +61,10 @@ module.exports = {
     port: 3000,
     historyApiFallback: true,
     hot: true,
-    open: false,
     static: {
       directory: path.resolve(__dirname, "public"),
     },
+
     proxy: [
       {
         context: ["/api"],

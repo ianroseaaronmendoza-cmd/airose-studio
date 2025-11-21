@@ -1,0 +1,66 @@
+{
+  "albums": [
+    {
+      "id": "alb-ikaw",
+      "title": "Ikaw Lang, Hesus",
+      "year": 2025,
+      "cover": "/assets/music/ikaw.jpg",
+      "story": "This song was written as a personal testimony of faith.\nEach verse recalls moments of surrender and restoration.",
+      "songs": [
+        {
+          "id": "1",
+          "title": "Ikaw Lang, Hesus"
+        },
+        {
+          "id": "2",
+          "title": "Ikaw Lang (Instrumental)"
+        },
+        {
+          "id": "song-1762498401432",
+          "title": "Ikaw lang, Hesus",
+          "spotifyEmbed": "<iframe data-testid=\"embed-iframe\" style=\"border-radius:12px\" src=\"https://open.spotify.com/embed/track/7CDwsfGOr3qlBarBSCi6cQ\" width=\"100%\" height=\"152\" frameBorder=\"0\" allowfullscreen=\"\" allow=\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\" loading=\"lazy\"></iframe>",
+          "lyrics": "(Verse 1)\nSa puso ko, Ikaw lang, Hesus\nSa isip ko, Ikaw lang, Hesus\nAng pag-ibig Mo, sapat sa 'kin\nAng presensya Mo, aking hiling\n\n(Chorus)\nIkaw lang, Ikaw lang, Hesus\nPanginoon, Ikaw lang, Hesus\nSa buhay ko, Ikaw lang, Hesus\nAking Diyos, Ikaw lang, Hesus\n\n(Verse 2)\nSa bawat araw, Ikaw ang gabay\nSa bawat hakbang, Ikaw ang tanglaw\nAng kapayapaan, sa 'Yo natagpuan\nAng kalakasan, sa 'Yo nagmumula\n\n(Chorus)\nIkaw lang, Ikaw lang, Hesus\nPanginoon, Ikaw lang, Hesus\nSa buhay ko, Ikaw lang, Hesus\nAking Diyos, Ikaw lang, Hesus\n\n(Bridge)\nWalang iba, walang hihigit\nSa pag-ibig Mong walang patid\nPuso'y sumisigaw, Ikaw ang buhay\nSa 'Yo lang, Hesus, ako'y magtatagal\n\nWalang iba, walang hihigit\nSa pag-ibig Mong walang patid\nPuso'y sumisigaw, Ikaw ang buhay\nSa 'Yo lang, Hesus, ako'y magtatagal\n\n(Chorus)\nIkaw lang, Ikaw lang, Hesus\nPanginoon, Ikaw lang, Hesus\nSa buhay ko, Ikaw lang, Hesus\nAking Diyos, Ikaw lang, Hesus",
+          "story": "I have only one goal in making this song - Just You, Jesus. A tagalog worship song that is admittedly very simple. No flairs, no acrobatics. Just Jesus..."
+        }
+      ]
+    },
+    {
+      "id": "alb-count",
+      "title": "I Count It As Gain",
+      "year": 2025,
+      "cover": "/assets/music/count.jpg",
+      "story": "An album celebrating joy in trials — inspired by Philippians 3:7–8.",
+      "songs": [
+        {
+          "id": "1",
+          "title": "I Count It As Gain"
+        },
+        {
+          "id": "2",
+          "title": "This Song Is For You"
+        },
+        {
+          "id": "866d933a-834a-4d92-ba8e-e70a7fc511c9",
+          "title": "I count it as gain",
+          "spotifyEmbed": "<iframe data-testid=\"embed-iframe\" style=\"border-radius:12px\" src=\"https://open.spotify.com/embed/track/51qUsWUPNmdCwpEbWgpnBh\" width=\"100%\" height=\"152\" frameBorder=\"0\" allowfullscreen=\"\" allow=\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\" loading=\"lazy\"></iframe>",
+          "lyrics": "[Verse 1]\nSeems like every day\nThese snares are in my way\nWhen I'm about to lose all the hope\nI'll say, I'll pray in Your name\n\n[Pre-Chorus]\nThen Your Word will comfort me\nI know Your Word will rescue me\n\n[Chorus]\nSo I count it as gain when I suffer in pain\nLord I want to worship Your name...\n",
+          "story": "I think it was 2015 when I made this song. I sang it to my church and they loved it..."
+        },
+        {
+          "id": "song-1762494092352",
+          "title": "You are",
+          "spotifyEmbed": "<iframe data-testid=\"embed-iframe\" style=\"border-radius:12px\" src=\"https://open.spotify.com/embed/track/4lG4c5KODDhL23ORVdeXrn\" width=\"100%\" height=\"152\" frameBorder=\"0\" allowfullscreen=\"\" allow=\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\" loading=\"lazy\"></iframe>",
+          "lyrics": "[Verse 1]\nFrom the rising sun \nTo the setting light,\nYour mercy shines...",
+          "story": "This is literally my first composition! I can still remember that burning desire..."
+        },
+        {
+          "id": "song-1762502954256",
+          "title": "This song is for You",
+          "spotifyEmbed": "<iframe data-testid=\"embed-iframe\" style=\"border-radius:12px\" src=\"https://open.spotify.com/embed/track/2WrgDg3DZCdz2UrDrKM0gv\" width=\"100%\" height=\"152\" frameBorder=\"0\" allowfullscreen=\"\" allow=\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\" loading=\"lazy\"></iframe>",
+          "lyrics": "[Verse 1]\nWords are not enough to say how much I love you, Lord...",
+          "story": "Have you ever felt that all the words that humanity created seem inadequate to describe the beauty of our God?"
+        }
+      ]
+    }
+  ]
+}

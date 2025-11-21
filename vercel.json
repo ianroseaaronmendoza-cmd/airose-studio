@@ -2,14 +2,15 @@
   "version": 2,
   "builds": [
     {
-      "src": "package.json",
-      "use": "@vercel/next"
+      "src": "dist/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/dist/$1"
     }
-  ]
+  ],
+  "ignoreCommand": "echo Vercel ignoring backend"
 }

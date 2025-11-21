@@ -1,84 +1,44 @@
 // src/api/music/reorder.ts
-import { Router, Request, Response } from "express";
+import express from "express";
+import fs from "fs/promises";
+import path from "path";
 
-const router = Router();
+const router = express.Router();
+const UPLOADS_FILE = path.join(process.cwd(), "uploads", "music.json");
+const TEMP_FILE = path.join(process.cwd(), "uploads", "music.json.tmp");
 
-/**
- * POST /api/music/reorder
- * Body: { albums: Array }
- *
- * Commits only the reordered albums JSON to GitHub.
- * This is identical to /api/music/save but with a different commit message.
- */
-router.post("/api/music/reorder", async (req: Request, res: Response) => {
+async function atomicWrite(filePath: string, content: string) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(TEMP_FILE, content, "utf-8");
+  await fs.rename(TEMP_FILE, filePath);
+}
+
+router.post("/api/music/reorder", express.json(), async (req, res) => {
+  // Expect payload like: { albumId, newOrder: [songId1, songId2, ...] }
+  const { albumId, newOrder } = req.body || {};
+  if (!albumId || !Array.isArray(newOrder)) {
+    return res.status(400).json({ error: "albumId and newOrder required" });
+  }
+
   try {
-    const { albums } = req.body;
-    if (!albums || !Array.isArray(albums)) {
-      return res.status(400).json({ error: "Missing or invalid 'albums' array" });
-    }
+    const raw = await fs.readFile(UPLOADS_FILE, "utf-8");
+    const json = JSON.parse(raw);
 
-    const token =
-      process.env.GITHUB_TOKEN ||
-      process.env.GITHUB_PAT ||
-      process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-    const owner = process.env.GITHUB_OWNER;
-    const repo = process.env.GITHUB_REPO;
-    const branch = process.env.GITHUB_BRANCH || "main";
-    const path = process.env.GITHUB_FILE_PATH_MUSIC || "data/music.json";
+    const album = (json.albums || []).find((a: any) => a.id === albumId);
+    if (!album) return res.status(404).json({ error: "Album not found" });
 
-    if (!token || !owner || !repo) {
-      return res.status(500).json({ error: "Missing GitHub configuration" });
-    }
+    const songMap = (album.songs || []).reduce((acc: any, s: any) => {
+      acc[s.id] = s;
+      return acc;
+    }, {});
 
-    const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURI(path)}`;
+    album.songs = newOrder.map((id: string) => songMap[id]).filter(Boolean);
 
-    // get current sha
-    let sha: string | undefined;
-    try {
-      const g = await fetch(`${apiBase}?ref=${branch}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-      });
-      if (g.ok) {
-        const gj: any = await g.json();
-        sha = gj.sha;
-      } else if (g.status === 404) {
-        return res.status(404).json({ error: "music.json not found on repo" });
-      } else {
-        const txt = await g.text();
-        console.warn("GitHub GET failed:", g.status, txt);
-        return res.status(502).json({ error: `GitHub GET failed: ${g.status}` });
-      }
-    } catch (err: any) {
-      console.error("GitHub GET error:", err);
-      return res.status(502).json({ error: "Failed to reach GitHub" });
-    }
-
-    // prepare & commit
-    const contentStr = JSON.stringify({ albums }, null, 2);
-    const contentB64 = Buffer.from(contentStr, "utf8").toString("base64");
-
-    const putRes = await fetch(apiBase, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: `Reorder music (${new Date().toISOString()})`,
-        content: contentB64,
-        sha,
-        branch,
-      }),
-    });
-
-    const putText = await putRes.text();
-    if (!putRes.ok) {
-      console.error("GitHub PUT failed:", putRes.status, putText);
-      return res.status(502).json({ error: `GitHub PUT failed: ${putRes.status}`, details: putText });
-    }
-
-    const putJson: any = JSON.parse(putText);
-    return res.json({ success: true, commit: putJson.commit, html_url: putJson.commit?.html_url });
+    await atomicWrite(UPLOADS_FILE, JSON.stringify(json, null, 2));
+    return res.json({ ok: true });
   } catch (err: any) {
-    console.error("Reorder route error:", err);
-    return res.status(500).json({ error: err.message || "Unknown error" });
+    console.error("[music/reorder] error:", err);
+    return res.status(500).json({ error: "Failed to reorder" });
   }
 });
 

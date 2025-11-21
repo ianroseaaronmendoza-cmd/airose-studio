@@ -1,67 +1,43 @@
 // src/api/music/delete.ts
-import { Router, Request, Response } from "express";
+import express from "express";
+import fs from "fs/promises";
+import path from "path";
 
-const router = Router();
+const router = express.Router();
+const UPLOADS_FILE = path.join(process.cwd(), "uploads", "music.json");
+const TEMP_FILE = path.join(process.cwd(), "uploads", "music.json.tmp");
 
-/**
- * DELETE /api/music/delete
- * Deletes the configured music.json file from GitHub.
- * Body (optional): { confirm: true } (not required but handy)
- */
-router.delete("/api/music/delete", async (req: Request, res: Response) => {
+async function atomicWrite(filePath: string, content: string) {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(TEMP_FILE, content, "utf-8");
+  await fs.rename(TEMP_FILE, filePath);
+}
+
+router.post("/api/music/delete", express.json(), async (req, res) => {
+  const { albumId, songId } = req.body || {};
+  if (!albumId) return res.status(400).json({ error: "albumId required" });
+
   try {
-    const token =
-      process.env.GITHUB_TOKEN ||
-      process.env.GITHUB_PAT ||
-      process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-    const owner = process.env.GITHUB_OWNER;
-    const repo = process.env.GITHUB_REPO;
-    const branch = process.env.GITHUB_BRANCH || "main";
-    const path = process.env.GITHUB_FILE_PATH_MUSIC || "data/music.json";
+    // Read existing
+    const raw = await fs.readFile(UPLOADS_FILE, "utf-8");
+    const json = JSON.parse(raw);
 
-    if (!token || !owner || !repo) {
-      return res.status(500).json({ error: "Missing GitHub configuration" });
+    // Delete logic
+    if (songId) {
+      // delete single song from album
+      const album = (json.albums || []).find((a: any) => a.id === albumId);
+      if (!album) return res.status(404).json({ error: "Album not found" });
+      album.songs = (album.songs || []).filter((s: any) => s.id !== songId);
+    } else {
+      // delete album
+      json.albums = (json.albums || []).filter((a: any) => a.id !== albumId);
     }
 
-    const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURI(path)}`;
-
-    // fetch to get sha
-    const getRes = await fetch(`${apiBase}?ref=${branch}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-    });
-
-    if (!getRes.ok) {
-      if (getRes.status === 404) return res.json({ message: "File not found, nothing to delete." });
-      const txt = await getRes.text();
-      console.error("GitHub GET failed:", getRes.status, txt);
-      return res.status(502).json({ error: `GitHub GET failed: ${getRes.status}` });
-    }
-
-    const getJson: any = await getRes.json();
-    const sha = getJson.sha;
-    if (!sha) return res.status(500).json({ error: "Could not determine file SHA" });
-
-    // delete
-    const delRes = await fetch(apiBase, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: `Delete music.json (${new Date().toISOString()})`,
-        sha,
-        branch,
-      }),
-    });
-
-    const delText = await delRes.text();
-    if (!delRes.ok) {
-      console.error("GitHub DELETE failed:", delRes.status, delText);
-      return res.status(502).json({ error: `GitHub DELETE failed: ${delRes.status}`, details: delText });
-    }
-
-    return res.json({ success: true, message: "music.json deleted from repo" });
+    await atomicWrite(UPLOADS_FILE, JSON.stringify(json, null, 2));
+    return res.json({ ok: true });
   } catch (err: any) {
-    console.error("Delete route error:", err);
-    return res.status(500).json({ error: err.message || "Unknown error" });
+    console.error("[music/delete] error:", err);
+    return res.status(500).json({ error: "Failed to delete" });
   }
 });
 

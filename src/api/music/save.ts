@@ -1,98 +1,94 @@
 // src/api/music/save.ts
-import { Router, Request, Response } from "express";
+import express from "express";
+import fs from "fs/promises";
+import path from "path";
 
-const router = Router();
+const router = express.Router();
 
-/**
- * POST /api/music/save
- * Body: { albums: Array }
- *
- * Commits the provided albums array to the configured GitHub repo/file path.
- * Returns { success: true, commit, html_url } on success.
- */
-router.post("/api/music/save", async (req: Request, res: Response) => {
+const UPLOADS_FILE = path.join(process.cwd(), "uploads", "music.json");
+const TEMP_FILE = path.join(process.cwd(), "uploads", "music.json.tmp");
+
+// Helper to ensure folder exists
+async function ensureUploadsDir() {
+  await fs.mkdir(path.dirname(UPLOADS_FILE), { recursive: true });
+}
+
+async function atomicWrite(filePath: string, content: string) {
+  await ensureUploadsDir();
+  await fs.writeFile(TEMP_FILE, content, "utf-8");
+  await fs.rename(TEMP_FILE, filePath);
+}
+
+router.post("/api/music/save", express.json(), async (req, res) => {
   try {
-    const { albums } = req.body;
-    if (!albums || !Array.isArray(albums)) {
-      return res.status(400).json({ error: "Missing or invalid 'albums' array" });
+    const payload = req.body;
+    if (!payload) {
+      return res.status(400).json({ error: "Missing body" });
     }
 
-    const token =
-      process.env.GITHUB_TOKEN ||
-      process.env.GITHUB_PAT ||
-      process.env.GITHUB_PERSONAL_ACCESS_TOKEN;
-    const owner = process.env.GITHUB_OWNER;
-    const repo = process.env.GITHUB_REPO;
-    const branch = process.env.GITHUB_BRANCH || "main";
-    const path = process.env.GITHUB_FILE_PATH_MUSIC || "data/music.json";
-
-    if (!token || !owner || !repo) {
-      return res.status(500).json({ error: "Missing GitHub configuration" });
-    }
-
-    const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURI(path)}`;
-
-    // 1) Try to get existing file SHA (if exists)
-    let sha: string | undefined;
+    // Save locally to persistent volume (always)
     try {
-      const g = await fetch(`${apiBase}?ref=${branch}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-        },
+      const content = JSON.stringify(payload, null, 2);
+      await atomicWrite(UPLOADS_FILE, content);
+    } catch (writeErr) {
+      console.error("[music/save] write error:", writeErr);
+      return res.status(500).json({ error: "Failed to save music data" });
+    }
+
+    // Skip GitHub sync in production (Option A)
+    if (process.env.NODE_ENV === "production") {
+      // Respond success (no GH sync)
+      return res.json({ ok: true, message: "Saved to volume (GH sync disabled in production)" });
+    }
+
+    // For non-production: attempt to sync to GitHub if configured (legacy)
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+    const GITHUB_REPO = process.env.GITHUB_REPO; // e.g. user/repo
+    const GITHUB_PATH = process.env.GITHUB_PATH || "data/music.json";
+
+    if (!GITHUB_TOKEN || !GITHUB_REPO) {
+      // If not configured, return success (but note that we did not sync)
+      return res.json({ ok: true, message: "Saved locally (no GitHub config)" });
+    }
+
+    // If configured, do a minimal GitHub upload (optional)
+    try {
+      // Minimal: create commit via GitHub REST API (contents endpoint).
+      // Keep this very small and optional — avoid failing save because GH sync fails.
+      const contentBase64 = Buffer.from(JSON.stringify(payload, null, 2)).toString("base64");
+      const url = `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_PATH}`;
+
+      // Try fetching existing file to get sha
+      const fetchRes = await fetch(url, {
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, "User-Agent": "airose-studio" },
       });
-      if (g.ok) {
-        const gj: any = await g.json();
-        sha = gj.sha;
-      } else if (g.status === 404) {
-        // file not found - we'll create it
-      } else {
-        const txt = await g.text();
-        console.warn("GitHub GET non-200:", g.status, txt);
-        return res.status(502).json({ error: `GitHub GET failed: ${g.status}` });
+
+      let sha;
+      if (fetchRes.ok) {
+        const existing = await fetchRes.json();
+        sha = existing.sha;
       }
-    } catch (err: any) {
-      console.error("Failed to GET current file from GitHub:", err);
-      return res.status(502).json({ error: "Failed to reach GitHub" });
-    }
 
-    // 2) Prepare content
-    const payloadObj = { albums };
-    const contentStr = JSON.stringify(payloadObj, null, 2);
-    const contentBase64 = Buffer.from(contentStr, "utf8").toString("base64");
+      const commitBody: any = {
+        message: "Update music.json (from editor)",
+        content: contentBase64,
+      };
+      if (sha) commitBody.sha = sha;
 
-    // 3) PUT commit to GitHub
-    try {
-      const putRes = await fetch(apiBase, {
+      await fetch(url, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: `Update music.json (${new Date().toISOString()})`,
-          content: contentBase64,
-          sha: sha ?? undefined,
-          branch,
-        }),
+        headers: { Authorization: `token ${GITHUB_TOKEN}`, "User-Agent": "airose-studio", "Content-Type": "application/json" },
+        body: JSON.stringify(commitBody),
       });
 
-      const putText = await putRes.text();
-      if (!putRes.ok) {
-        console.error("GitHub PUT failed:", putRes.status, putText);
-        return res.status(502).json({ error: `GitHub PUT failed: ${putRes.status}`, details: putText });
-      }
-
-      const putJson: any = JSON.parse(putText);
-      return res.json({ success: true, commit: putJson.commit, html_url: putJson.commit?.html_url });
-    } catch (err: any) {
-      console.error("GitHub PUT error:", err);
-      return res.status(502).json({ error: "Failed to commit to GitHub" });
+      return res.json({ ok: true, message: "Saved locally and synced to GitHub" });
+    } catch (ghErr) {
+      console.warn("[music/save] GitHub sync failed:", ghErr);
+      return res.json({ ok: true, message: "Saved locally (GitHub sync failed)" });
     }
   } catch (err: any) {
-    console.error("Save route error:", err);
-    return res.status(500).json({ error: err.message || "Unknown error" });
+    console.error("[music/save] unexpected:", err);
+    return res.status(500).json({ error: "Failed to save music data" });
   }
 });
 

@@ -19,6 +19,9 @@ import ResizableImage from "../extensions/ResizableImage";
 import { createProject, updateProject } from "../client/api/projects";
 import { motion } from "framer-motion";
 
+// ALWAYS use relative /api paths
+const API_BASE = "/api";
+
 interface ProjectsEditorProps {
   mode: "create" | "edit";
   slug?: string;
@@ -29,22 +32,17 @@ interface ProjectsEditorProps {
   };
 }
 
-/** Helper to generate a slug from the title */
 function slugify(str: string) {
   return str
     .toLowerCase()
     .trim()
-    .replace(/[\s_]+/g, "-") // spaces/underscores -> dash
-    .replace(/[^a-z0-9-]/g, "") // remove non-url chars
-    .replace(/-+/g, "-") // collapse multiple dashes
-    .replace(/^-+|-+$/g, ""); // trim leading/trailing dashes
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-export default function ProjectsEditor({
-  mode,
-  slug,
-  initialData,
-}: ProjectsEditorProps) {
+export default function ProjectsEditor({ mode, slug, initialData }: ProjectsEditorProps) {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState(initialData.title);
@@ -53,9 +51,6 @@ export default function ProjectsEditor({
   const [fontColor, setFontColor] = useState("#ffffff");
   const [bgColor, setBgColor] = useState("#000000");
 
-  // ------------------------------------------------------
-  // Tiptap Editor
-  // ------------------------------------------------------
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -83,16 +78,13 @@ export default function ProjectsEditor({
     },
   });
 
-  // Update editor when initial data updates (edit mode load)
   useEffect(() => {
     if (editor && initialData.content) {
       editor.commands.setContent(initialData.content);
     }
   }, [editor, initialData]);
 
-  // ------------------------------------------------------
-  // Save Handler
-  // ------------------------------------------------------
+  // --- SAVE HANDLER ---
   const handleSave = useCallback(async () => {
     if (!title.trim()) return alert("Title is required.");
     setSaving(true);
@@ -102,99 +94,48 @@ export default function ProjectsEditor({
 
       if (mode === "create") {
         const generatedSlug = slugify(title);
-        const payload = { title, summary, content, slug: generatedSlug };
-        console.log("Create project payload:", payload);
-
-        await createProject(payload);
+        await createProject({ title, summary, content, slug: generatedSlug });
         navigate("/projects");
       } else if (mode === "edit" && slug) {
-        const payload = { title, summary, content };
-        console.log("Update project payload:", payload);
-
-        await updateProject(slug, payload);
+        await updateProject(slug, { title, summary, content });
         navigate(`/projects/${slug}`);
       }
-    } catch (err: any) {
-      if (err.response) {
-        console.error(
-          "Create/update project failed:",
-          err.response.status,
-          err.response.data
-        );
-      } else {
-        console.error("Create/update project failed:", err);
-      }
+    } catch (err) {
+      console.error("Project save failed:", err);
       alert("Failed to save project.");
     } finally {
       setSaving(false);
     }
   }, [title, summary, editor, slug, mode, navigate]);
 
-  // ------------------------------------------------------
-  // Link Handling
-  // ------------------------------------------------------
-  const addLink = () => {
-    const url = prompt("Enter URL:");
-    if (!url) return;
-
-    const text = prompt("Text to display:") || url;
-
-    editor
-      ?.chain()
-      .focus()
-      .insertContent(
-        `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`
-      )
-      .run();
-  };
-
-  const removeLink = () => {
-    editor?.chain().focus().unsetLink().run();
-  };
-
-  // ------------------------------------------------------
-  // Image Upload (uses /api/uploads/projects)
-  // ------------------------------------------------------
-  const handleImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  // --- IMAGE UPLOAD ---
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
       const form = new FormData();
-
-      // must be "image" to match uploader.single("image")
       form.append("image", file);
 
-      const res = await fetch("http://localhost:4000/api/uploads/projects", {
+      const res = await fetch(`${API_BASE}/uploads/projects`, {
         method: "POST",
         body: form,
       });
 
       if (!res.ok) {
-        console.error("Upload failed:", res.status, await res.text());
+        console.error("Upload failed:", await res.text());
         alert("Image upload failed");
         return;
       }
 
       const json = await res.json();
+      const fullUrl = json.url;
 
-      if (json.url) {
-        // backend returns a relative URL like "/uploads/projects/filename.png"
-        const fullUrl = json.url.startsWith("http")
-          ? json.url
-          : `http://localhost:4000${json.url}`;
-
-        editor?.chain().focus().setImage({ src: fullUrl }).run();
-      } else {
-        alert("Image upload failed (no url returned)");
-      }
+      editor?.chain().focus().setImage({ src: fullUrl }).run();
     } catch (err) {
       console.error(err);
       alert("Failed to upload image");
     } finally {
-      // allow re-selecting the same file
       e.target.value = "";
     }
   };
@@ -225,7 +166,7 @@ export default function ProjectsEditor({
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 border border-neutral-800 rounded-lg p-3 bg-neutral-950">
-        {/* Bold / Italic / Underline */}
+        {/* Formatting buttons */}
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive("bold")}
@@ -245,42 +186,25 @@ export default function ProjectsEditor({
         {/* Headings */}
         <ToolbarButton
           label="H1"
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 1 }).run()
-          }
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         />
         <ToolbarButton
           label="H2"
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 2 }).run()
-          }
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         />
         <ToolbarButton
           label="H3"
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 3 }).run()
-          }
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         />
 
         {/* Alignment */}
-        <ToolbarButton
-          label="←"
-          onClick={() => editor.chain().focus().setTextAlign("left").run()}
-        />
-        <ToolbarButton
-          label="↔"
-          onClick={() => editor.chain().focus().setTextAlign("center").run()}
-        />
-        <ToolbarButton
-          label="→"
-          onClick={() => editor.chain().focus().setTextAlign("right").run()}
-        />
+        <ToolbarButton label="←" onClick={() => editor.chain().focus().setTextAlign("left").run()} />
+        <ToolbarButton label="↔" onClick={() => editor.chain().focus().setTextAlign("center").run()} />
+        <ToolbarButton label="→" onClick={() => editor.chain().focus().setTextAlign("right").run()} />
 
         {/* Font Family */}
         <select
-          onChange={(e) =>
-            editor.chain().focus().setFontFamily(e.target.value).run()
-          }
+          onChange={(e) => editor.chain().focus().setFontFamily(e.target.value).run()}
           className="bg-neutral-800 text-gray-300 rounded-md px-2 py-1"
         >
           <option value="inherit">Default</option>
@@ -306,39 +230,15 @@ export default function ProjectsEditor({
           value={bgColor}
           onChange={(e) => {
             setBgColor(e.target.value);
-            editor
-              .chain()
-              .focus()
-              .toggleHighlight({ color: e.target.value })
-              .run();
+            editor.chain().focus().toggleHighlight({ color: e.target.value }).run();
           }}
           className="w-8 h-8 cursor-pointer border border-neutral-700 rounded-md"
         />
 
-        {/* Link */}
-        <button
-          className="px-3 py-1 bg-neutral-800 rounded-md text-sm"
-          onClick={addLink}
-        >
-          🔗 Add Link
-        </button>
-
-        <button
-          className="px-3 py-1 bg-neutral-800 rounded-md text-sm"
-          onClick={removeLink}
-        >
-          ❌ Unlink
-        </button>
-
         {/* Image Upload */}
         <label className="px-3 py-1 bg-neutral-800 hover:bg-neutral-700 rounded-lg cursor-pointer text-sm">
           Image
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageUpload}
-          />
+          <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
         </label>
       </div>
 
@@ -357,22 +257,12 @@ export default function ProjectsEditor({
   );
 }
 
-function ToolbarButton({
-  onClick,
-  active,
-  label,
-}: {
-  onClick: () => void;
-  active?: boolean;
-  label: string;
-}) {
+function ToolbarButton({ onClick, active, label }: { onClick: () => void; active?: boolean; label: string }) {
   return (
     <button
       onClick={onClick}
       className={`px-2 py-1 text-sm rounded-md transition ${
-        active
-          ? "bg-pink-500 text-white"
-          : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+        active ? "bg-pink-500 text-white" : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
       }`}
     >
       {label}

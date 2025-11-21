@@ -1,23 +1,33 @@
-// src/config.ts
-// Unified config for backend API URL
+// src/lib/config.ts
 
-declare const process: {
-  env: {
-    REACT_APP_BACKEND_URL?: string;
-    NODE_ENV?: string;
-  };
-};
+// =======================================
+// Detect environment
+// =======================================
 
-// ✔ BACKEND BASE URL
+// Webpack injects NODE_ENV automatically
+const NODE_ENV =
+  typeof process !== "undefined" && process.env.NODE_ENV
+    ? process.env.NODE_ENV
+    : "development";
+
+// =======================================
+// Backend API Base URL
+// =======================================
+
+/*
+  IMPORTANT:
+  - In DEV: Webpack devServer proxy redirects "/api" → http://localhost:4000
+  - In PROD: Fly.io serves your backend on port 8080
+*/
+
 export const API_BASE =
-  (typeof process !== "undefined" &&
-    process.env?.REACT_APP_BACKEND_URL &&
-    process.env.REACT_APP_BACKEND_URL.replace(/\/$/, "")) ||
-  "http://localhost:4000";
+  NODE_ENV === "production"
+    ? ""           // ✔ Production → use relative "/api"
+    : "http://localhost:4000"; // ✔ Dev mode → use local API
 
-// Helpers
-export const IS_PRODUCTION =
-  process?.env?.NODE_ENV === "production";
+// =======================================
+// Optional helpers
+// =======================================
 
-export const IS_DEVELOPMENT =
-  process?.env?.NODE_ENV === "development";
+export const IS_PRODUCTION = NODE_ENV === "production";
+export const IS_DEVELOPMENT = !IS_PRODUCTION;
