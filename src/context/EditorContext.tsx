@@ -1,54 +1,78 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+// src/context/EditorContext.tsx
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { RUNTIME_ALLOW_EDITOR } from "../lib/config";
 
 /**
- * JSON-ONLY MODE (NO BACKEND)
- * - Production → editor disabled
- * - Development → editor enabled
+ * EditorContext
+ *
+ * - `editorMode` is ON only when running on localhost (dev).
+ * - `isAuthenticated` is kept simple (you can replace with your auth).
+ * - The context reads/writes a localStorage flag so the editor toggle
+ *   can persist during a dev session on localhost.
  */
 
-interface EditorContextType {
-  isAuthenticated: boolean;
+type EditorContextType = {
   editorMode: boolean;
-  toggleEditor: () => void;
-}
-
-const EditorContext = createContext<EditorContextType | undefined>(undefined);
-
-export const useEditor = () => {
-  const ctx = useContext(EditorContext);
-  if (!ctx) throw new Error("useEditor must be inside provider");
-  return ctx;
+  setEditorMode: (v: boolean) => void;
+  isAuthenticated: boolean;
+  setIsAuthenticated: (v: boolean) => void;
 };
 
-export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const EditorContext = createContext<EditorContextType>({
+  editorMode: false,
+  setEditorMode: () => {},
+  isAuthenticated: false,
+  setIsAuthenticated: () => {},
+});
 
-  // React Router / Webpack environment flag
-  const isProd = import.meta.env?.PROD ?? false;
+export const useEditor = () => useContext(EditorContext);
 
-  const [editorMode, setEditorMode] = useState(() => {
-    if (isProd) return false;
+export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // default editor mode: only true when runtime allows editor (localhost)
+  // and localStorage flag is set to "true". This ensures Vercel/prod never turns it on.
+  const initialEditorMode = (() => {
     try {
-      return JSON.parse(localStorage.getItem("editor_mode_v1") || "false");
-    } catch {
+      if (!RUNTIME_ALLOW_EDITOR) return false;
+      const stored = typeof localStorage !== "undefined" ? localStorage.getItem("editorMode") : null;
+      return stored === "true";
+    } catch (err) {
       return false;
     }
-  });
+  })();
 
-  const toggleEditor = () => {
-    if (isProd) return;
-    const next = !editorMode;
-    setEditorMode(next);
-    localStorage.setItem("editor_mode_v1", JSON.stringify(next));
+  const [editorMode, setEditorModeState] = useState<boolean>(initialEditorMode);
+
+  const setEditorMode = (v: boolean) => {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("editorMode", v ? "true" : "false");
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    setEditorModeState(v);
   };
 
-  const value = useMemo(
-    () => ({
-      isAuthenticated: !isProd,
-      editorMode,
-      toggleEditor,
-    }),
-    [isProd, editorMode]
-  );
+  // Example: if you want to auto-enable editor in dev without clicking,
+  // do not set localStorage. We intentionally DO NOT auto-enable.
+  useEffect(() => {
+    // keep the editorMode in localStorage up-to-date (defensive)
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("editorMode", editorMode ? "true" : "false");
+      }
+    } catch (err) {}
+  }, [editorMode]);
 
-  return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;
+  return (
+    <EditorContext.Provider
+      value={{ editorMode, setEditorMode, isAuthenticated, setIsAuthenticated }}
+    >
+      {children}
+    </EditorContext.Provider>
+  );
 };
