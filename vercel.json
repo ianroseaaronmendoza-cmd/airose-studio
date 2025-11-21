@@ -12,5 +12,5 @@
       "dest": "/dist/$1"
     }
   ],
-  "ignoreCommand": "echo Vercel ignoring backend"
+  "ignoreCommand": "echo Ignoring backend and Next.js detection"
 }
