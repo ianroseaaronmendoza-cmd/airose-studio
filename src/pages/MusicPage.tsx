@@ -1,35 +1,36 @@
 import React, { useEffect, useState } from "react";
-import { useEditor } from "../context/EditorContext";
 import MusicViewer from "../components/MusicViewer";
 import MusicManager from "../components/MusicManager";
+import { useEditor } from "../context/EditorContext";
 
 export default function MusicPage() {
   const { isAuthenticated, editorMode } = useEditor();
+
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Only fetch data if NOT in editor mode (MusicManager handles its own loading)
-    if (editorMode && isAuthenticated) {
-      setLoading(false);
-      return;
-    }
+  // ✅ Webpack-supported production check
+  const isProd = process.env.NODE_ENV === "production";
 
+  useEffect(() => {
     let active = true;
+
     (async () => {
       try {
-        const res = await fetch("/api/music/load");
-        if (res.ok) {
-          const json = await res.json();
-          if (active && json.albums) setAlbums(json.albums);
-        } else {
-          // fallback to local file (for dev/offline mode)
-          const local = await fetch("/data/music.json");
-          const j = await local.json();
-          if (active && j.albums) setAlbums(j.albums);
+        // PRODUCTION → always load JSON
+        if (isProd) {
+          const res = await fetch("/data/music.json", { cache: "no-store" });
+          const data = await res.json();
+          if (active) setAlbums(data.albums || []);
+          return;
         }
+
+        // DEVELOPMENT → can mutate JSON in dev run
+        const local = await fetch("/data/music.json", { cache: "no-store" });
+        const json = await local.json();
+        if (active) setAlbums(json.albums || []);
       } catch (err) {
-        console.error("Failed to load music:", err);
+        console.error("Music load error:", err);
       } finally {
         if (active) setLoading(false);
       }
@@ -47,26 +48,17 @@ export default function MusicPage() {
       </div>
     );
 
-  // 🔁 Conditional Rendering
-  if (editorMode && isAuthenticated) {
+  // DEVELOPMENT + Editor Mode → open MusicManager
+  if (!isProd && editorMode && isAuthenticated) {
     return <MusicManager />;
   }
 
+  // PUBLIC VIEW (production or when editorMode is off)
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex justify-center px-6 py-10 text-gray-100">
       <div className="w-full max-w-3xl">
-        {/* Page Header */}
-        <h1 className="text-3xl font-bold text-pink-400 mb-2 flex items-center gap-2">
-          <span role="img" aria-label="music">🎵</span> Music Library
-        </h1>
+        <h1 className="text-3xl font-bold text-pink-400 mb-2">🎵 Music Library</h1>
 
-        {/* Caption like the Writing page */}
-        <p className="text-gray-300 text-base mb-8 leading-relaxed">
-          Explore albums and songs by Airose Official. Listen, read the stories behind each track,
-          and discover the message in every melody.
-        </p>
-
-        {/* Music Viewer */}
         <MusicViewer albums={albums} editorMode={false} />
       </div>
     </div>
