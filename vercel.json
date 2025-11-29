@@ -1,10 +1,13 @@
 {
   "version": 2,
   "builds": [
-    { "src": "dist/**/*", "use": "@vercel/static" }
+    { "src": "package.json", "use": "@vercel/static-build" }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/dist/$1" },
-    { "src": "/.*", "status": 200, "dest": "/dist/index.html" }
+    { "src": "/static/(.*)", "dest": "/dist/static/$1" },
+    { "src": "/(.*\\.js)", "dest": "/dist/$1" },
+    { "src": "/(.*\\.css)", "dest": "/dist/$1" },
+    { "src": "/(.*\\.(png|jpg|svg|json))", "dest": "/dist/$1" },
+    { "src": "/(.*)", "dest": "/dist/index.html", "status": 200 }
   ]
 }
