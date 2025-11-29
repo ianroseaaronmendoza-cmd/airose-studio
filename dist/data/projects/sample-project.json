@@ -1,0 +1,10 @@
+{
+  "id": "sample-project",
+  "title": "Sample Project",
+  "description": "This is a sample project",
+  "tech": [
+    "react"
+  ],
+  "images": [],
+  "order": 0
+}

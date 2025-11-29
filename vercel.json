@@ -1,15 +1,10 @@
 {
   "version": 2,
   "builds": [
-    { "src": "dist/**", "use": "@vercel/static" }
+    { "src": "dist/**/*", "use": "@vercel/static" }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "headers": {
-        "cache-control": "no-cache"
-      },
-      "dest": "/dist/index.html"
-    }
+    { "src": "/(.*)", "dest": "/dist/$1" },
+    { "src": "/.*", "status": 200, "dest": "/dist/index.html" }
   ]
 }

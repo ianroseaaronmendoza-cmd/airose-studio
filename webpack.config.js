@@ -12,9 +12,9 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, "dist"),
 
-    // ✔ dev uses main.js (easy debugging)
-    // ✔ production uses hashed filenames for cache-busting
+    // ✔ hashed filenames in production
     filename: isDev ? "main.js" : "main.[contenthash].js",
+    chunkFilename: isDev ? "[name].js" : "[name].[contenthash].js",
 
     publicPath: "/",
     clean: true,
@@ -48,12 +48,15 @@ module.exports = {
       template: path.resolve(__dirname, "public", "index.html"),
       filename: "index.html",
 
-      // ✔ inject hashed JS automatically in production
+      // ✔ ensures Webpack injects the correct hashed JS filenames
+      inject: "body",
       scriptLoading: "defer",
     }),
 
     new CopyWebpackPlugin({
-      patterns: [{ from: "public/data", to: "data" }],
+      patterns: [
+        { from: "public/data", to: "data" },
+      ],
     }),
   ],
 
@@ -87,7 +90,7 @@ module.exports = {
       });
 
       //
-      // BLOG FS
+      // BLOGS FS
       //
       const { saveBlog, deleteBlog } = require("./dev-tools/blogs-fs.js");
       app.post("/dev/blog/save", (req, res) => {
@@ -108,7 +111,7 @@ module.exports = {
       });
 
       //
-      // PROJECT FS
+      // PROJECTS FS
       //
       const { saveProject, deleteProject } = require("./dev-tools/projects-fs.js");
       app.post("/dev/project/save", (req, res) => {

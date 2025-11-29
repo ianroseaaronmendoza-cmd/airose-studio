@@ -1,0 +1,9 @@
+{
+  "id": "sample-blog",
+  "title": "Sample Blog",
+  "slug": "sample-blog",
+  "category": "General",
+  "published": "2025-01-01",
+  "body": "# Hello world",
+  "order": 0
+}
