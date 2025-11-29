@@ -11,7 +11,11 @@ module.exports = {
 
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "main.js",
+
+    // ✔ dev uses main.js (easy debugging)
+    // ✔ production uses hashed filenames for cache-busting
+    filename: isDev ? "main.js" : "main.[contenthash].js",
+
     publicPath: "/",
     clean: true,
   },
@@ -43,6 +47,9 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "public", "index.html"),
       filename: "index.html",
+
+      // ✔ inject hashed JS automatically in production
+      scriptLoading: "defer",
     }),
 
     new CopyWebpackPlugin({
@@ -80,7 +87,7 @@ module.exports = {
       });
 
       //
-      // BLOGS FS
+      // BLOG FS
       //
       const { saveBlog, deleteBlog } = require("./dev-tools/blogs-fs.js");
       app.post("/dev/blog/save", (req, res) => {
@@ -101,7 +108,7 @@ module.exports = {
       });
 
       //
-      // PROJECTS FS
+      // PROJECT FS
       //
       const { saveProject, deleteProject } = require("./dev-tools/projects-fs.js");
       app.post("/dev/project/save", (req, res) => {
@@ -156,7 +163,7 @@ module.exports = {
       });
 
       //
-      // NOVELS FS (placeholder, final implementation next)
+      // NOVELS FS
       //
       const {
         saveNovelMeta,

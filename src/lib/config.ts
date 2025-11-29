@@ -19,9 +19,10 @@ export const API_BASE = IS_DEVELOPMENT ? "http://localhost:4000" : "";
 
 // Whether runtime should show editor features (only on localhost)
 export const RUNTIME_ALLOW_EDITOR =
-  typeof window !== "undefined"
-    ? _hostname === "localhost" || _hostname === "127.0.0.1"
-    : false;
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+   window.location.hostname === "127.0.0.1");
+
 
 export default {
   IS_PRODUCTION,
