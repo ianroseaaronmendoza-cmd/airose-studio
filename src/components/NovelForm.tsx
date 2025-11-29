@@ -1,198 +1,201 @@
-// src/components/NovelForm.tsx
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import slugify from "slugify";
-import { useNavigate } from "react-router-dom";
-import { API_BASE } from "@/lib/config";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { uploadImage } from "../utils/uploadImage";
 
-type NovelFormProps = {
-  mode: "create" | "edit";
-  novel?: {
-    id: number;
-    title: string;
-    slug: string;
-    summary?: string;
-    note?: string;
-    coverUrl?: string;
-  };
-};
+export interface NovelMeta {
+  slug: string;
+  title: string;
+  summary?: string;
+  note?: string;
+  coverUrl?: string;
+  updatedAt?: number;
+}
 
-export default function NovelForm({ mode, novel }: NovelFormProps) {
+export default function NovelForm({
+  initial,
+  onSaved,
+}: {
+  initial?: NovelMeta | null;
+  onSaved?: (meta: NovelMeta) => void;
+}) {
   const navigate = useNavigate();
+  const { slug: routeSlug } = useParams<{ slug?: string }>();
 
-  const [title, setTitle] = useState(novel?.title || "");
-  const [slug, setSlug] = useState(novel?.slug || "");
-  const [summary, setSummary] = useState(novel?.summary || "");
-  const [note, setNote] = useState(novel?.note || "");
-
-  // Stored value for backend
-  const [coverUrl, setCoverUrl] = useState<string>(novel?.coverUrl || "");
-
-  // UI preview only
-  const [previewUrl, setPreviewUrl] = useState<string>(
-    novel?.coverUrl ? `${API_BASE}${novel.coverUrl}` : ""
+  const [title, setTitle] = useState(initial?.title || "");
+  const [summary, setSummary] = useState(initial?.summary || "");
+  const [note, setNote] = useState(initial?.note || "");
+  const [coverUrl, setCoverUrl] = useState<string | undefined>(
+    initial?.coverUrl
   );
-
-  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Auto-generate slug only in create mode
   useEffect(() => {
-    if (mode === "create" && title.trim()) {
-      const cleanSlug = slugify(title, {
-        lower: true,
-        strict: true,
-        remove: /[*+~.()'"!:@#?,]/g,
-      });
-      setSlug(cleanSlug);
-    }
-  }, [title, mode]);
+    setTitle(initial?.title || "");
+    setSummary(initial?.summary || "");
+    setNote(initial?.note || "");
+    setCoverUrl(initial?.coverUrl);
+  }, [initial]);
 
-  // ===============================
-  //  IMAGE UPLOAD HANDLER
-  // ===============================
-  async function handleImageUpload(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await axios.post(`${API_BASE}/api/upload`, formData, {
-      withCredentials: true,
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-
-    return response.data.url; // e.g. "/uploads/cover-123.jpg"
+  function slugify(text: string) {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\- ]+/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-");
   }
 
-  // ===============================
-  //  FORM SUBMIT HANDLER
-  // ===============================
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCoverFile(file?: File) {
+    if (!file) return;
+
     try {
-      setSaving(true);
+      const url = await uploadImage(file, "novels");
+      setCoverUrl(url);
+    } catch (err: any) {
+      console.error("Cover upload failed", err);
+      alert("Cover upload failed: " + (err?.message || err));
+    }
+  }
 
-      let finalCoverUrl = coverUrl;
+  async function handleSave(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!title.trim()) return alert("Title is required");
 
-      // Upload file only if user picked a new one
-      if (coverFile) {
-        finalCoverUrl = await handleImageUpload(coverFile);
-        setCoverUrl(finalCoverUrl);
+    setSaving(true);
+
+    const generatedSlug = initial?.slug || slugify(title);
+
+    const payload: NovelMeta = {
+      slug: generatedSlug,
+      title: title.trim(),
+      summary: summary.trim(),
+      note: note.trim(),
+      coverUrl,
+      updatedAt: Date.now(),
+    };
+
+    try {
+      const res = await fetch("/dev/novel/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Save failed");
       }
 
-      const payload = {
-        title: title.trim(),
-        slug,
-        summary,
-        note,
-        coverUrl: finalCoverUrl,
-      };
-
-      if (mode === "create") {
-        await axios.post(`${API_BASE}/api/novels`, payload, {
-          withCredentials: true,
-        });
-      } else if (mode === "edit" && novel?.slug) {
-        await axios.put(`${API_BASE}/api/novels/${novel.slug}`, payload, {
-          withCredentials: true,
-        });
+      const json = await res.json();
+      if (!json.ok) {
+        throw new Error(json.error || "Save returned error");
       }
 
-      navigate("/writing/novels");
-    } catch (error) {
-      console.error("Novel save error:", error);
-      alert("Something went wrong while saving your novel.");
+      const saved = json.saved || payload;
+      onSaved?.(saved);
+
+      // NEW NOVEL → go to novel page
+      if (!initial) {
+        navigate(`/writing/novels/${saved.slug}`);
+        return;
+      }
+
+      // EDIT MODE → update route if slug changed
+      if (routeSlug && routeSlug !== saved.slug) {
+        navigate(`/writing/novels/${saved.slug}/edit`);
+      }
+    } catch (err: any) {
+      alert("Save failed: " + (err?.message || err));
     } finally {
       setSaving(false);
     }
   }
 
+  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (f) await handleCoverFile(f);
+    e.currentTarget.value = "";
+  }
+
   return (
     <form
-      onSubmit={handleSubmit}
-      className="max-w-2xl mx-auto space-y-6 text-gray-100"
+      onSubmit={handleSave}
+      className="max-w-3xl mx-auto space-y-6 text-gray-100"
     >
-      {/* Title */}
       <div>
-        <label className="block mb-1 text-gray-300 font-medium">Title</label>
+        <label className="block text-sm text-gray-400 mb-1">Title</label>
         <input
-          type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter your novel title"
-          className="w-full bg-[#0a0a0a] border border-gray-700 text-gray-100 placeholder-gray-500 rounded-md px-3 py-2 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition"
+          className="w-full bg-neutral-900 border border-neutral-800 px-3 py-2 rounded"
+          placeholder="Novel Title"
         />
       </div>
 
-      {/* Summary */}
       <div>
-        <label className="block mb-1 text-gray-300 font-medium">Synopsis</label>
-        <textarea
-          rows={4}
+        <label className="block text-sm text-gray-400 mb-1">Summary</label>
+        <input
           value={summary}
           onChange={(e) => setSummary(e.target.value)}
-          placeholder="A short summary or teaser for your story..."
-          className="w-full bg-[#0a0a0a] border border-gray-700 text-gray-100 placeholder-gray-500 rounded-md px-3 py-2 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition resize-none"
+          className="w-full bg-neutral-900 border border-neutral-800 px-3 py-2 rounded"
+          placeholder="Short description"
         />
       </div>
 
-      {/* Note */}
       <div>
-        <label className="block mb-1 text-gray-300 font-medium">
-          Note (optional)
-        </label>
-        <input
-          type="text"
+        <label className="block text-sm text-gray-400 mb-1">Author Note</label>
+        <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Any author notes or update remarks"
-          className="w-full bg-[#0a0a0a] border border-gray-700 text-gray-100 placeholder-gray-500 rounded-md px-3 py-2 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition"
+          rows={4}
+          className="w-full bg-neutral-900 border border-neutral-800 px-3 py-2 rounded"
+          placeholder="Optional author note"
         />
       </div>
 
-      {/* Cover Upload */}
       <div>
-        <label className="block mb-1 text-gray-300 font-medium">Cover Image</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              setCoverFile(file);
-              setPreviewUrl(URL.createObjectURL(file));
-            }
-          }}
-          className="text-gray-300"
-        />
+        <label className="block text-sm text-gray-400 mb-1">Cover Image</label>
+        <div className="flex items-center gap-4">
+          <input type="file" accept="image/*" onChange={handleCoverChange} />
 
-        {previewUrl && (
-          <div className="mt-3">
+          {coverUrl ? (
             <img
-              src={previewUrl}
-              alt="Cover preview"
-              className="w-48 rounded-md border border-gray-700 shadow-md"
+              src={coverUrl}
+              alt="cover preview"
+              className="w-28 h-16 object-cover rounded"
             />
-          </div>
-        )}
+          ) : (
+            <div className="text-gray-500 text-sm">No cover selected</div>
+          )}
+        </div>
       </div>
 
-      {/* Save Button */}
-      <div className="pt-4">
+      <div className="flex gap-3">
         <button
           type="submit"
           disabled={saving}
-          className={`px-6 py-2 font-semibold rounded-md text-white bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 transition ${
-            saving ? "opacity-60 cursor-not-allowed" : ""
-          }`}
+          className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded text-white disabled:opacity-60"
         >
-          {saving
-            ? "Saving..."
-            : mode === "create"
-            ? "Create Novel"
-            : "Save Changes"}
+          {saving ? "Saving…" : initial ? "Save Changes" : "Create Novel"}
         </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/writing/novels")}
+          className="px-4 py-2 border border-neutral-700 rounded text-gray-300"
+        >
+          Cancel
+        </button>
+
+        {initial && (
+          <button
+            type="button"
+            onClick={() => navigate(`/writing/novels/${initial.slug}`)}
+            className="ml-auto px-3 py-1 bg-neutral-800 rounded text-gray-300"
+          >
+            View Novel
+          </button>
+        )}
       </div>
     </form>
   );

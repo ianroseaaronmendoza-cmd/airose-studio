@@ -1,34 +1,23 @@
 // src/lib/config.ts
-/**
- * Runtime-safe environment helpers for the frontend.
- *
- * - No build-time `process` dependency.
- * - Editor mode / production detection is done at runtime
- *   using `window.location.hostname` where available.
- *
- * This file is safe to import in SSR/build-time contexts because
- * it guards access to `window`.
- */
+// Runtime-safe environment helpers for the frontend.
 
-// Client runtime detection (safe guard for build-time)
 const _hostname =
   typeof window !== "undefined" && window.location && window.location.hostname
     ? window.location.hostname
     : undefined;
 
-// Consider production when running on a real host (not localhost/127.0.0.1)
+// If host is localhost or 127.0.0.1 → development
 export const IS_PRODUCTION =
   typeof _hostname === "string"
     ? !(_hostname === "localhost" || _hostname === "127.0.0.1")
-    : true; // default to production when hostname is unknown (build-time)
+    : true; // default to production when unknown
 
-// Development if explicitly localhost
 export const IS_DEVELOPMENT = !IS_PRODUCTION;
 
-// API base: empty for static JSON-only frontend
-export const API_BASE = "";
+// API base — empty in production (static), dev uses local helper backend
+export const API_BASE = IS_DEVELOPMENT ? "http://localhost:4000" : "";
 
-// Helper: whether editor features should be available (runtime)
+// Whether runtime should show editor features (only on localhost)
 export const RUNTIME_ALLOW_EDITOR =
   typeof window !== "undefined"
     ? _hostname === "localhost" || _hostname === "127.0.0.1"

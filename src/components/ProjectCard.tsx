@@ -1,14 +1,9 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { deleteProject } from "../client/api/projects";
-import { useEditor } from "../context/EditorContext";
+import { deleteProject } from "@/client/api/projects";
+import { useEditor } from "@/context/EditorContext";
 
-interface Project {
-  slug: string;
-  title: string;
-  summary?: string;
-  updatedAt?: string;
-}
+import type { Project } from "@/client/api/projects";
 
 export default function ProjectCard({
   project,
@@ -18,7 +13,7 @@ export default function ProjectCard({
   onDelete?: () => void;
 }) {
   const navigate = useNavigate();
-  const { editorMode } = useEditor(); // THE CORRECT FLAG
+  const { editorMode } = useEditor();
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -26,8 +21,8 @@ export default function ProjectCard({
 
     try {
       await deleteProject(project.slug);
-      if (onDelete) onDelete();
-    } catch (err) {
+      onDelete?.();
+    } catch {
       alert("Failed to delete project.");
     }
   };
@@ -49,9 +44,8 @@ export default function ProjectCard({
       "
     >
       <div className="flex justify-between items-start">
-
-        {/* TITLE + SUMMARY */}
         <div>
+          {/* TITLE */}
           <Link
             to={`/projects/${project.slug}`}
             className="text-xl font-semibold text-pink-400 hover:underline"
@@ -60,8 +54,9 @@ export default function ProjectCard({
             {project.title}
           </Link>
 
-          {project.summary && (
-            <p className="text-gray-300 mt-1">{project.summary}</p>
+          {/* DESCRIPTION (use fallback because old card used summary) */}
+          {project.description && (
+            <p className="text-gray-300 mt-1">{project.description}</p>
           )}
 
           <div className="text-gray-500 text-sm mt-3">
@@ -72,7 +67,7 @@ export default function ProjectCard({
           </div>
         </div>
 
-        {/* EDIT + DELETE — ONLY WHEN EDITOR MODE IS ON */}
+        {/* EDIT + DELETE — ONLY WHEN IN EDITOR MODE */}
         {editorMode && (
           <div
             className="flex gap-3 ml-4"
@@ -93,7 +88,6 @@ export default function ProjectCard({
             </button>
           </div>
         )}
-
       </div>
     </div>
   );

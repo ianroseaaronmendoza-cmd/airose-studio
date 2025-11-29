@@ -1,9 +1,9 @@
 // src/pages/projects/[slug]/index.tsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import BackButton from "../../../components/BackButton";
+import BackButton from "@/components/BackButton";
 
-import { getProject } from "../../../client/api/projects";
+import { loadProject } from "@/client/api/projects";
 
 export default function ProjectViewPage() {
   const { slug } = useParams();
@@ -15,7 +15,8 @@ export default function ProjectViewPage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await getProject(slug!);
+        if (!slug) return;
+        const data = await loadProject(slug);
         setProject(data);
       } catch (err: any) {
         setError(err.message || "Failed to load project");
@@ -32,22 +33,18 @@ export default function ProjectViewPage() {
 
   return (
     <div className="max-w-4xl mx-auto pt-8 px-4">
-      {/* Back button + Title with increased vertical spacing */}
       <div className="flex flex-col items-start gap-12 mb-8">
-        {/* constrain width so the button doesn't stretch too far */}
         <div className="w-full sm:w-72">
           <BackButton label="Back to Projects" to="/projects" />
         </div>
 
-        {/* bigger top margin for title area so it's clearly separated */}
         <h1 className="text-4xl font-bold text-pink-400 mt-2">{project.title}</h1>
       </div>
 
-      {project.summary && (
-        <p className="text-gray-300 mb-6 text-lg">{project.summary}</p>
+      {project.description && (
+        <p className="text-gray-300 mb-6 text-lg">{project.description}</p>
       )}
 
-      {/* Project Content */}
       <div
         className="prose prose-invert max-w-none"
         dangerouslySetInnerHTML={{ __html: project.content || "" }}

@@ -1,19 +1,15 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useEditor } from "../context/EditorContext";
+import { useEditor } from "@/context/EditorContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { isDev } from "@/lib/env";
 
 export default function Header() {
-  const { isAuthenticated, editorMode, toggleEditor, logout } = useEditor();
+  const { editorMode, toggleEditor } = useEditor();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const toggleMenu = () => setMenuOpen((v) => !v);
   const closeMenu = () => setMenuOpen(false);
-
-  const handleLogout = async () => {
-    await logout();
-    closeMenu();
-  };
 
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-gray-800 sticky top-0 bg-[#080808]/95 backdrop-blur z-50">
@@ -31,34 +27,18 @@ export default function Header() {
         <Link to="/about" className="hover:text-pink-400 transition">About</Link>
         <Link to="/support" className="hover:text-pink-400 transition">Support</Link>
 
-        {!isAuthenticated && (
-          <Link
-            to="/editor-login"
-            className="text-sm text-pink-400 hover:text-white transition"
+        {/* DEV-ONLY EDITOR TOGGLE */}
+        {isDev && (
+          <button
+            onClick={toggleEditor}
+            className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
+              editorMode
+                ? "bg-pink-500 text-white border-pink-400"
+                : "border-gray-700 text-gray-400"
+            }`}
           >
-            Editor Login
-          </Link>
-        )}
-
-        {isAuthenticated && (
-          <>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-pink-400 hover:text-white transition"
-            >
-              Logout
-            </button>
-            <button
-              onClick={toggleEditor}
-              className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
-                editorMode
-                  ? "bg-pink-500 text-white border-pink-400"
-                  : "border-gray-700 text-gray-400"
-              }`}
-            >
-              {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
-            </button>
-          </>
+            Editor Mode: {editorMode ? "ON" : "OFF"}
+          </button>
         )}
       </nav>
 
@@ -100,35 +80,21 @@ export default function Header() {
               <Link to="/about" onClick={closeMenu}>About</Link>
               <Link to="/support" onClick={closeMenu}>Support</Link>
 
-              {!isAuthenticated && (
-                <Link
-                  to="/editor-login"
-                  onClick={closeMenu}
-                  className="text-pink-400 hover:text-white transition"
+              {/* DEV-ONLY EDITOR TOGGLE */}
+              {isDev && (
+                <button
+                  onClick={() => {
+                    toggleEditor();
+                    closeMenu();
+                  }}
+                  className={`mt-2 px-3 py-1.5 rounded text-sm font-medium border transition ${
+                    editorMode
+                      ? "bg-pink-500 text-white border-pink-400"
+                      : "border-gray-700 text-gray-400"
+                  }`}
                 >
-                  Editor Login
-                </Link>
-              )}
-
-              {isAuthenticated && (
-                <>
-                  <button
-                    onClick={handleLogout}
-                    className="text-pink-400 hover:text-white transition"
-                  >
-                    Logout
-                  </button>
-                  <button
-                    onClick={toggleEditor}
-                    className={`px-3 py-1.5 rounded text-sm font-medium border transition ${
-                      editorMode
-                        ? "bg-pink-500 text-white border-pink-400"
-                        : "border-gray-700 text-gray-400"
-                    }`}
-                  >
-                    {editorMode ? "Editor Mode: ON" : "Editor Mode: OFF"}
-                  </button>
-                </>
+                  Editor Mode: {editorMode ? "ON" : "OFF"}
+                </button>
               )}
             </nav>
           </motion.aside>

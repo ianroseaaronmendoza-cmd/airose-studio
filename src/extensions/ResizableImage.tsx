@@ -11,8 +11,8 @@ const ResizableImageComponent: React.FC<NodeViewProps> = ({
   updateAttributes,
   selected,
 }) => {
-  const { src, alt = "", width = "auto" } = node.attrs;
-  const [currentWidth, setCurrentWidth] = useState(
+  const { src, alt = "", width = "auto" } = node.attrs as any;
+  const [currentWidth, setCurrentWidth] = useState<number>(
     width === "auto" ? 400 : parseInt(width, 10) || 400
   );
 
@@ -23,6 +23,7 @@ const ResizableImageComponent: React.FC<NodeViewProps> = ({
   useEffect(() => {
     const move = (e: MouseEvent) => {
       if (!isResizing.current) return;
+
       const delta = e.clientX - startX.current;
       const newWidth = Math.max(80, startWidth.current + delta);
       setCurrentWidth(newWidth);
@@ -40,9 +41,18 @@ const ResizableImageComponent: React.FC<NodeViewProps> = ({
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseup", up);
     };
-  }, []);
+  }, [updateAttributes]);
 
-  const startResize = (e: any) => {
+  useEffect(() => {
+    if (width !== "auto") {
+      const parsed = parseInt(String(width), 10);
+      if (!Number.isNaN(parsed)) {
+        setCurrentWidth(parsed);
+      }
+    }
+  }, [width]);
+
+  const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
     isResizing.current = true;
     startX.current = e.clientX;
@@ -55,20 +65,22 @@ const ResizableImageComponent: React.FC<NodeViewProps> = ({
       <img
         src={src}
         alt={alt}
+        draggable={false}
         style={{
           width: `${currentWidth}px`,
           border: selected ? "2px solid #f472b6" : "none",
           borderRadius: "8px",
+          display: "block",
           userSelect: "none",
         }}
-        draggable={false}
       />
 
       {selected && (
         <>
           <div
             onMouseDown={startResize}
-            className="absolute bottom-0 right-0 w-4 h-4 bg-pink-500 rounded-full cursor-ew-resize opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute bottom-0 right-0 w-4 h-4 bg-pink-500 rounded-full cursor-ew-resize"
+            style={{ transform: "translate(50%, 50%)" }}
           />
 
           <div className="absolute left-2 bottom-8 bg-black/70 px-2 py-1 rounded text-xs text-white">
@@ -83,9 +95,17 @@ const ResizableImageComponent: React.FC<NodeViewProps> = ({
 const ResizableImage = Image.extend({
   addAttributes() {
     return {
-      ...this.parent?.(),
+      ...(this.parent?.() || {}),
       width: {
         default: "auto",
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute("data-width") ||
+          element.getAttribute("width") ||
+          "auto",
+        renderHTML: (attrs: any) => ({
+          "data-width": attrs.width,
+          width: attrs.width === "auto" ? undefined : attrs.width,
+        }),
       },
     };
   },

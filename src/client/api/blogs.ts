@@ -1,39 +1,77 @@
-import axios from "axios";
-import { API_BASE } from "@/lib/config";
-
-const API = `${API_BASE}/api/blogs`;
+// src/client/api/blogs.ts
 
 export interface Blog {
-  id: number;
-  title: string;
   slug: string;
-  content?: string;
-  coverImage?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  title: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
-export async function getAllBlogs() {
-  const res = await axios.get(API);
-  return res.data;
+const isDev =
+  (typeof import.meta !== "undefined" &&
+    (import.meta as any)?.env?.MODE === "development") ||
+  process.env.NODE_ENV === "development";
+
+/** Load all blogs from static JSON */
+export async function loadBlogs(): Promise<Blog[]> {
+  try {
+    const res = await fetch("/data/blogs/index.json", { cache: "no-store" });
+    if (!res.ok) return [];
+    return (await res.json()) as Blog[];
+  } catch (err) {
+    console.error("loadBlogs failed:", err);
+    return [];
+  }
 }
 
-export async function getBlog(slug: string) {
-  const res = await axios.get(`${API}/${slug}`);
-  return res.data;
+/** Load a single blog from static JSON */
+export async function loadBlog(slug: string): Promise<Blog | null> {
+  try {
+    const res = await fetch(`/data/blogs/${slug}.json`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Blog;
+  } catch (err) {
+    console.error("loadBlog failed:", err);
+    return null;
+  }
 }
 
-export async function createBlog(data: any) {
-  const res = await axios.post(API, data);
-  return res.data;
+/** Save blog (DEV ONLY) */
+export async function saveBlog(blog: Blog): Promise<Blog> {
+  if (!isDev) throw new Error("saveBlog is allowed only in development.");
+
+  const res = await fetch("/dev/blog/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(blog),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to save blog");
+  }
+
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || "Unknown save error");
+
+  return json.saved as Blog;
 }
 
-export async function updateBlog(slug: string, data: any) {
-  const res = await axios.put(`${API}/${slug}`, data);
-  return res.data;
-}
+/** Delete blog (DEV ONLY) */
+export async function deleteBlog(slug: string): Promise<void> {
+  if (!isDev) throw new Error("deleteBlog is allowed only in development.");
 
-export async function deleteBlog(slug: string) {
-  const res = await axios.delete(`${API}/${slug}`);
-  return res.data;
+  const res = await fetch("/dev/blog/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ slug }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to delete blog");
+  }
 }

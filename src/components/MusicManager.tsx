@@ -1,392 +1,255 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { loadMusic, saveMusic, MusicFile, Album, Song } from "../client/api/music";
 import MusicPanel from "./MusicPanel";
-import { useEditor } from "../context/EditorContext";
+import MusicToolbar from "./MusicToolbar";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function MusicManager() {
-  const { editorMode } = useEditor();
-  const [albums, setAlbums] = useState([]);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [selectedSong, setSelectedSong] = useState(null);
-  const [selectedAlbum, setSelectedAlbum] = useState(null);
+  //
+  // Properly typed states
+  //
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+
+  const [showPanel, setShowPanel] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [openAlbums, setOpenAlbums] = useState({});
 
-  const isProd = false; // ALWAYS editable in dev mode
-
-  // Load albums (JSON-only)
+  //
+  // Load music.json on mount
+  //
   useEffect(() => {
-    const loadAlbums = async () => {
-      try {
-        const res = await fetch("/data/music.json", { cache: "no-store" });
-        const json = await res.json();
-        const list = json?.albums || [];
-
-        setAlbums(list);
-
-        const init = {};
-        list.forEach((a) => (init[a.id] = editorMode));
-        setOpenAlbums(init);
-      } catch (err) {
-        console.error("Music JSON load failed", err);
-        setAlbums([]);
-      } finally {
-        setLoading(false);
-      }
+    const load = async () => {
+      const data: MusicFile = await loadMusic();
+      setAlbums(data.albums || []);
+      setLoading(false);
     };
 
-    loadAlbums();
-  }, [editorMode]);
+    load();
+  }, []);
 
-  const toggleAlbum = (id) => {
-    if (editorMode) return;
-    setOpenAlbums((p) => ({ ...p, [id]: !p[id] }));
-  };
-
-  const openPanel = (album, song) => {
+  //
+  // Open side panel for album or song
+  //
+  const openPanel = (album: Album | null, song: Song | null) => {
     setSelectedAlbum(album);
     setSelectedSong(song);
-    setPanelOpen(true);
+    setShowPanel(true);
   };
 
   const closePanel = () => {
-    setPanelOpen(false);
     setSelectedAlbum(null);
     setSelectedSong(null);
+    setShowPanel(false);
   };
 
+  //
+  // Create new album
+  //
   const addAlbum = () => {
-    const a = {
-      id: `alb-${Date.now()}`,
+    const id = "alb-" + Date.now();
+    const newAlbum: Album = {
+      id,
       title: "Untitled Album",
-      year: new Date().getFullYear(),
+      year: "",
       songs: [],
     };
-    setAlbums((prev) => [...prev, a]);
-    setOpenAlbums((prev) => ({ ...prev, [a.id]: true }));
+
+    setAlbums((prev) => [...prev, newAlbum]);
+    openPanel(newAlbum, null);
   };
 
-  const addSong = (albumId) => {
-    setAlbums((prev) =>
-      prev.map((a) =>
-        a.id === albumId
-          ? {
-              ...a,
-              songs: [
-                ...a.songs,
-                {
-                  id: `song-${Date.now()}`,
-                  title: "New Song",
-                  spotifyEmbed: "",
-                  lyrics: "",
-                  story: "",
-                },
-              ],
-            }
-          : a
-      )
-    );
-  };
+  //
+  // Create new song
+  //
+  const addSong = (albumId: string) => {
+    const id = "song-" + Date.now();
+    const newSong: Song = {
+      id,
+      title: "New Song",
+      spotifyEmbed: "",
+      lyrics: "",
+      story: "",
+    };
 
-  const deleteAlbum = (id) =>
-    setAlbums((prev) => prev.filter((a) => a.id !== id));
-
-  const deleteSong = (albumId, songId) =>
-    setAlbums((prev) =>
-      prev.map((a) =>
-        a.id !== albumId
-          ? a
-          : { ...a, songs: a.songs.filter((s) => s.id !== songId) }
+    setAlbums((prevAlbums) =>
+      prevAlbums.map((alb) =>
+        alb.id === albumId
+          ? { ...alb, songs: [...alb.songs, newSong] }
+          : alb
       )
     );
 
-  const moveAlbum = (index, dir) => {
-    const updated = [...albums];
-    const [moved] = updated.splice(index, 1);
-    updated.splice(index + dir, 0, moved);
-    setAlbums(updated);
+    const album = albums.find((a) => a.id === albumId) || null;
+    openPanel(album, newSong);
   };
 
-  const moveSong = (albumId, index, dir) => {
-    setAlbums((prev) =>
-      prev.map((a) => {
-        if (a.id !== albumId) return a;
-        const arr = [...a.songs];
-        const [moved] = arr.splice(index, 1);
-        arr.splice(index + dir, 0, moved);
-        return { ...a, songs: arr };
+  //
+  // Update album or song fields
+  //
+  const updateItem = (
+    albumId: string,
+    songId: string | null,
+    updatedData: Partial<Album> | Partial<Song>
+  ) => {
+    setAlbums((prevAlbums) =>
+      prevAlbums.map((album) => {
+        if (album.id !== albumId) return album;
+
+        // Update album
+        if (songId === null) {
+          return { ...album, ...(updatedData as Partial<Album>) };
+        }
+
+        // Update a song
+        const updatedSongs = album.songs.map((song) =>
+          song.id === songId
+            ? { ...song, ...(updatedData as Partial<Song>) }
+            : song
+        );
+
+        return { ...album, songs: updatedSongs };
       })
     );
   };
 
-  const handleSaveSong = (albumId, updatedSong) => {
-    setAlbums((prev) =>
-      prev.map((a) =>
-        a.id === albumId
-          ? {
-              ...a,
-              songs: a.songs.map((s) =>
-                s.id === updatedSong.id ? updatedSong : s
-              ),
-            }
-          : a
-      )
+  //
+  // Delete album
+  //
+  const deleteAlbum = (albumId: string) => {
+    if (!confirm("Delete this album?")) return;
+
+    setAlbums((prev) => prev.filter((a) => a.id !== albumId));
+  };
+
+  //
+  // Delete song
+  //
+  const deleteSong = (albumId: string, songId: string) => {
+    if (!confirm("Delete this song?")) return;
+
+    setAlbums((prevAlbums) =>
+      prevAlbums.map((album) => {
+        if (album.id !== albumId) return album;
+        return { ...album, songs: album.songs.filter((s) => s.id !== songId) };
+      })
     );
   };
 
-  // 🚀 Save JSON through local helper server (DEV ONLY)
-  const saveToJson = async () => {
-    if (isProd) {
-      alert("Saving disabled in production.");
-      return;
-    }
-
+  //
+  // Save everything to music.json
+  //
+  const handleSaveAll = async () => {
     try {
-      const payload = {
-        filename: "music.json",
-        content: { albums },
-      };
-
-      const res = await fetch("http://localhost:4000/api/save-json", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Write failed");
-      }
-
-      alert("Saved locally! Commit + push to deploy.");
-    } catch (err) {
-      alert("Local save failed: " + err.message);
+      setSaving(true);
+      await saveMusic({ albums });
+      alert("Saved to music.json!");
+    } catch (err: any) {
+      alert("Save failed: " + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading)
+  //
+  // UI
+  //
+  if (loading) {
     return (
       <div className="text-center text-gray-400 mt-10">
-        Loading music library...
+        Loading music...
       </div>
     );
+  }
 
   return (
-    <div className="text-gray-100 p-6 custom-scroll">
-      <style>{`
-        .custom-scroll::-webkit-scrollbar { width: 10px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #ec4899; border-radius: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #111; }
-      `}</style>
+    <div className="w-full text-gray-100 space-y-6 pb-20">
+      {/* Toolbar */}
+      <MusicToolbar onAddAlbum={addAlbum} onSave={handleSaveAll} saving={saving} />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-pink-400">🎵 Music Library</h2>
-
-        {editorMode && (
-          <button
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm"
-            onClick={saveToJson}
-          >
-            Save JSON
-          </button>
+      <div className="space-y-8">
+        {albums.length === 0 && (
+          <p className="text-gray-400">No albums yet. Add one above.</p>
         )}
-      </div>
 
-      {/* Album List */}
-      <div className="space-y-8 pb-24">
-        {albums.map((album, index) => {
-          const isOpen = openAlbums[album.id];
-
-          return (
-            <motion.div
-              key={album.id}
-              layout
-              className="border border-gray-800 bg-[#0f0f0f] rounded-xl"
-            >
-              <div
-                className={`flex justify-between items-center px-5 py-4 ${
-                  editorMode
-                    ? "bg-[#141414]"
-                    : "bg-[#141414] cursor-pointer hover:bg-[#1a1a1a]"
-                }`}
-                onClick={() => toggleAlbum(album.id)}
-              >
-                <div>
-                  {editorMode ? (
-                    <>
-                      <input
-                        value={album.title}
-                        className="text-lg font-semibold text-pink-400 bg-transparent border-b border-gray-700"
-                        onChange={(e) =>
-                          setAlbums((prev) =>
-                            prev.map((a) =>
-                              a.id === album.id
-                                ? { ...a, title: e.target.value }
-                                : a
-                            )
-                          )
-                        }
-                      />
-                      <input
-                        value={album.year}
-                        className="block text-sm text-gray-400 bg-transparent border-b border-gray-700 mt-1 w-20"
-                        onChange={(e) =>
-                          setAlbums((prev) =>
-                            prev.map((a) =>
-                              a.id === album.id
-                                ? { ...a, year: e.target.value }
-                                : a
-                            )
-                          )
-                        }
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <h3 className="text-lg font-semibold text-pink-400">
-                        {album.title}
-                      </h3>
-                      <p className="text-sm text-gray-400">{album.year}</p>
-                    </>
-                  )}
-                </div>
-
-                {editorMode ? (
-                  <div className="flex gap-2">
-                    <button
-                      className="px-3 py-1 text-xs bg-pink-600 rounded"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addSong(album.id);
-                      }}
-                    >
-                      + Song
-                    </button>
-                    <button
-                      disabled={index === 0}
-                      className="px-2 py-1 text-xs bg-gray-700 rounded disabled:opacity-40"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        moveAlbum(index, -1);
-                      }}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      disabled={index === albums.length - 1}
-                      className="px-2 py-1 text-xs bg-gray-700 rounded disabled:opacity-40"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        moveAlbum(index, 1);
-                      }}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      className="px-3 py-1 text-xs bg-red-600 rounded"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteAlbum(album.id);
-                      }}
-                    >
-                      🗑
-                    </button>
-                  </div>
-                ) : (
-                  <span
-                    className={`transition-transform ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
-                  >
-                    ▼
-                  </span>
+        {albums.map((album) => (
+          <motion.div
+            key={album.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-neutral-900 border border-neutral-800 p-6 rounded-xl"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h2 className="text-xl font-bold">{album.title}</h2>
+                {album.year && (
+                  <p className="text-gray-500 text-sm">{album.year}</p>
                 )}
               </div>
 
-              {/* Songs */}
-              <AnimatePresence initial={false}>
-                {isOpen && (
-                  <motion.div
-                    className="px-5 py-4 space-y-4"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                  >
-                    {album.songs.map((song, songIndex) => (
-                      <div
-                        key={song.id}
-                        className="flex items-center justify-between gap-4 border border-gray-800 rounded-lg p-3 bg-[#141414]"
-                      >
-                        <div
-                          className="rounded-lg overflow-hidden"
-                          style={{ width: "75%", height: "152px" }}
-                          dangerouslySetInnerHTML={{
-                            __html: song.spotifyEmbed || "",
-                          }}
-                        />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => openPanel(album, null)}
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded"
+                >
+                  Edit Album
+                </button>
 
-                        {editorMode && (
-                          <div className="flex flex-col items-center gap-2 min-w-[120px]">
-                            <button
-                              onClick={() => openPanel(album, song)}
-                              className="px-3 py-1 text-xs bg-gray-700 rounded"
-                            >
-                              ✏️ Edit
-                            </button>
-                            <button
-                              onClick={() =>
-                                deleteSong(album.id, song.id)
-                              }
-                              className="px-3 py-1 text-xs bg-red-600 rounded"
-                            >
-                              🗑
-                            </button>
+                <button
+                  onClick={() => deleteAlbum(album.id)}
+                  className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded"
+                >
+                  Delete Album
+                </button>
+              </div>
+            </div>
 
-                            <div className="flex gap-1">
-                              <button
-                                disabled={songIndex === 0}
-                                onClick={() =>
-                                  moveSong(album.id, songIndex, -1)
-                                }
-                                className="px-2 py-1 text-xs bg-gray-700 rounded disabled:opacity-40"
-                              >
-                                ↑
-                              </button>
-                              <button
-                                disabled={
-                                  songIndex === album.songs.length - 1
-                                }
-                                onClick={() =>
-                                  moveSong(album.id, songIndex, 1)
-                                }
-                                className="px-2 py-1 text-xs bg-gray-700 rounded disabled:opacity-40"
-                              >
-                                ↓
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          );
-        })}
+            <div className="space-y-3 border-t border-neutral-800 pt-4">
+              {album.songs.map((song) => (
+                <div
+                  key={song.id}
+                  className="flex justify-between items-center p-3 bg-neutral-800 rounded-lg"
+                >
+                  <p className="font-medium">{song.title}</p>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openPanel(album, song)}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      onClick={() => deleteSong(album.id, song.id)}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                onClick={() => addSong(album.id)}
+                className="w-full py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg mt-2"
+              >
+                + Add Song
+              </button>
+            </div>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Song Editor Panel */}
+      {/* Side Panel */}
       <AnimatePresence>
-        {panelOpen && (
+        {showPanel && (
           <MusicPanel
-            open={panelOpen}
-            onClose={closePanel}
             album={selectedAlbum}
             song={selectedSong}
-            mode="edit"
-            onSaveSong={handleSaveSong}
+            onClose={closePanel}
+            onUpdate={updateItem}
           />
         )}
       </AnimatePresence>

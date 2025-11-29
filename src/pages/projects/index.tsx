@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import ProjectCard from "@/components/ProjectCard";
-import { getAllProjects, type Project } from "@/client/api/projects";
+import { loadProjects, type Project } from "@/client/api/projects";
 import { useEditor } from "@/context/EditorContext";
 
 export default function ProjectsPage() {
@@ -17,7 +17,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await getAllProjects();
+        const data = await loadProjects();
         setProjects(data);
       } catch (err) {
         console.error("❌ Failed to load projects:", err);
@@ -33,19 +33,8 @@ export default function ProjectsPage() {
     setProjects((prev) => prev.filter((p) => p.slug !== slug));
   };
 
-  if (loading) {
-    return (
-      <div className="text-center text-gray-400 mt-10">
-        Loading projects...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-red-500 mt-10">{error}</div>
-    );
-  }
+  if (loading) return <div className="text-center text-gray-400 mt-10">Loading projects...</div>;
+  if (error) return <div className="text-center text-red-500 mt-10">{error}</div>;
 
   return (
     <div className="max-w-5xl mx-auto pb-20">
@@ -63,7 +52,7 @@ export default function ProjectsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
         {projects.map((project) => (
           <ProjectCard
-            key={project.id}
+            key={project.slug}
             project={project}
             onDelete={() => handleDeleted(project.slug)}
           />

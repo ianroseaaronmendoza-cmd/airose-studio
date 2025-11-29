@@ -1,11 +1,14 @@
 // src/pages/projects/edit/[slug]/index.tsx
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { getProject } from "../../../../client/api/projects";
-import ProjectsEditor from "../../../../components/ProjectsEditor";
+import { useParams, useNavigate } from "react-router-dom";
+
+import { loadProject } from "@/client/api/projects";
+import ProjectsEditor from "@/components/ProjectsEditor";
 
 export default function EditProjectPage() {
   const { slug } = useParams();
+  const navigate = useNavigate();
+
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -13,7 +16,7 @@ export default function EditProjectPage() {
     async function load() {
       try {
         if (!slug) return;
-        const data = await getProject(slug);
+        const data = await loadProject(slug);
         setProject(data);
       } finally {
         setLoading(false);
@@ -27,7 +30,10 @@ export default function EditProjectPage() {
 
   return (
     <div className="max-w-5xl mx-auto py-10">
-      <ProjectsEditor mode="edit" slug={slug!} initialData={project} />
+      <ProjectsEditor
+        initial={project}
+        onSaved={(p) => navigate(`/projects/${p.slug}`)}
+      />
     </div>
   );
 }

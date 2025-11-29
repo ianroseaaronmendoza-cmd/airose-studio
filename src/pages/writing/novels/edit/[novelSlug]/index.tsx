@@ -1,106 +1,153 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+
 import BackButton from "@/components/BackButton";
 import { useEditor } from "@/context/EditorContext";
-import { API_BASE } from "@/lib/config";
 
-type Chapter = {
-  id: number;
-  title: string;
-  slug: string;
-  position: number;
-  updatedAt: string;
-};
+import {
+  loadChapters,
+  loadNovel,
+  deleteChapter,
+  reorderChapters,
+} from "@/client/api/novels";
 
 export default function ChaptersListPage() {
   const { novelSlug } = useParams<{ novelSlug: string }>();
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { editorMode } = useEditor();
   const navigate = useNavigate();
 
+  const { editorMode } = useEditor();
+
+  const [novel, setNovel] = useState<any>(null);
+  const [chapters, setChapters] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [dragging, setDragging] = useState<string | null>(null);
+
+  // ------------------------------
+  // Load novel + chapters
+  // ------------------------------
   useEffect(() => {
-    load();
+    if (!novelSlug) return;
+
+    (async () => {
+      setNovel(await loadNovel(novelSlug));
+      setChapters(await loadChapters(novelSlug));
+      setLoading(false);
+    })();
   }, [novelSlug]);
 
-  async function load() {
+  // ------------------------------
+  // Drag & Drop Reordering
+  // ------------------------------
+  function onDragStart(slug: string) {
+    setDragging(slug);
+  }
+
+  function onDragOver(e: React.DragEvent, targetSlug: string) {
+    e.preventDefault();
+    if (!dragging || dragging === targetSlug) return;
+
+    const temp = [...chapters];
+    const from = temp.findIndex((c) => c.slug === dragging);
+    const to = temp.findIndex((c) => c.slug === targetSlug);
+
+    const [moved] = temp.splice(from, 1);
+    temp.splice(to, 0, moved);
+
+    setChapters(temp);
+  }
+
+  async function onDragEnd() {
     if (!novelSlug) return;
-    setLoading(true);
+
+    setDragging(null);
+
+    const newOrder = chapters.map((c) => c.slug);
     try {
-      const res = await axios.get(`${API_BASE}/api/novels/${novelSlug}/chapters`);
-      setChapters(res.data || []);
-    } catch (err) {
-      console.error("Failed to load chapters:", err);
-    } finally {
-      setLoading(false);
+      const reordered = await reorderChapters(novelSlug, newOrder);
+      setChapters(reordered);
+    } catch (err: any) {
+      alert("Failed to reorder chapters: " + err?.message);
     }
   }
 
-  function openChapter(ch: Chapter) {
+  // ------------------------------
+  // Delete Chapter
+  // ------------------------------
+  async function handleDelete(slug: string) {
+    if (!novelSlug) return;
+
+    if (!confirm("Delete this chapter? This cannot be undone.")) return;
+
+    try {
+      await deleteChapter(novelSlug, slug);
+      setChapters((prev) => prev.filter((c) => c.slug !== slug));
+    } catch (err: any) {
+      alert("Delete failed: " + err?.message);
+    }
+  }
+
+  // ------------------------------
+  // Open chapter (edit or read)
+  // ------------------------------
+  function openChapter(slug: string) {
     if (editorMode) {
-      // Editor mode → open editor
-      navigate(`/writing/novels/edit/${novelSlug}/chapters/${ch.slug}`);
+      navigate(`/writing/novels/${novelSlug}/edit/chapters/${slug}`);
     } else {
-      // Public mode → open public read page
-      navigate(`/writing/novels/${novelSlug}/${ch.slug}`);
+      navigate(`/writing/novels/${novelSlug}/chapters/${slug}`);
     }
   }
 
-  function handleNew() {
-    navigate(`/writing/novels/edit/${novelSlug}/chapters/new`);
+  // ------------------------------
+  // UI Rendering
+  // ------------------------------
+  if (loading) {
+    return <p className="text-gray-400 p-10">Loading chapters...</p>;
   }
 
-  async function handleDelete(ch: Chapter) {
-    if (!window.confirm("Delete chapter?")) return;
-    try {
-      await axios.delete(`${API_BASE}/api/novels/${novelSlug}/chapters/${ch.slug}`);
-      setChapters((prev) => prev.filter((p) => p.id !== ch.id));
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Delete failed");
-    }
-  }
-
-  function handleReorder() {
-    navigate(`/writing/novels/edit/${novelSlug}/chapters/reorder`);
+  if (!novel) {
+    return <p className="text-red-400 p-10">Novel not found.</p>;
   }
 
   return (
     <div className="max-w-6xl mx-auto p-6 text-gray-100">
+
       <BackButton to={`/writing/novels`} label="Back to Novels" className="mb-6" />
 
       <h2 className="text-4xl font-bold text-pink-400 mb-2">Chapters</h2>
       <p className="text-gray-400 mb-6">Manage or read chapters for this story.</p>
 
+
+      {/* Buttons (only in editor mode) */}
       {editorMode && (
         <div className="flex gap-3 mb-6">
           <button
-            onClick={handleNew}
+            onClick={() =>
+              navigate(`/writing/novels/${novelSlug}/edit/chapters/new`)
+            }
             className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-2 rounded-xl shadow-md"
           >
             + New Chapter
           </button>
-          <button
-            onClick={handleReorder}
-            className="bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-xl"
-          >
-            Reorder
-          </button>
         </div>
       )}
 
-      {loading ? (
-        <p className="text-gray-400">Loading chapters...</p>
-      ) : chapters.length === 0 ? (
+      {/* List */}
+      {chapters.length === 0 ? (
         <p className="text-gray-400 italic">No chapters yet. Create one above.</p>
       ) : (
         <div className="space-y-4">
           {chapters.map((ch) => (
             <div
-              key={ch.id}
-              onClick={() => openChapter(ch)}
-              className="bg-[#0f0f10] border border-gray-800 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:border-pink-400 transition"
+              key={ch.slug}
+              draggable={editorMode}
+              onDragStart={() => editorMode && onDragStart(ch.slug)}
+              onDragOver={(e) => editorMode && onDragOver(e, ch.slug)}
+              onDragEnd={() => editorMode && onDragEnd()}
+              onClick={() => openChapter(ch.slug)}
+              className={`bg-[#0f0f10] border border-gray-800 rounded-xl p-4 flex items-center justify-between hover:border-pink-400 transition cursor-pointer ${
+                dragging === ch.slug ? "opacity-50" : ""
+              }`}
             >
               <div>
                 <div className="text-lg font-semibold text-pink-300">
@@ -111,11 +158,12 @@ export default function ChaptersListPage() {
                 </div>
               </div>
 
+              {/* Delete button (only in editor mode) */}
               {editorMode && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(ch);
+                    handleDelete(ch.slug);
                   }}
                   className="bg-red-600 px-3 py-1.5 rounded-lg text-sm text-white"
                 >

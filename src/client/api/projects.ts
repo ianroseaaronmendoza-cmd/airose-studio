@@ -1,39 +1,78 @@
-import axios from "axios";
-import { API_BASE } from "@/lib/config";
-
-const API = `${API_BASE}/api/projects`;
+// src/client/api/projects.ts
 
 export interface Project {
-  id: number;
-  title: string;
   slug: string;
-  summary?: string;
-  content?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  title: string;
+  description: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
-export async function getAllProjects(): Promise<Project[]> {
-  const res = await axios.get(API);
-  return res.data;
+const isDev =
+  (typeof import.meta !== "undefined" &&
+    (import.meta as any)?.env?.MODE === "development") ||
+  process.env.NODE_ENV === "development";
+
+/** Load all projects */
+export async function loadProjects(): Promise<Project[]> {
+  try {
+    const res = await fetch("/data/projects/index.json", { cache: "no-store" });
+    if (!res.ok) return [];
+    return (await res.json()) as Project[];
+  } catch (err) {
+    console.error("loadProjects failed:", err);
+    return [];
+  }
 }
 
-export async function getProject(slug: string): Promise<Project> {
-  const res = await axios.get(`${API}/${encodeURIComponent(slug)}`);
-  return res.data;
+/** Load one project */
+export async function loadProject(slug: string): Promise<Project | null> {
+  try {
+    const res = await fetch(`/data/projects/${slug}.json`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Project;
+  } catch (err) {
+    console.error("loadProject failed:", err);
+    return null;
+  }
 }
 
-export async function createProject(data: any) {
-  const res = await axios.post(API, data);
-  return res.data;
+/** Save project (DEV only) */
+export async function saveProject(project: Project): Promise<Project> {
+  if (!isDev) throw new Error("saveProject is allowed only in development.");
+
+  const res = await fetch("/dev/project/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(project),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || "Failed to save project");
+  }
+
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || "Unknown error");
+
+  return json.saved as Project;
 }
 
-export async function updateProject(slug: string, data: any) {
-  const res = await axios.put(`${API}/${encodeURIComponent(slug)}`, data);
-  return res.data;
-}
+/** Delete project (DEV only) */
+export async function deleteProject(slug: string): Promise<void> {
+  if (!isDev) throw new Error("deleteProject is dev-only.");
 
-export async function deleteProject(slug: string) {
-  const res = await axios.delete(`${API}/${encodeURIComponent(slug)}`);
-  return res.data;
+  const res = await fetch("/dev/project/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ slug }),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || "Failed to delete project");
+  }
 }

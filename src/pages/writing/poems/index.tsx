@@ -1,14 +1,14 @@
-// src/pages/writing/poems/index.tsx
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useEditor } from "../../../context/EditorContext";
+import { getAllPoems, deletePoem } from "../../../client/api/poems";
 
 interface Poem {
   slug: string;
   title: string;
   content: string;
-  date?: string;
+  createdAt?: number;
 }
 
 export default function PoemsIndexPage() {
@@ -19,15 +19,9 @@ export default function PoemsIndexPage() {
 
   useEffect(() => {
     const loadPoems = async () => {
-      try {
-        const res = await fetch("/api/writings/poems");
-        const data = await res.json();
-        setPoems(data.poems || []);
-      } catch (err) {
-        console.error("Failed to load poems:", err);
-      } finally {
-        setLoading(false);
-      }
+      const data = await getAllPoems();
+      setPoems(data || []);
+      setLoading(false);
     };
 
     loadPoems();
@@ -37,19 +31,8 @@ export default function PoemsIndexPage() {
 
   const handleDelete = async (slug: string) => {
     if (!confirm("Delete this poem?")) return;
-    try {
-      const res = await fetch("/api/writings/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "poems", slug }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Delete failed");
-      window.dispatchEvent(new Event("poemUpdated"));
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Delete failed — check console.");
-    }
+    await deletePoem(slug);
+    window.dispatchEvent(new Event("poemUpdated"));
   };
 
   return (
@@ -88,16 +71,17 @@ export default function PoemsIndexPage() {
               transition={{ type: "spring", stiffness: 200, damping: 12 }}
               className="group bg-[#0f0f0f] border border-gray-800 rounded-lg p-6 hover:border-pink-500/50 transition-all"
             >
-              {/* ✅ The entire card is now clickable */}
               <Link to={`/writing/poems/${p.slug}`} className="block">
                 <h2 className="text-xl font-semibold text-white group-hover:text-pink-300 transition">
                   {p.title}
                 </h2>
-                {p.date && (
+
+                {p.createdAt && (
                   <p className="text-sm text-gray-500 mt-1">
-                    {new Date(p.date).toLocaleDateString()}
+                    {new Date(p.createdAt).toLocaleDateString()}
                   </p>
                 )}
+
                 <p className="text-gray-400 mt-3 line-clamp-2">
                   {p.content.slice(0, 200)}...
                 </p>
@@ -106,9 +90,7 @@ export default function PoemsIndexPage() {
               {editorMode && (
                 <div className="flex gap-3 mt-4">
                   <button
-                    onClick={() =>
-                      navigate(`/writing/poems/edit/${p.slug}`)
-                    }
+                    onClick={() => navigate(`/writing/poems/edit/${p.slug}`)}
                     className="px-3 py-1 bg-blue-600 text-white rounded"
                   >
                     Edit

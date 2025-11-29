@@ -1,13 +1,16 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "dist/**",
+      "use": "@vercel/static"
+    }
+  ],
   "routes": [
     {
-      "src": "/data/(.*)",
-      "dest": "/data/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/dist/$1"
     }
-  ]
+  ],
+  "ignoreCommand": "echo skip-next-detection"
 }

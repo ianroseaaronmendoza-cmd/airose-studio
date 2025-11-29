@@ -2,6 +2,7 @@
 module.exports = {
   content: ["./public/index.html", "./src/**/*.{html,js,jsx,ts,tsx}"],
   darkMode: "class",
+
   theme: {
     extend: {
       colors: {
@@ -16,15 +17,21 @@ module.exports = {
           violet: "#c084fc",
         },
       },
+
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         display: ["Poppins", "system-ui", "sans-serif"],
       },
+
       boxShadow: {
         soft: "0 4px 20px rgba(0,0,0,0.35)",
         hard: "0 10px 40px rgba(0,0,0,0.45)",
       },
     },
   },
-  plugins: [require("@tailwindcss/line-clamp")], // ✅ Added
+
+  // ❌ REMOVE THIS:
+  // plugins: [require("@tailwindcss/line-clamp")],
+
+  plugins: [], // ← clean
 };

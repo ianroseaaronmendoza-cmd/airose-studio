@@ -1,28 +1,15 @@
 // src/context/EditorContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { RUNTIME_ALLOW_EDITOR } from "../lib/config";
-
-/**
- * EditorContext
- *
- * - `editorMode` is ON only when running on localhost (dev).
- * - `isAuthenticated` is kept simple (you can replace with your auth).
- * - The context reads/writes a localStorage flag so the editor toggle
- *   can persist during a dev session on localhost.
- */
+import { isDev } from "@/lib/env";
 
 type EditorContextType = {
   editorMode: boolean;
-  setEditorMode: (v: boolean) => void;
-  isAuthenticated: boolean;
-  setIsAuthenticated: (v: boolean) => void;
+  toggleEditor: () => void;
 };
 
 const EditorContext = createContext<EditorContextType>({
   editorMode: false,
-  setEditorMode: () => {},
-  isAuthenticated: false,
-  setIsAuthenticated: () => {},
+  toggleEditor: () => {},
 });
 
 export const useEditor = () => useContext(EditorContext);
@@ -30,48 +17,48 @@ export const useEditor = () => useContext(EditorContext);
 export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Load saved mode only in DEV
+  const initial = (() => {
+    if (!isDev) return false;
 
-  // default editor mode: only true when runtime allows editor (localhost)
-  // and localStorage flag is set to "true". This ensures Vercel/prod never turns it on.
-  const initialEditorMode = (() => {
     try {
-      if (!RUNTIME_ALLOW_EDITOR) return false;
-      const stored = typeof localStorage !== "undefined" ? localStorage.getItem("editorMode") : null;
+      const stored =
+        typeof localStorage !== "undefined"
+          ? localStorage.getItem("editorMode")
+          : null;
       return stored === "true";
-    } catch (err) {
+    } catch {
       return false;
     }
   })();
 
-  const [editorMode, setEditorModeState] = useState<boolean>(initialEditorMode);
+  const [editorMode, setEditorMode] = useState<boolean>(initial);
 
-  const setEditorMode = (v: boolean) => {
-    try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem("editorMode", v ? "true" : "false");
-      }
-    } catch (e) {
-      /* ignore */
-    }
-    setEditorModeState(v);
+  const toggleEditor = () => {
+    if (!isDev) return; // PRODUCTION: block toggling
+    setEditorMode((prev) => {
+      const updated = !prev;
+
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem("editorMode", updated ? "true" : "false");
+        }
+      } catch {}
+
+      return updated;
+    });
   };
 
-  // Example: if you want to auto-enable editor in dev without clicking,
-  // do not set localStorage. We intentionally DO NOT auto-enable.
+  // Sync storage in dev mode only
   useEffect(() => {
-    // keep the editorMode in localStorage up-to-date (defensive)
+    if (!isDev) return;
     try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem("editorMode", editorMode ? "true" : "false");
-      }
-    } catch (err) {}
+      localStorage.setItem("editorMode", editorMode ? "true" : "false");
+    } catch {}
   }, [editorMode]);
 
   return (
-    <EditorContext.Provider
-      value={{ editorMode, setEditorMode, isAuthenticated, setIsAuthenticated }}
-    >
+    <EditorContext.Provider value={{ editorMode, toggleEditor }}>
       {children}
     </EditorContext.Provider>
   );

@@ -1,29 +1,34 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    /* Basic settings */
+    "target": "ES6",
     "module": "ESNext",
-    "jsx": "react-jsx",                       // ✅ React 17+ automatic JSX runtime
-    "moduleResolution": "node",
+    "lib": ["dom", "dom.iterable", "esnext"],
+
+    /* React */
+    "jsx": "react-jsx",
+
+    /* Module resolution */
+    "moduleResolution": "Node",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
-    "strict": false,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
 
-    // ✅ Add these two lines ↓
-    "types": ["react", "react-dom"],         // Ensures hooks + JSX types available
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],// Fixes Selection / Node type errors
-
-    // ✅ Base imports
-    "baseUrl": "src",
+    /* Paths */
+    "baseUrl": "./",
     "paths": {
-      "@/*": ["*"],
-      "@api/*": ["api/*"],
-      "@types/*": ["types/*"]
-    }
+      "@/*": ["src/*"]
+    },
+
+    /* Safety */
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Output */
+    "noEmit": true
   },
-  "include": ["src", "src/lib/config.ts"],
-  "exclude": ["node_modules", "dist"]
+
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "dev-tools"]
 }

@@ -1,54 +1,29 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEditor } from "../../../context/EditorContext";
-
-interface Poem {
-  slug: string;
-  title: string;
-  content: string;
-  date?: string;
-}
+import { getPoem, deletePoem } from "../../../client/api/poems";
 
 export default function PoemViewPage() {
   const { slug } = useParams<{ slug: string }>();
   const { editorMode } = useEditor();
   const navigate = useNavigate();
 
-  const [poem, setPoem] = useState<Poem | null>(null);
+  const [poem, setPoem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch("/api/writings/poems");
-        const data = await res.json();
-        const found = (data.poems || []).find((p: Poem) => p.slug === slug);
-        setPoem(found || null);
-      } catch (err) {
-        console.error("Failed to fetch poem:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    (async () => {
+      const data = await getPoem(slug!);
+      setPoem(data);
+      setLoading(false);
+    })();
   }, [slug]);
 
   const handleDelete = async () => {
     if (!confirm("Delete this poem?")) return;
-    try {
-      const res = await fetch("/api/writings/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "poems", slug }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete");
-      window.dispatchEvent(new Event("poemUpdated"));
-      navigate("/writing/poems");
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Delete failed — check console");
-    }
+    await deletePoem(slug!);
+    window.dispatchEvent(new Event("poemUpdated"));
+    navigate("/writing/poems");
   };
 
   if (loading)
@@ -77,9 +52,10 @@ export default function PoemViewPage() {
       </Link>
 
       <h1 className="text-3xl font-bold mb-2">{poem.title}</h1>
-      {poem.date && (
+
+      {poem.createdAt && (
         <p className="text-sm text-gray-500 mb-6">
-          {new Date(poem.date).toLocaleDateString()}
+          {new Date(poem.createdAt).toLocaleDateString()}
         </p>
       )}
 

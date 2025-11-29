@@ -1,0 +1,10 @@
+{
+  "id": "sample-novel",
+  "title": "Sample Novel",
+  "cover": "/cover.jpg",
+  "status": "ongoing",
+  "chapters": [
+    "ch-001"
+  ],
+  "order": 0
+}
