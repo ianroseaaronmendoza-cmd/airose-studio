@@ -7,22 +7,23 @@ const isDev = process.env.NODE_ENV !== "production";
 module.exports = {
   mode: isDev ? "development" : "production",
 
-  entry: path.resolve(__dirname, "src", "main.tsx"),
+  entry: {
+    app: path.resolve(__dirname, "src", "main.tsx"),
+  },
 
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: isDev ? "main.js" : "main.[contenthash].js",
-    chunkFilename: isDev ? "[name].js" : "[name].[contenthash].js",
+    filename: isDev ? "[name].js" : "[name].[contenthash].js",
+    chunkFilename: isDev ? "[name].chunk.js" : "[name].[contenthash].chunk.js",
     publicPath: "/",
     clean: true,
   },
 
-  // Add this for better code splitting
   optimization: {
     splitChunks: {
       chunks: "all",
       cacheGroups: {
-        vendor: {
+        vendors: {
           test: /[\\/]node_modules[\\/]/,
           name: "vendors",
           priority: 10,
@@ -68,8 +69,6 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "public", "index.html"),
       filename: "index.html",
-
-      // ✔ ensures Webpack injects the correct hashed JS filenames
       inject: "body",
       scriptLoading: "defer",
     }),
@@ -77,6 +76,7 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: "public/data", to: "data" },
+        { from: "public/uploads", to: "uploads", noErrorOnMissing: true },
       ],
     }),
   ],
