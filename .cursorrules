@@ -1,0 +1,21 @@
+# Copilot and Cursor Rules for Airose Studio
+
+## General Understanding
+- The site is a static React application built with Webpack.
+- All dynamic content is stored in /data in JSON files.
+- Local editing uses Webpack dev-server FS routes under /dev/*.
+- Production editing is disabled.
+- Publishing uses scripts/publish.ts to commit updated JSON to GitHub.
+
+## When writing code:
+- Prefer using the new persistence layer under src/lib/persistence.
+- Prefer the `Result<T>` pattern and unified httpPost/httpGet wrappers.
+- Avoid using axios (project standard is native fetch).
+- Use /dev/sections/save for sections-based content.
+- Always ensure buttons in editors use type="button" to avoid page reloads.
+- When suggesting edits, maintain Vercel static-compatibility.
+
+## When uncertain:
+- Copilot should check docs/architecture.md for system rules.
+- Copilot should not guess backend APIs; instead use the Webpack dev routes.
+- Copilot should always assume Editor Mode is local-only.

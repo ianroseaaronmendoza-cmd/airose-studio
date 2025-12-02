@@ -1,0 +1,15 @@
+{
+  "context": [
+    {
+      "title": "Airose Studio Architecture",
+      "file": "docs/architecture.md"
+    }
+  ],
+  "optimizationGoals": [
+    "Copilot should understand the entire editing/persistence architecture",
+    "Copilot should prefer the new persistence system over legacy FS modules",
+    "Copilot should auto-suggest code matching Webpack dev-server APIs",
+    "Copilot should know that /data/** JSON files are the single source of truth",
+    "Copilot should assist with React, TypeScript, and Sections system"
+  ]
+}

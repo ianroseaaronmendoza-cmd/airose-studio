@@ -1,3 +1,18 @@
 {
-  "albums": []
+  "albums": [
+    {
+      "id": "alb-1764680604726",
+      "title": "test",
+      "year": "2025",
+      "songs": [
+        {
+          "id": "song-1764680615350",
+          "title": "ikaw lang",
+          "spotifyEmbed": "<iframe data-testid=\"embed-iframe\" style=\"border-radius:12px\" src=\"https://open.spotify.com/embed/track/7CDwsfGOr3qlBarBSCi6cQ?utm_source=generator\" width=\"100%\" height=\"152\" frameBorder=\"0\" allowfullscreen=\"\" allow=\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\" loading=\"lazy\"></iframe>",
+          "lyrics": "test",
+          "story": "test"
+        }
+      ]
+    }
+  ]
 }

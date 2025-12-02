@@ -11,13 +11,34 @@ module.exports = {
 
   output: {
     path: path.resolve(__dirname, "dist"),
-
-    // ✔ hashed filenames in production
     filename: isDev ? "main.js" : "main.[contenthash].js",
     chunkFilename: isDev ? "[name].js" : "[name].[contenthash].js",
-
     publicPath: "/",
     clean: true,
+  },
+
+  // Add this for better code splitting
+  optimization: {
+    splitChunks: {
+      chunks: "all",
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: "vendors",
+          priority: 10,
+        },
+        tiptap: {
+          test: /[\\/]node_modules[\\/]@tiptap[\\/]/,
+          name: "tiptap",
+          priority: 20,
+        },
+        react: {
+          test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+          name: "react",
+          priority: 15,
+        },
+      },
+    },
   },
 
   resolve: {

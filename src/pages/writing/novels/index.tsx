@@ -1,17 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import BackButton from "../../../components/BackButton";
 import { useEditor } from "../../../context/EditorContext";
-import { API_BASE } from "../../../lib/config";
 
 type Novel = {
-  id: number;
-  title: string;
-  summary: string;
-  coverUrl?: string | null;
-  updatedAt: string;
   slug: string;
+  title: string;
+  summary?: string;
+  coverUrl?: string;
+  updatedAt?: number;
 };
 
 export default function NovelsIndexPage() {
@@ -25,8 +22,11 @@ export default function NovelsIndexPage() {
 
   async function loadNovels() {
     try {
-      const res = await axios.get(`${API_BASE}/api/novels`);
-      setNovels(res.data);
+      const res = await fetch("/data/novels/index.json");
+      if (res.ok) {
+        const data = await res.json();
+        setNovels(data);
+      }
     } catch (err) {
       console.error("Error loading novels:", err);
     }
@@ -34,11 +34,20 @@ export default function NovelsIndexPage() {
 
   async function handleDelete(slug: string) {
     if (!window.confirm("Are you sure you want to delete this novel?")) return;
+
     try {
-      await axios.delete(`${API_BASE}/api/novels/${slug}`);
+      const res = await fetch("/dev/novel/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+
+      if (!res.ok) throw new Error("Delete failed");
+
       setNovels((prev) => prev.filter((n) => n.slug !== slug));
     } catch (err) {
       console.error("Delete failed:", err);
+      alert("Delete failed: " + err);
     }
   }
 
@@ -70,16 +79,14 @@ export default function NovelsIndexPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {novels.map((novel) => (
             <div
-              key={novel.id}
-              onClick={() =>
-                navigate(`/writing/novels/edit/${novel.slug}/chapters`)
-              }
+              key={novel.slug}
+              onClick={() => navigate(`/writing/novels/${novel.slug}`)}
               className="relative group bg-[#111] rounded-2xl overflow-hidden shadow-md hover:shadow-pink-500/30 transition transform hover:-translate-y-1 cursor-pointer"
             >
               <div className="aspect-[3/4] bg-gray-800 overflow-hidden">
                 {novel.coverUrl ? (
                   <img
-                    src={`${API_BASE}${novel.coverUrl}`}
+                    src={novel.coverUrl}
                     alt={novel.title}
                     className="w-full h-full object-cover"
                   />
@@ -97,9 +104,11 @@ export default function NovelsIndexPage() {
                 <p className="text-gray-400 text-sm line-clamp-2 mt-1">
                   {novel.summary || "No synopsis yet..."}
                 </p>
-                <p className="text-gray-500 text-xs mt-2">
-                  Updated {new Date(novel.updatedAt).toLocaleDateString()}
-                </p>
+                {novel.updatedAt && (
+                  <p className="text-gray-500 text-xs mt-2">
+                    Updated {new Date(novel.updatedAt).toLocaleDateString()}
+                  </p>
+                )}
 
                 {editorMode && (
                   <div className="flex flex-wrap gap-2 mt-3 opacity-0 group-hover:opacity-100 transition">
@@ -116,9 +125,7 @@ export default function NovelsIndexPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(
-                          `/writing/novels/edit/${novel.slug}/chapters`
-                        );
+                        navigate(`/writing/novels/edit/${novel.slug}/chapters`);
                       }}
                       className="bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg"
                     >

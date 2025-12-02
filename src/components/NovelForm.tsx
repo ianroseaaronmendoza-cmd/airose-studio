@@ -113,8 +113,10 @@ export default function NovelForm({
 
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
+    // Reset immediately to allow re-uploading same file
+    e.target.value = "";
+
     if (f) await handleCoverFile(f);
-    e.currentTarget.value = "";
   }
 
   return (

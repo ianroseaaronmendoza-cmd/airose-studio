@@ -2,6 +2,12 @@
 const fs = require("fs");
 const path = require("path");
 
+function ensureDev() {
+  // Skip check - this endpoint only exists in webpack devServer
+  // If this route is called, we're already in development mode
+  return;
+}
+
 //
 // Utility: load or create JSON file
 //
@@ -55,7 +61,10 @@ function chapterFilePath(novelSlug, chapterSlug) {
 //
 // 1) SAVE NOVEL META (Create or Update)
 //
+
 function saveNovelMeta(meta) {
+  ensureDev();
+  
   const { slug, title, summary, note, coverUrl, updatedAt } = meta;
 
   if (!slug) throw new Error("Novel slug missing");
@@ -98,6 +107,8 @@ function saveNovelMeta(meta) {
 // 2) DELETE NOVEL
 //
 function deleteNovel(slug) {
+  ensureDev();
+  
   if (!slug) throw new Error("slug required");
 
   const list = readJson(INDEX_PATH, []);
@@ -115,6 +126,8 @@ function deleteNovel(slug) {
 // 3) SAVE CHAPTER
 //
 function saveChapter({ novelSlug, chapterSlug, title, html, updatedAt }) {
+  ensureDev();
+  
   if (!novelSlug) throw new Error("Missing novelSlug");
   if (!chapterSlug) throw new Error("Missing chapterSlug");
 
@@ -161,6 +174,8 @@ function saveChapter({ novelSlug, chapterSlug, title, html, updatedAt }) {
 // 4) DELETE CHAPTER
 //
 function deleteChapter(novelSlug, chapterSlug) {
+  ensureDev();
+  
   if (!novelSlug || !chapterSlug) throw new Error("Missing parameters");
 
   const indexPath = chapterIndexPath(novelSlug);
@@ -178,6 +193,8 @@ function deleteChapter(novelSlug, chapterSlug) {
 // newOrder = [ "chapter-1", "chapter-3", "chapter-2", ... ]
 //
 function reorderChapters(novelSlug, newOrder) {
+  ensureDev();
+  
   if (!Array.isArray(newOrder)) throw new Error("newOrder must be array");
   const indexPath = chapterIndexPath(novelSlug);
   const chapterIndex = readJson(indexPath, []);
