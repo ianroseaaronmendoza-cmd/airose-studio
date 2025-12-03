@@ -4,10 +4,14 @@ import ProjectsEditor from "../../components/ProjectsEditor";
 
 export default function NewProjectPage() {
   return (
-    <div className="max-w-5xl mx-auto py-10">
+    <div className="max-w-5xl mx-auto py-10 px-6">
       <ProjectsEditor
         mode="create"
-        initialData={{ title: "", summary: "", content: "" }}
+        initialData={{
+          title: "",
+          summary: "",
+          content: "",
+        }}
       />
     </div>
   );

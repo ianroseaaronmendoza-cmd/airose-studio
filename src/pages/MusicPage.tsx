@@ -7,9 +7,9 @@ import { useEditor } from "../context/EditorContext";
 import { IS_PRODUCTION } from "../lib/config";
 
 export default function MusicPage() {
-  const { editorMode } = useEditor(); // no more isAuthenticated
+  const { editorMode } = useEditor();
 
-  const [albums, setAlbums] = useState([]);
+  const [albums, setAlbums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function MusicPage() {
           🎵 Music Library
         </h1>
 
-        <MusicViewer albums={albums} editorMode={false} />
+        <MusicViewer albums={albums} />
       </div>
     </div>
   );

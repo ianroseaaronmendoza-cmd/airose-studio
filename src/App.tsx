@@ -39,8 +39,11 @@ const EditBlogPage = lazy(() => import("./pages/writing/blogs/[slug]"));
 const NovelListPage = lazy(() => import("./pages/writing/novels/index"));
 const NewNovelPage = lazy(() => import("./pages/writing/novels/new"));
 const NovelDetailPage = lazy(() => import("./pages/writing/novels/[novelSlug]/index"));
-const EditNovelMetaPage = lazy(() => import("./pages/writing/novels/edit/[novelSlug]"));
-const ChapterListPage = lazy(() => import("./pages/writing/novels/edit/[novelSlug]/chapters/index"));
+
+// ✅ CHANGE THIS LINE - Import from NovelEditor.tsx, not [novelSlug]/index.tsx
+const NovelEditorPage = lazy(() => import("./pages/writing/novels/edit/NovelEditor"));
+
+const ManageChaptersPage = lazy(() => import("./pages/writing/novels/edit/[novelSlug]/chapters/index"));
 const NewChapterPage = lazy(() => import("./pages/writing/novels/edit/[novelSlug]/chapters/new"));
 const ChapterEditorPage = lazy(() => import("./pages/writing/novels/edit/[novelSlug]/chapters/[chapterSlug]/index"));
 const ReadChapterPage = lazy(() => import("./pages/writing/novels/[novelSlug]/chapters/[chapterSlug]/read"));
@@ -96,18 +99,20 @@ function RootApp() {
             {/* 📚 Novels */}
             <Route path="/writing/novels" element={<NovelListPage />} />
             <Route path="/writing/novels/new" element={<NewNovelPage />} />
+
+            {/* View novel (public) */}
             <Route path="/writing/novels/:novelSlug" element={<NovelDetailPage />} />
 
-            {/* Novel metadata */}
-            <Route path="/writing/novels/edit/:novelSlug" element={<EditNovelMetaPage />} />
+            {/* ✅ Edit novel metadata - NOW uses NovelEditor.tsx */}
+            <Route path="/writing/novels/edit/:novelSlug" element={<NovelEditorPage />} />
 
-            {/* Chapters */}
-            <Route path="/writing/novels/edit/:novelSlug/chapters" element={<ChapterListPage />} />
+            {/* Manage chapters */}
+            <Route path="/writing/novels/edit/:novelSlug/chapters" element={<ManageChaptersPage />} />
             <Route path="/writing/novels/edit/:novelSlug/chapters/new" element={<NewChapterPage />} />
             <Route path="/writing/novels/edit/:novelSlug/chapters/:chapterSlug" element={<ChapterEditorPage />} />
 
-            {/* Public reader */}
-            <Route path="/writing/novels/:novelSlug/chapters/:chapterSlug" element={<ReadChapterPage />} />
+            {/* Read chapter (public) */}
+            <Route path="/writing/novels/:novelSlug/chapters/:chapterSlug/read" element={<ReadChapterPage />} />
 
             {/* 404 */}
             <Route

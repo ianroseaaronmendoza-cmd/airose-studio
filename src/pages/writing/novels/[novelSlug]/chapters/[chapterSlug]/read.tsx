@@ -2,12 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
 import BackButton from "@/components/BackButton";
-import { API_BASE } from "@/lib/config";
 
 type Chapter = {
-  id: number;
   slug: string;
   title: string;
   body?: string;
@@ -37,13 +34,12 @@ export default function ReadChapterPage() {
   useEffect(() => {
     const loadChapter = async () => {
       try {
-        const res = await axios.get(
-          `${API_BASE}/api/novels/${encodeURIComponent(
-            novelSlug!
-          )}/chapters/${encodeURIComponent(chapterSlug!)}`,
-          { withCredentials: true }
+        const res = await fetch(
+          `/data/novels/${novelSlug}/chapters/${chapterSlug}.json`
         );
-        setChapter(res.data);
+        if (!res.ok) throw new Error("Chapter not found");
+        const data = await res.json();
+        setChapter(data);
       } catch (err) {
         console.error("Failed to load chapter:", err);
       } finally {
@@ -51,7 +47,9 @@ export default function ReadChapterPage() {
       }
     };
 
-    loadChapter();
+    if (novelSlug && chapterSlug) {
+      loadChapter();
+    }
   }, [novelSlug, chapterSlug]);
 
   // -------------------------------
@@ -60,17 +58,27 @@ export default function ReadChapterPage() {
   useEffect(() => {
     const loadChapters = async () => {
       try {
-        const res = await axios.get(
-          `${API_BASE}/api/novels/${encodeURIComponent(novelSlug!)}/chapters`,
-          { withCredentials: true }
-        );
-        setAllChapters(res.data);
+        // Try index.json first
+        let res = await fetch(`/data/novels/${novelSlug}/chapters/index.json`);
+        
+        // Fallback to chapters.json
+        if (!res.ok) {
+          res = await fetch(`/data/novels/${novelSlug}/chapters.json`);
+        }
+        
+        if (!res.ok) throw new Error("Chapters not found");
+        
+        const data = await res.json();
+        console.log("Loaded chapters:", data); // Debug log
+        setAllChapters(data);
       } catch (err) {
         console.error("Failed to fetch chapter list:", err);
       }
     };
 
-    loadChapters();
+    if (novelSlug) {
+      loadChapters();
+    }
   }, [novelSlug]);
 
   // -------------------------------
@@ -83,7 +91,11 @@ export default function ReadChapterPage() {
       (a, b) => (a.position ?? 0) - (b.position ?? 0)
     );
 
+    console.log("Current chapter:", chapter.slug);
+    console.log("Sorted chapters:", sorted.map(c => ({ slug: c.slug, position: c.position })));
+
     const index = sorted.findIndex((c) => c.slug === chapter.slug);
+    console.log("Chapter index:", index);
 
     setPrevChapter(sorted[index - 1] || null);
     setNextChapter(sorted[index + 1] || null);
@@ -93,7 +105,7 @@ export default function ReadChapterPage() {
   // 🧭 Navigation functions
   // -------------------------------
   const goToChapter = (slug: string) => {
-    navigate(`/writing/novels/${novelSlug}/chapters/${slug}`);
+    navigate(`/writing/novels/${novelSlug}/chapters/${slug}/read`);
   };
 
   if (loading) {
@@ -107,7 +119,7 @@ export default function ReadChapterPage() {
   if (!chapter) {
     return (
       <div className="text-gray-400 p-10">
-        <BackButton to="/writing/novels" label="Back to Novels" />
+        <BackButton to={`/writing/novels/${novelSlug}`} label="Back to Novel" />
         <p>Chapter not found.</p>
       </div>
     );
@@ -119,12 +131,12 @@ export default function ReadChapterPage() {
     <main className="w-full px-6 py-10 text-gray-100 flex-1">
       <div className="max-w-4xl mx-auto">
         <BackButton
-          to="/writing/novels"
-          label="Back to Novels"
+          to={`/writing/novels/${novelSlug}`}
+          label="Back to Novel"
           className="mb-6"
         />
 
-        <h1 className="text-4xl font-bold text-pink-400 mb-2 lowercase">
+        <h1 className="text-4xl font-bold text-pink-400 mb-2">
           {chapter.title}
         </h1>
 
@@ -143,11 +155,8 @@ export default function ReadChapterPage() {
           )}
         </article>
 
-        {/* ----------------------------------------------------
-           🟥 Previous / Next Chapter Bar (full width)
-        ---------------------------------------------------- */}
+        {/* Previous / Next Chapter Bar */}
         <div className="mt-16 grid grid-cols-2 w-full text-sm font-semibold">
-
           {/* Previous */}
           <button
             disabled={!prevChapter}
@@ -173,7 +182,6 @@ export default function ReadChapterPage() {
           >
             {nextChapter ? `${nextChapter.title} →` : "No next chapter"}
           </button>
-
         </div>
       </div>
     </main>

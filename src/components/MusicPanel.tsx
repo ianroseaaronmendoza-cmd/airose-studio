@@ -1,15 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Album, Song } from "../client/api/music";
+import { X } from "lucide-react";
 
 interface MusicPanelProps {
   album: Album | null;
   song: Song | null;
   onClose: () => void;
-  onUpdate: (
-    albumId: string,
-    songId: string | null,
-    updatedData: Partial<Album> | Partial<Song>
-  ) => void;
+  onUpdate: (albumId: string, songId: string | null, data: any) => void;
 }
 
 export default function MusicPanel({
@@ -18,115 +15,157 @@ export default function MusicPanel({
   onClose,
   onUpdate,
 }: MusicPanelProps) {
-  const isEditingAlbum = song == null;
+  const [title, setTitle] = useState("");
+  const [year, setYear] = useState("");
+  const [spotifyEmbed, setSpotifyEmbed] = useState("");
+  const [lyrics, setLyrics] = useState("");
+  const [story, setStory] = useState("");
 
-  const [localData, setLocalData] = useState<Partial<Album> & Partial<Song>>(
-  (song as Song) || (album as Album) || {}
-);
-
-
-  const handleChange = (field: string, value: any) => {
-    setLocalData((prev) => ({ ...prev, [field]: value }));
-  };
+  useEffect(() => {
+    if (song) {
+      setTitle(song.title || "");
+      setSpotifyEmbed(song.spotifyEmbed || "");
+      setLyrics(song.lyrics || "");
+      setStory(song.story || "");
+    } else if (album) {
+      setTitle(album.title || "");
+      setYear(album.year ? String(album.year) : "");
+    }
+  }, [album, song]);
 
   const handleSave = () => {
     if (!album) return;
 
-    if (isEditingAlbum) {
-      onUpdate(album.id, null, localData);
+    if (song) {
+      onUpdate(album.id, song.id, {
+        title,
+        spotifyEmbed,
+        lyrics,
+        story,
+      });
     } else {
-      onUpdate(album.id, (song as Song).id, localData);
+      onUpdate(album.id, null, {
+        title,
+        year,
+      });
     }
 
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-end z-50">
-      <div className="w-full sm:w-[450px] bg-neutral-900 border-l border-neutral-700 p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-        <h1 className="text-xl font-bold text-white mb-4">
-          {isEditingAlbum ? "Edit Album" : "Edit Song"}
-        </h1>
+      {/* Panel */}
+      <div className="relative w-full md:w-1/2 lg:w-1/3 bg-neutral-900 border-l border-neutral-800 shadow-2xl overflow-y-auto">
+        {/* Header - Sticky */}
+        <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 p-4 flex items-center justify-between z-10">
+          <h2 className="text-xl font-bold text-pink-400">
+            {song ? "Edit Song" : "Edit Album"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-neutral-800 rounded text-gray-400"
+          >
+            <X size={24} />
+          </button>
+        </div>
 
-        <div className="space-y-4">
-
+        {/* Content - All in flow */}
+        <div className="p-6 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-gray-400 mb-1 text-sm">Title</label>
+            <label className="block text-sm font-medium mb-2">
+              {song ? "Song Title" : "Album Title"}
+            </label>
             <input
-              value={localData.title || ""}
-              onChange={(e) => handleChange("title", e.target.value)}
-              className="w-full bg-neutral-800 border border-neutral-700 px-3 py-2 rounded"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-gray-100 focus:outline-none focus:border-pink-500"
+              placeholder="Enter title..."
             />
           </div>
 
-          {/* Album Year */}
-          {isEditingAlbum && (
+          {/* Album Year (only for albums) */}
+          {!song && (
             <div>
-              <label className="block text-gray-400 mb-1 text-sm">Year</label>
+              <label className="block text-sm font-medium mb-2">Year</label>
               <input
-                value={(localData as Album).year || ""}
-                onChange={(e) => handleChange("year", e.target.value)}
-                className="w-full bg-neutral-800 border border-neutral-700 px-3 py-2 rounded"
+                type="text"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-gray-100 focus:outline-none focus:border-pink-500"
+                placeholder="e.g., 2024"
               />
             </div>
           )}
 
-          {/* Song Embed */}
-          {!isEditingAlbum && (
+          {/* Song-specific fields */}
+          {song && (
             <>
+              {/* Spotify Embed */}
               <div>
-                <label className="block text-gray-400 mb-1 text-sm">
-                  Spotify Embed
+                <label className="block text-sm font-medium mb-2">
+                  Spotify Embed Code
                 </label>
                 <textarea
+                  value={spotifyEmbed}
+                  onChange={(e) => setSpotifyEmbed(e.target.value)}
                   rows={3}
-                  value={(localData as Song).spotifyEmbed || ""}
-                  onChange={(e) =>
-                    handleChange("spotifyEmbed", e.target.value)
-                  }
-                  className="w-full bg-neutral-800 border border-neutral-700 px-3 py-2 rounded"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-gray-100 focus:outline-none focus:border-pink-500 font-mono text-xs resize-none"
+                  placeholder='<iframe src="..." ...></iframe>'
                 />
               </div>
 
+              {/* Lyrics */}
               <div>
-                <label className="block text-gray-400 mb-1 text-sm">Lyrics</label>
+                <label className="block text-sm font-medium mb-2">Lyrics</label>
                 <textarea
+                  value={lyrics}
+                  onChange={(e) => setLyrics(e.target.value)}
                   rows={6}
-                  value={(localData as Song).lyrics || ""}
-                  onChange={(e) => handleChange("lyrics", e.target.value)}
-                  className="w-full bg-neutral-800 border border-neutral-700 px-3 py-2 rounded"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-gray-100 focus:outline-none focus:border-pink-500 resize-none"
+                  placeholder="Enter lyrics..."
                 />
               </div>
 
+              {/* Story */}
               <div>
-                <label className="block text-gray-400 mb-1 text-sm">Story</label>
+                <label className="block text-sm font-medium mb-2">
+                  Story (HTML supported)
+                </label>
                 <textarea
+                  value={story}
+                  onChange={(e) => setStory(e.target.value)}
                   rows={6}
-                  value={(localData as Song).story || ""}
-                  onChange={(e) => handleChange("story", e.target.value)}
-                  className="w-full bg-neutral-800 border border-neutral-700 px-3 py-2 rounded"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-gray-100 focus:outline-none focus:border-pink-500 resize-none"
+                  placeholder="Enter the story behind the song..."
                 />
               </div>
             </>
           )}
-        </div>
 
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white"
-          >
-            Save
-          </button>
+          {/* Buttons - Static in flow */}
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={handleSave}
+              className="flex-1 px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded text-white font-medium"
+            >
+              Save Changes
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded text-gray-300"
+            >
+              Cancel
+            </button>
+          </div>
 
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded text-white"
-          >
-            Cancel
-          </button>
+          {/* Extra padding so you can scroll past the main footer */}
+          <div className="h-32"></div>
         </div>
       </div>
     </div>

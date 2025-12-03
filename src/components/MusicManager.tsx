@@ -3,11 +3,9 @@ import { loadMusic, saveMusic, MusicFile, Album, Song } from "../client/api/musi
 import MusicPanel from "./MusicPanel";
 import MusicToolbar from "./MusicToolbar";
 import { motion, AnimatePresence } from "framer-motion";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
 export default function MusicManager() {
-  //
-  // Properly typed states
-  //
   const [albums, setAlbums] = useState<Album[]>([]);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
@@ -16,9 +14,6 @@ export default function MusicManager() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  //
-  // Load music.json on mount
-  //
   useEffect(() => {
     const load = async () => {
       const data: MusicFile = await loadMusic();
@@ -29,9 +24,6 @@ export default function MusicManager() {
     load();
   }, []);
 
-  //
-  // Open side panel for album or song
-  //
   const openPanel = (album: Album | null, song: Song | null) => {
     setSelectedAlbum(album);
     setSelectedSong(song);
@@ -44,9 +36,6 @@ export default function MusicManager() {
     setShowPanel(false);
   };
 
-  //
-  // Create new album
-  //
   const addAlbum = () => {
     const id = "alb-" + Date.now();
     const newAlbum: Album = {
@@ -60,9 +49,6 @@ export default function MusicManager() {
     openPanel(newAlbum, null);
   };
 
-  //
-  // Create new song
-  //
   const addSong = (albumId: string) => {
     const id = "song-" + Date.now();
     const newSong: Song = {
@@ -85,9 +71,6 @@ export default function MusicManager() {
     openPanel(album, newSong);
   };
 
-  //
-  // Update album or song fields
-  //
   const updateItem = (
     albumId: string,
     songId: string | null,
@@ -97,12 +80,10 @@ export default function MusicManager() {
       prevAlbums.map((album) => {
         if (album.id !== albumId) return album;
 
-        // Update album
         if (songId === null) {
           return { ...album, ...(updatedData as Partial<Album>) };
         }
 
-        // Update a song
         const updatedSongs = album.songs.map((song) =>
           song.id === songId
             ? { ...song, ...(updatedData as Partial<Song>) }
@@ -114,18 +95,11 @@ export default function MusicManager() {
     );
   };
 
-  //
-  // Delete album
-  //
   const deleteAlbum = (albumId: string) => {
     if (!confirm("Delete this album?")) return;
-
     setAlbums((prev) => prev.filter((a) => a.id !== albumId));
   };
 
-  //
-  // Delete song
-  //
   const deleteSong = (albumId: string, songId: string) => {
     if (!confirm("Delete this song?")) return;
 
@@ -137,9 +111,32 @@ export default function MusicManager() {
     );
   };
 
-  //
-  // Save everything to music.json
-  //
+  // ✅ NEW: Move album up/down
+  const moveAlbum = (index: number, direction: "up" | "down") => {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= albums.length) return;
+
+    const newAlbums = [...albums];
+    [newAlbums[index], newAlbums[newIndex]] = [newAlbums[newIndex], newAlbums[index]];
+    setAlbums(newAlbums);
+  };
+
+  // ✅ NEW: Move song up/down within an album
+  const moveSong = (albumId: string, songIndex: number, direction: "up" | "down") => {
+    setAlbums((prevAlbums) =>
+      prevAlbums.map((album) => {
+        if (album.id !== albumId) return album;
+
+        const songs = [...album.songs];
+        const newIndex = direction === "up" ? songIndex - 1 : songIndex + 1;
+        if (newIndex < 0 || newIndex >= songs.length) return album;
+
+        [songs[songIndex], songs[newIndex]] = [songs[newIndex], songs[songIndex]];
+        return { ...album, songs };
+      })
+    );
+  };
+
   const handleSaveAll = async () => {
     try {
       setSaving(true);
@@ -152,9 +149,6 @@ export default function MusicManager() {
     }
   };
 
-  //
-  // UI
-  //
   if (loading) {
     return (
       <div className="text-center text-gray-400 mt-10">
@@ -165,7 +159,6 @@ export default function MusicManager() {
 
   return (
     <div className="w-full text-gray-100 space-y-6 pb-20">
-      {/* Toolbar */}
       <MusicToolbar onAddAlbum={addAlbum} onSave={handleSaveAll} saving={saving} />
 
       <div className="space-y-8">
@@ -173,19 +166,42 @@ export default function MusicManager() {
           <p className="text-gray-400">No albums yet. Add one above.</p>
         )}
 
-        {albums.map((album) => (
+        {albums.map((album, albumIndex) => (
           <motion.div
             key={album.id}
+            layout
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-neutral-900 border border-neutral-800 p-6 rounded-xl"
           >
             <div className="flex justify-between items-center mb-4">
-              <div>
-                <h2 className="text-xl font-bold">{album.title}</h2>
-                {album.year && (
-                  <p className="text-gray-500 text-sm">{album.year}</p>
-                )}
+              <div className="flex items-center gap-3">
+                {/* ✅ Album Reorder Buttons */}
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={() => moveAlbum(albumIndex, "up")}
+                    disabled={albumIndex === 0}
+                    className="p-1 hover:bg-neutral-700 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Move album up"
+                  >
+                    <ArrowUp size={16} />
+                  </button>
+                  <button
+                    onClick={() => moveAlbum(albumIndex, "down")}
+                    disabled={albumIndex === albums.length - 1}
+                    className="p-1 hover:bg-neutral-700 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Move album down"
+                  >
+                    <ArrowDown size={16} />
+                  </button>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-bold">{album.title}</h2>
+                  {album.year && (
+                    <p className="text-gray-500 text-sm">{album.year}</p>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -206,24 +222,46 @@ export default function MusicManager() {
             </div>
 
             <div className="space-y-3 border-t border-neutral-800 pt-4">
-              {album.songs.map((song) => (
+              {album.songs.map((song, songIndex) => (
                 <div
                   key={song.id}
                   className="flex justify-between items-center p-3 bg-neutral-800 rounded-lg"
                 >
-                  <p className="font-medium">{song.title}</p>
+                  <div className="flex items-center gap-3 flex-1">
+                    {/* ✅ Song Reorder Buttons */}
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => moveSong(album.id, songIndex, "up")}
+                        disabled={songIndex === 0}
+                        className="p-1 hover:bg-neutral-700 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move song up"
+                      >
+                        <ArrowUp size={14} />
+                      </button>
+                      <button
+                        onClick={() => moveSong(album.id, songIndex, "down")}
+                        disabled={songIndex === album.songs.length - 1}
+                        className="p-1 hover:bg-neutral-700 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move song down"
+                      >
+                        <ArrowDown size={14} />
+                      </button>
+                    </div>
+
+                    <p className="font-medium">{song.title}</p>
+                  </div>
 
                   <div className="flex gap-2">
                     <button
                       onClick={() => openPanel(album, song)}
-                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded"
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
                     >
                       Edit
                     </button>
 
                     <button
                       onClick={() => deleteSong(album.id, song.id)}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded"
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
                     >
                       Delete
                     </button>
@@ -242,7 +280,6 @@ export default function MusicManager() {
         ))}
       </div>
 
-      {/* Side Panel */}
       <AnimatePresence>
         {showPanel && (
           <MusicPanel

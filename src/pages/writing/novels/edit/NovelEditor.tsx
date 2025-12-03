@@ -1,19 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
 import BackButton from "@/components/BackButton";
 import { uploadImage } from "@/utils/uploadImage";
-
-import {
-  loadNovel,
-  saveNovelMeta,
-} from "@/client/api/novels";
+import { useEditor } from "@/context/EditorContext";
+import slugify from "slugify";
 
 export default function NovelEditorPage() {
   const { novelSlug } = useParams<{ novelSlug: string }>();
   const navigate = useNavigate();
+  const { editorMode } = useEditor();
 
-  const [novel, setNovel] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [note, setNote] = useState("");
@@ -21,28 +17,37 @@ export default function NovelEditorPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ---------------------------------------
+  // Block access if not in editor mode
+  useEffect(() => {
+    if (!editorMode) {
+      alert("Editor mode is required");
+      navigate(`/writing/novels/${novelSlug || ''}`);
+    }
+  }, [editorMode, navigate, novelSlug]);
+
   // Load novel meta
-  // ---------------------------------------
   useEffect(() => {
     if (!novelSlug) return;
 
     (async () => {
-      const data = await loadNovel(novelSlug);
-      if (data) {
-        setNovel(data);
-        setTitle(data.title || "");
-        setSummary(data.summary || "");
-        setNote(data.note || "");
-        setCoverUrl(data.coverUrl || "");
+      try {
+        const res = await fetch(`/data/novels/${novelSlug}/meta.json`);
+        if (res.ok) {
+          const data = await res.json();
+          setTitle(data.title || "");
+          setSummary(data.summary || "");
+          setNote(data.note || "");
+          setCoverUrl(data.coverUrl || "");
+        }
+      } catch (err) {
+        console.error("Load failed:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [novelSlug]);
 
-  // ---------------------------------------
   // Save Novel Metadata
-  // ---------------------------------------
   async function handleSave() {
     if (!novelSlug) return;
     if (!title.trim()) return alert("Title is required.");
@@ -50,18 +55,30 @@ export default function NovelEditorPage() {
     setSaving(true);
 
     try {
-      const saved = await saveNovelMeta({
-        slug: novelSlug,
-        title: title.trim(),
-        summary: summary.trim(),
-        note: note.trim(),
-        coverUrl: coverUrl || "",
-        updatedAt: Date.now(),
+      // Generate new slug from title
+      const newSlug = slugify(title.trim(), { lower: true, strict: true });
+
+      const res = await fetch("/dev/novel/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug: novelSlug,
+          newSlug: newSlug !== novelSlug ? newSlug : undefined,
+          title: title.trim(),
+          summary: summary.trim(),
+          note: note.trim(),
+          coverUrl: coverUrl || "",
+          updatedAt: Date.now(),
+        }),
       });
 
+      if (!res.ok) throw new Error("Save failed");
+
+      const { saved } = await res.json();
       alert("Novel updated!");
 
-      navigate(`/writing/novels/${novelSlug}`);
+      // Navigate to new slug if changed
+      navigate(`/writing/novels/${saved.slug}`);
     } catch (err: any) {
       alert("Failed to save: " + err?.message);
     } finally {
@@ -69,9 +86,7 @@ export default function NovelEditorPage() {
     }
   }
 
-  // ---------------------------------------
   // Upload Cover
-  // ---------------------------------------
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -81,27 +96,19 @@ export default function NovelEditorPage() {
       const url = await uploadImage(file, "novels");
       setCoverUrl(url);
     } catch (err: any) {
-      alert("Cover upload failed: " + err?.message);
+      alert("Upload failed: " + err?.message);
     }
   }
 
-  // ---------------------------------------
-  // LOADING STATE
-  // ---------------------------------------
+  if (!editorMode) return null;
+
   if (loading) {
-    return <div className="text-gray-400 p-10">Loading novel…</div>;
+    return <div className="text-gray-400 p-10">Loading...</div>;
   }
 
-  if (!novel) {
-    return <div className="text-red-500 p-10">Novel not found.</div>;
-  }
-
-  // ---------------------------------------
-  // UI
-  // ---------------------------------------
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 text-gray-100">
-
+      {/* ✅ BackButton is here */}
       <BackButton
         to={`/writing/novels/${novelSlug}`}
         label="Back to Novel"
@@ -112,23 +119,25 @@ export default function NovelEditorPage() {
       </h1>
 
       <div className="space-y-8">
-
         {/* TITLE */}
         <div>
           <label className="block text-gray-400 mb-1">Title</label>
           <input
-            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded"
+            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded text-white"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Novel title"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Slug: {slugify(title.trim() || "untitled", { lower: true, strict: true })}
+          </p>
         </div>
 
         {/* SUMMARY */}
         <div>
-          <label className="block text-gray-400 mb-1">Summary</label>
+          <label className="block text-gray-400 mb-1">Summary/Synopsis</label>
           <textarea
-            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded min-h-[120px]"
+            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded min-h-[120px] text-white"
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             placeholder="Short summary of your novel"
@@ -137,12 +146,12 @@ export default function NovelEditorPage() {
 
         {/* NOTES */}
         <div>
-          <label className="block text-gray-400 mb-1">Notes</label>
+          <label className="block text-gray-400 mb-1">Author Notes</label>
           <textarea
-            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded min-h-[120px]"
+            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded min-h-[120px] text-white"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Private author notes"
+            placeholder="Private notes"
           />
         </div>
 
@@ -174,7 +183,7 @@ export default function NovelEditorPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2 bg-gradient-to-r from-pink-600 to-purple-600 rounded text-white"
+            className="px-6 py-2 bg-gradient-to-r from-pink-600 to-purple-600 rounded text-white disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save Changes"}
           </button>

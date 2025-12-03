@@ -1,207 +1,186 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
-import BackButton from "@/components/BackButton";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEditor } from "@/context/EditorContext";
-import { API_BASE } from "@/lib/config";
+import BackButton from "@/components/BackButton";
+import { ChevronUp, ChevronDown, Trash2, Edit } from "lucide-react";
 
-type Chapter = {
-  id: number;
-  title: string;
+interface Chapter {
   slug: string;
+  title: string;
   position: number;
-  updatedAt: string;
-};
+  updatedAt?: number;
+}
 
-export default function ChaptersListPage() {
+export default function ManageChaptersPage() {
   const { novelSlug } = useParams<{ novelSlug: string }>();
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [novel, setNovel] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const { editorMode } = useEditor();
   const navigate = useNavigate();
+  const { editorMode } = useEditor();
 
-  // -------------------------
-  // Load Novel + Chapters
-  // -------------------------
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    if (!novelSlug) return;
-    load();
+    if (!editorMode) {
+      navigate(`/writing/novels/${novelSlug}`);
+    }
+  }, [editorMode, navigate, novelSlug]);
+
+  useEffect(() => {
+    loadChapters();
   }, [novelSlug]);
 
-  async function load() {
+  async function loadChapters() {
     try {
-      setLoading(true);
-
-      const novelRes = await axios.get(`${API_BASE}/api/novels/${novelSlug}`);
-      setNovel(novelRes.data);
-
-      const chapterRes = await axios.get(
-        `${API_BASE}/api/novels/${novelSlug}/chapters`
-      );
-      setChapters(chapterRes.data || []);
+      const res = await fetch(`/data/novels/${novelSlug}/chapters/index.json`);
+      if (res.ok) {
+        const data = await res.json();
+        setChapters(
+          data.sort((a: Chapter, b: Chapter) => a.position - b.position)
+        );
+      }
     } catch (err) {
-      console.error("Failed to load chapters:", err);
+      console.error("Load failed:", err);
     } finally {
       setLoading(false);
     }
   }
 
-  // -------------------------
-  // Reorder Chapter (↑ / ↓)
-  // -------------------------
-  async function moveChapter(chapterSlug: string, direction: "up" | "down") {
+  async function moveChapter(index: number, direction: "up" | "down") {
+    const newChapters = [...chapters];
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+
+    if (swapIndex < 0 || swapIndex >= newChapters.length) return;
+
+    // Swap
+    [newChapters[index], newChapters[swapIndex]] = [
+      newChapters[swapIndex],
+      newChapters[index],
+    ];
+
+    // Update positions
+    newChapters.forEach((ch, i) => {
+      ch.position = i;
+    });
+
+    setChapters(newChapters);
+
+    // Save to backend
     try {
-      await axios.patch(`${API_BASE}/api/novels/chapters/reorder`, {
-        novelSlug,
-        chapterSlug,
-        direction,
+      const res = await fetch("/dev/chapter/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          novelSlug,
+          newOrder: newChapters.map((ch) => ch.slug),
+        }),
       });
 
-      // refresh list
-      load();
-    } catch (err) {
-      console.error("Failed to reorder:", err);
-      alert("Reorder failed.");
+      if (!res.ok) throw new Error("Reorder failed");
+    } catch (err: any) {
+      alert("Failed to reorder: " + err.message);
+      loadChapters(); // Reload on error
     }
   }
 
-  // -------------------------
-  // Delete Chapter
-  // -------------------------
-  async function handleDelete(ch: Chapter) {
-    if (!window.confirm(`Delete chapter "${ch.title}"?`)) return;
+  async function deleteChapter(chapterSlug: string, title: string) {
+    if (!confirm(`Delete chapter "${title}"?`)) return;
+
     try {
-      await axios.delete(
-        `${API_BASE}/api/novels/${novelSlug}/chapters/${ch.slug}`
-      );
-      load();
-    } catch (err) {
-      console.error("Delete failed:", err);
-      alert("Delete failed");
+      const res = await fetch("/dev/chapter/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ novelSlug, chapterSlug }),
+      });
+
+      if (!res.ok) throw new Error("Delete failed");
+
+      loadChapters();
+    } catch (err: any) {
+      alert("Delete failed: " + err.message);
     }
+  }
+
+  if (!editorMode) return null;
+
+  if (loading) {
+    return <div className="text-gray-400 p-10">Loading...</div>;
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 text-gray-100">
-      {/* BACK */}
-      <div className="mb-6">
-        <BackButton to="/writing/novels" label="Back to Novels" />
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      <BackButton to={`/writing/novels/${novelSlug}`} label="Back to Novel" />
+
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-pink-400">Manage Chapters</h1>
+        <Link
+          to={`/writing/novels/edit/${novelSlug}/chapters/new`}
+          className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded text-white"
+        >
+          + New Chapter
+        </Link>
       </div>
 
-      {/* ---------------------- */}
-      {/* HEADER — Title + Add   */}
-      {/* ---------------------- */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-3xl font-bold text-pink-400 mb-1">
-            {novel?.title || "Chapters"}
-          </h2>
-          <p className="text-gray-400">
-            {editorMode
-              ? "Edit or manage the chapters in this story."
-              : "Read the chapters in this story."}
-          </p>
-        </div>
-
-        {/* Add Chapter Button (Editor Mode Only) */}
-        {editorMode && (
-          <button
-            onClick={() =>
-              navigate(`/writing/novels/edit/${novelSlug}/chapters/new`)
-            }
-            className="bg-pink-600 hover:bg-pink-500 text-white px-4 py-2 rounded-md font-semibold shadow transition"
-          >
-            + Chapter
-          </button>
-        )}
-      </div>
-
-      {/* ---------------------- */}
-      {/* CHAPTER LIST           */}
-      {/* ---------------------- */}
-      {loading ? (
-        <p className="text-gray-400">Loading chapters...</p>
-      ) : chapters.length === 0 ? (
-        <p className="text-gray-400 italic">
-          {editorMode
-            ? "No chapters yet. Create one above."
-            : "No chapters available."}
-        </p>
+      {chapters.length === 0 ? (
+        <p className="text-gray-500">No chapters yet.</p>
       ) : (
-        <div className="space-y-4">
-          {chapters.map((ch, i) => (
+        <div className="space-y-2">
+          {chapters.map((ch, index) => (
             <div
-              key={ch.id}
-              onClick={() => {
-                if (editorMode) {
-                  navigate(
-                    `/writing/novels/edit/${novelSlug}/chapters/${ch.slug}`
-                  );
-                } else {
-                  navigate(`/writing/novels/${novelSlug}/chapters/${ch.slug}`);
-                }
-              }}
-              className="
-                bg-[#0f0f10] border border-gray-800 rounded-xl p-4 
-                flex items-center justify-between cursor-pointer
-                transition hover:border-pink-500
-              "
+              key={ch.slug}
+              className="flex items-center gap-3 p-4 bg-neutral-900 rounded border border-neutral-800"
             >
-              {/* Chapter details */}
-              <div>
-                <div className="text-lg font-semibold text-pink-300">
-                  {ch.title}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Updated {new Date(ch.updatedAt).toLocaleString()}
-                </div>
+              {/* Reorder Buttons */}
+              <div className="flex flex-col gap-1">
+                <button
+                  onClick={() => moveChapter(index, "up")}
+                  disabled={index === 0}
+                  className={`p-1 rounded ${
+                    index === 0
+                      ? "text-gray-700 cursor-not-allowed"
+                      : "text-gray-400 hover:bg-neutral-800"
+                  }`}
+                >
+                  <ChevronUp size={16} />
+                </button>
+                <button
+                  onClick={() => moveChapter(index, "down")}
+                  disabled={index === chapters.length - 1}
+                  className={`p-1 rounded ${
+                    index === chapters.length - 1
+                      ? "text-gray-700 cursor-not-allowed"
+                      : "text-gray-400 hover:bg-neutral-800"
+                  }`}
+                >
+                  <ChevronDown size={16} />
+                </button>
               </div>
 
-              {/* right controls */}
-              {editorMode && (
-                <div
-                  className="flex items-center gap-3"
-                  onClick={(e) => e.stopPropagation()}
+              {/* Chapter Info */}
+              <div className="flex-1">
+                <h3 className="text-gray-200 font-medium">{ch.title}</h3>
+                <p className="text-xs text-gray-500">
+                  Position: {ch.position + 1}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Link
+                  to={`/writing/novels/edit/${novelSlug}/chapters/${ch.slug}`}
+                  className="p-2 text-gray-400 hover:bg-neutral-800 rounded"
+                  title="Edit"
                 >
-                  {/* Reorder Buttons */}
-                  <button
-                    disabled={i === 0}
-                    onClick={() => moveChapter(ch.slug, "up")}
-                    className="px-2 py-1 bg-neutral-800 hover:bg-neutral-700 rounded text-gray-300 disabled:opacity-30"
-                  >
-                    ↑
-                  </button>
+                  <Edit size={18} />
+                </Link>
 
-                  <button
-                    disabled={i === chapters.length - 1}
-                    onClick={() => moveChapter(ch.slug, "down")}
-                    className="px-2 py-1 bg-neutral-800 hover:bg-neutral-700 rounded text-gray-300 disabled:opacity-30"
-                  >
-                    ↓
-                  </button>
-
-                  {/* Edit */}
-                  <button
-                    onClick={() =>
-                      navigate(
-                        `/writing/novels/edit/${novelSlug}/chapters/${ch.slug}`
-                      )
-                    }
-                    className="text-sm text-blue-400 hover:text-blue-300"
-                  >
-                    Edit →
-                  </button>
-
-                  {/* Delete */}
-                  <button
-                    onClick={() => handleDelete(ch)}
-                    className="text-sm text-red-400 hover:text-red-300"
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
+                <button
+                  onClick={() => deleteChapter(ch.slug, ch.title)}
+                  className="p-2 text-red-400 hover:bg-red-950 rounded"
+                  title="Delete"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </div>
           ))}
         </div>

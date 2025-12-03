@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { NovelMeta } from "../../../../components/NovelForm";
+import { useEditor } from "@/context/EditorContext";
+import BackButton from "@/components/BackButton";
 
 interface Chapter {
   slug: string;
@@ -12,6 +14,7 @@ interface Chapter {
 export default function NovelDetail() {
   const { novelSlug } = useParams<{ novelSlug: string }>();
   const navigate = useNavigate();
+  const { editorMode } = useEditor();
 
   const [meta, setMeta] = useState<NovelMeta | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -78,7 +81,10 @@ export default function NovelDetail() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
+    <div className="max-w-4xl mx-auto py-8 px-6">
+      {/* ✅ Add BackButton here */}
+      <BackButton to="/writing/novels" label="Back to Novels" className="mb-6" />
+
       {/* Header */}
       <div className="flex items-start gap-6 mb-8">
         {meta.coverUrl && (
@@ -103,28 +109,38 @@ export default function NovelDetail() {
             </div>
           )}
 
-          <div className="flex gap-3">
-            <Link
-              to={`/writing/novels/edit/${novelSlug}`}
-              className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded text-white"
-            >
-              Edit Novel
-            </Link>
+          {/* Editor Controls - Only visible in editor mode */}
+          {editorMode && (
+            <div className="flex gap-3 flex-wrap">
+              <Link
+                to={`/writing/novels/edit/${novelSlug}`}
+                className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded text-white"
+              >
+                Edit Novel Details
+              </Link>
 
-            <Link
-              to={`/writing/novels/edit/${novelSlug}/chapters/new`}
-              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded text-gray-300"
-            >
-              + New Chapter
-            </Link>
+              <Link
+                to={`/writing/novels/edit/${novelSlug}/chapters`}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-white"
+              >
+                Manage Chapters
+              </Link>
 
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2 border border-red-800 text-red-400 hover:bg-red-950 rounded"
-            >
-              Delete Novel
-            </button>
-          </div>
+              <Link
+                to={`/writing/novels/edit/${novelSlug}/chapters/new`}
+                className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded text-gray-300"
+              >
+                + New Chapter
+              </Link>
+
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 border border-red-800 text-red-400 hover:bg-red-950 rounded"
+              >
+                Delete Novel
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

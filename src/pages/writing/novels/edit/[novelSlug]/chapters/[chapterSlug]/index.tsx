@@ -1,149 +1,374 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
+import { useEditor } from "@/context/EditorContext";
 import BackButton from "@/components/BackButton";
-import ChapterEditor from "@/components/ChapterEditor";
+import { uploadImage } from "@/utils/uploadImage";
 
-import {
-  loadChapter,
-  saveChapter as saveChapterFS,
-  deleteChapter as deleteChapterFS,
-} from "@/client/api/novels";
+// Tiptap imports
+import { useEditor as useTiptapEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
+import Underline from "@tiptap/extension-underline";
+import TextStyle from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
 
-export default function EditChapterPage() {
-  const { novelSlug, chapterSlug } = useParams();
+export default function ChapterEditorPage() {
+  const { novelSlug, chapterSlug } = useParams<{
+    novelSlug: string;
+    chapterSlug?: string;
+  }>();
   const navigate = useNavigate();
+  const { editorMode } = useEditor();
 
   const [title, setTitle] = useState("");
-  const [chapter, setChapter] = useState<any>(null);
-  const [editor, setEditor] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  //
-  // Load chapter from FS
-  //
+  const isNew = !chapterSlug;
+
+  // Block if not in editor mode
   useEffect(() => {
-    if (!novelSlug || !chapterSlug) return;
+    if (!editorMode) {
+      navigate(`/writing/novels/${novelSlug}`);
+    }
+  }, [editorMode, navigate, novelSlug]);
 
-    (async () => {
-      const data = await loadChapter(novelSlug, chapterSlug);
-      if (!data) {
-        setChapter(null);
-        setLoading(false);
-        return;
-      }
+  // Tiptap editor
+  const editor = useTiptapEditor({
+    extensions: [
+      StarterKit,
+      Image,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-pink-400 underline",
+        },
+      }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Underline,
+      TextStyle,
+      Color,
+    ],
+    content: "",
+    editorProps: {
+      attributes: {
+        class:
+          "prose prose-invert max-w-none focus:outline-none min-h-[400px] p-4",
+      },
+    },
+  });
 
-      setChapter(data);
-      setTitle(data.title);
+  // Load chapter if editing
+  useEffect(() => {
+    if (!isNew && novelSlug && chapterSlug) {
+      (async () => {
+        try {
+          const res = await fetch(
+            `/data/novels/${novelSlug}/chapters/${chapterSlug}.json`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setTitle(data.title || "");
+            if (editor) {
+              editor.commands.setContent(data.content || data.body || "");
+            }
+          }
+        } catch (err) {
+          console.error("Load failed:", err);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    } else {
       setLoading(false);
-    })();
-  }, [novelSlug, chapterSlug]);
+    }
+  }, [isNew, novelSlug, chapterSlug, editor]);
 
-  //
-  // Save Chapter (JSON FS)
-  //
-  const saveChapter = async () => {
-    if (!editor) return alert("Editor not ready.");
-    if (!novelSlug || !chapterSlug) return;
+  // Save chapter
+  async function handleSave() {
+    if (!title.trim()) return alert("Title is required");
+    if (!editor) return;
 
-    const html = editor.getHTML();
+    setSaving(true);
 
     try {
-      setSaving(true);
+      const html = editor.getHTML();
 
-      await saveChapterFS({
-        novelSlug,
-        chapterSlug,
-        title: title.trim(),
-        html,
+      const res = await fetch("/dev/chapter/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          novelSlug,
+          chapterSlug: isNew ? undefined : chapterSlug,
+          title: title.trim(),
+          content: html,
+        }),
       });
 
-      alert("Chapter updated!");
+      if (!res.ok) throw new Error("Save failed");
 
-      navigate(`/writing/novels/${novelSlug}/edit/chapters/${chapterSlug}`);
+      const { saved } = await res.json();
+      alert("Chapter saved!");
+
+      // Navigate back to manage chapters
+      navigate(`/writing/novels/edit/${novelSlug}/chapters`);
     } catch (err: any) {
-      alert("Failed to save chapter: " + err?.message);
+      alert("Failed to save: " + err.message);
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  //
-  // Delete Chapter
-  //
-  const deleteCurrentChapter = async () => {
-    if (!novelSlug || !chapterSlug) return;
+  // Insert image
+  async function handleImageUpload() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
 
-    if (!confirm("Delete this chapter? This cannot be undone.")) return;
+      try {
+        const url = await uploadImage(file, "chapters");
+        editor?.chain().focus().setImage({ src: url }).run();
+      } catch (err: any) {
+        alert("Image upload failed: " + err.message);
+      }
+    };
+    input.click();
+  }
 
-    try {
-      await deleteChapterFS(novelSlug, chapterSlug);
-
-      alert("Chapter deleted");
-      navigate(`/writing/novels/${novelSlug}/edit/chapters`);
-    } catch (err: any) {
-      alert("Delete failed: " + err?.message);
+  // Add link
+  function handleAddLink() {
+    const url = prompt("Enter URL:");
+    if (url) {
+      editor?.chain().focus().setLink({ href: url }).run();
     }
-  };
+  }
 
-  // LOADING STATES
-  if (loading)
-    return <p className="text-gray-400 p-8">Loading chapter...</p>;
+  if (!editorMode) return null;
 
-  if (!chapter)
-    return <p className="text-red-400 p-8">Chapter not found.</p>;
+  if (loading) {
+    return <div className="text-gray-400 p-10">Loading...</div>;
+  }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 text-gray-100">
-
+    <div className="max-w-5xl mx-auto px-6 py-12">
       <BackButton
-        to={`/writing/novels/${novelSlug}/edit/chapters`}
-        label="Back to Chapters"
+        to={`/writing/novels/edit/${novelSlug}/chapters`}
+        label="Back to Manage Chapters"
       />
 
       <h1 className="text-3xl font-bold text-pink-400 mb-6">
-        Edit Chapter
+        {isNew ? "New Chapter" : "Edit Chapter"}
       </h1>
 
       <div className="space-y-6">
-
         {/* Title */}
-        <label className="block">
-          <div className="text-sm text-gray-400 mb-1">Title</div>
+        <div>
+          <label className="block text-gray-400 mb-2">Chapter Title</label>
           <input
-            className="w-full px-3 py-2 rounded bg-neutral-900 border"
+            type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            placeholder="Chapter title"
+            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded text-white"
           />
-        </label>
-
-        {/* CHAPTER EDITOR */}
-        <ChapterEditor
-          initialHtml={chapter.body || ""}
-          onReady={setEditor}
-        />
-
-        {/* ACTION BUTTONS */}
-        <div className="flex justify-between mt-4">
-          {/* DELETE BUTTON */}
-          <button
-            onClick={deleteCurrentChapter}
-            className="px-5 py-2 bg-red-700 hover:bg-red-800 rounded text-white"
-          >
-            Delete Chapter
-          </button>
-
-          {/* SAVE BUTTON */}
-          <button
-            onClick={saveChapter}
-            disabled={saving}
-            className="px-6 py-2 bg-gradient-to-r from-pink-600 to-purple-600 rounded text-white"
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
         </div>
 
+        {/* Content Editor */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded">
+          {/* Toolbar */}
+          <div className="border-b border-neutral-800 p-2 flex gap-2 flex-wrap">
+            {/* Text Formatting */}
+            <button
+              onClick={() => editor?.chain().focus().toggleBold().run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("bold") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              <strong>B</strong>
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().toggleItalic().run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("italic") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              <em>I</em>
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().toggleUnderline().run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("underline") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              <u>U</u>
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().toggleStrike().run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("strike") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              <s>S</s>
+            </button>
+
+            <div className="w-px bg-neutral-700" />
+
+            {/* Headings */}
+            <button
+              onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("heading", { level: 1 }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              H1
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("heading", { level: 2 }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              H2
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("heading", { level: 3 }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              H3
+            </button>
+
+            <div className="w-px bg-neutral-700" />
+
+            {/* Lists */}
+            <button
+              onClick={() => editor?.chain().focus().toggleBulletList().run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("bulletList") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              • List
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("orderedList") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              1. List
+            </button>
+
+            <div className="w-px bg-neutral-700" />
+
+            {/* Alignment */}
+            <button
+              onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive({ textAlign: "left" }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              ⬅
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive({ textAlign: "center" }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              ⬌
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive({ textAlign: "right" }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              ➡
+            </button>
+
+            <div className="w-px bg-neutral-700" />
+
+            {/* Link & Image */}
+            <button
+              onClick={handleAddLink}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("link") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              🔗 Link
+            </button>
+            <button
+              onClick={handleImageUpload}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
+            >
+              🖼️ Image
+            </button>
+
+            <div className="w-px bg-neutral-700" />
+
+            {/* Quote & Code */}
+            <button
+              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("blockquote") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              " Quote
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+              className={`px-3 py-1 rounded text-sm ${
+                editor?.isActive("codeBlock") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
+              }`}
+            >
+              &lt;/&gt; Code
+            </button>
+
+            <div className="w-px bg-neutral-700" />
+
+            {/* Undo/Redo */}
+            <button
+              onClick={() => editor?.chain().focus().undo().run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
+            >
+              ↶ Undo
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().redo().run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
+            >
+              ↷ Redo
+            </button>
+          </div>
+
+          {/* Editor */}
+          <EditorContent editor={editor} />
+        </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() =>
+              navigate(`/writing/novels/edit/${novelSlug}/chapters`)
+            }
+            className="px-6 py-2 bg-neutral-800 hover:bg-neutral-700 rounded text-white"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-2 bg-gradient-to-r from-pink-600 to-purple-600 rounded text-white disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Chapter"}
+          </button>
+        </div>
       </div>
     </div>
   );

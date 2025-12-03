@@ -40,6 +40,48 @@ export async function loadProject(slug: string): Promise<Project | null> {
   }
 }
 
+/** Create new project (DEV only) - alias for saveProject */
+export async function createProject(project: Partial<Project>): Promise<Project> {
+  if (!isDev) throw new Error("createProject is allowed only in development.");
+
+  const res = await fetch("/dev/project/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(project),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || "Failed to create project");
+  }
+
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || "Unknown error");
+
+  return json.saved as Project;
+}
+
+/** Update existing project (DEV only) - alias for saveProject */
+export async function updateProject(project: Project): Promise<Project> {
+  if (!isDev) throw new Error("updateProject is allowed only in development.");
+
+  const res = await fetch("/dev/project/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(project),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || "Failed to update project");
+  }
+
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || "Unknown error");
+
+  return json.saved as Project;
+}
+
 /** Save project (DEV only) */
 export async function saveProject(project: Project): Promise<Project> {
   if (!isDev) throw new Error("saveProject is allowed only in development.");

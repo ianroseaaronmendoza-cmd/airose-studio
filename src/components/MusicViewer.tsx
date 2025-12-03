@@ -1,49 +1,124 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import MusicPanel from "./MusicPanel";
+import { X } from "lucide-react";
 
-export default function MusicViewer({ albums = [], editorMode = false }) {
-  const [selectedSong, setSelectedSong] = useState(null);
-  const [selectedAlbum, setSelectedAlbum] = useState(null);
+interface Track {
+  id?: string;
+  title: string;
+  duration?: string;
+  lyrics?: string;
+  story?: string;
+  file?: string;
+  spotifyEmbed?: string;
+}
+
+interface Album {
+  id: string;
+  title: string;
+  coverUrl?: string;
+  releaseDate?: string;
+  year?: string;
+  tracks?: Track[];
+  songs?: Track[];
+}
+
+interface MusicViewerProps {
+  albums: Album[];
+}
+
+export default function MusicViewer({ albums }: MusicViewerProps) {
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [expandedAlbums, setExpandedAlbums] = useState({}); // track expanded state
+  const [expandedAlbums, setExpandedAlbums] = useState<Record<string, boolean>>({});
+  const [activeView, setActiveView] = useState<"lyrics" | "story">("lyrics");
 
-  const openPanel = (album, song, mode) => {
-    setSelectedAlbum(album);
-    setSelectedSong({ ...song, initialMode: mode });
+  // Auto-expand all albums on mount (preview mode)
+  useEffect(() => {
+    if (albums.length > 0) {
+      const expanded: Record<string, boolean> = {};
+      albums.forEach((album) => {
+        expanded[album.id] = true;
+      });
+      setExpandedAlbums(expanded);
+    }
+  }, [albums]);
+
+  const openPanel = (song: Track, mode: "lyrics" | "story") => {
+    setSelectedTrack(song);
+    setActiveView(mode);
     setPanelOpen(true);
   };
 
   const closePanel = () => {
     setPanelOpen(false);
-    setSelectedSong(null);
-    setSelectedAlbum(null);
+    setSelectedTrack(null);
   };
 
-  const toggleAlbum = (albumId) => {
+  const toggleAlbum = (albumId: string) => {
     setExpandedAlbums((prev) => ({
       ...prev,
       [albumId]: !prev[albumId],
     }));
   };
 
-  const renderSpotify = (embedHtml) => {
+  const renderSpotify = (embedHtml: string, isCompact = false) => {
     if (!embedHtml) return null;
     return (
       <div
-        className="rounded-lg overflow-hidden w-full sm:w-[75%] max-w-full aspect-[3/1] sm:aspect-[5/1]"
+        className={`rounded-lg overflow-hidden w-full ${
+          isCompact ? "aspect-[4/1]" : "sm:w-[75%] max-w-full aspect-[3/1] sm:aspect-[5/1]"
+        }`}
         dangerouslySetInnerHTML={{ __html: embedHtml }}
       />
     );
   };
 
   return (
-    <div className="text-gray-100 flex justify-center mt-4 custom-scroll">
+    <div className="relative text-gray-100 flex justify-center mt-4 custom-scroll">
       <style>{`
         .custom-scroll::-webkit-scrollbar { width: 10px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #ec4899; border-radius: 6px; }
         .custom-scroll::-webkit-scrollbar-track { background: #111; }
         iframe { width: 100%; height: 100%; }
+        
+        /* Glass hover effect */
+        .glass-hover {
+          position: relative;
+          overflow: hidden;
+        }
+        .glass-hover::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+          transition: left 0.5s ease;
+          pointer-events: none;
+          z-index: 1;
+        }
+        .glass-hover:hover::before {
+          left: 100%;
+        }
+
+        /* Glass effect for side panel */
+        .panel-glass-enter::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+          animation: panelGlassSlide 1.2s ease-out;
+          pointer-events: none;
+          z-index: 1;
+        }
+        @keyframes panelGlassSlide {
+          0% { left: -100%; }
+          100% { left: 100%; }
+        }
       `}</style>
 
       <div className="w-full max-w-3xl px-6">
@@ -53,7 +128,8 @@ export default function MusicViewer({ albums = [], editorMode = false }) {
 
         <div className="space-y-6">
           {albums.map((album) => {
-            const isOpen = editorMode || expandedAlbums[album.id];
+            const isOpen = expandedAlbums[album.id];
+            const albumTracks = album.tracks || album.songs || [];
 
             return (
               <motion.div
@@ -63,12 +139,8 @@ export default function MusicViewer({ albums = [], editorMode = false }) {
               >
                 {/* Album Header */}
                 <div
-                  className={`flex justify-between items-center px-5 py-4 ${
-                    editorMode
-                      ? "bg-[#141414]"
-                      : "bg-[#141414] cursor-pointer hover:bg-[#1a1a1a]"
-                  }`}
-                  onClick={() => !editorMode && toggleAlbum(album.id)}
+                  className="flex justify-between items-center px-5 py-4 bg-[#141414] cursor-pointer hover:bg-[#1a1a1a]"
+                  onClick={() => toggleAlbum(album.id)}
                 >
                   <div>
                     <h2 className="text-lg font-bold text-pink-400">
@@ -78,15 +150,13 @@ export default function MusicViewer({ albums = [], editorMode = false }) {
                   </div>
 
                   {/* Collapse arrow */}
-                  {!editorMode && (
-                    <motion.span
-                      animate={{ rotate: isOpen ? 180 : 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      className="text-gray-400 text-lg"
-                    >
-                      ▼
-                    </motion.span>
-                  )}
+                  <motion.span
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="text-gray-400 text-lg"
+                  >
+                    ▼
+                  </motion.span>
                 </div>
 
                 {/* Collapsible Content */}
@@ -109,45 +179,31 @@ export default function MusicViewer({ albums = [], editorMode = false }) {
                       }}
                       className="px-5 py-4 space-y-4"
                     >
-                      {album.songs && album.songs.length > 0 ? (
-                        album.songs.map((song) => (
+                      {albumTracks.length > 0 ? (
+                        albumTracks.map((song) => (
                           <motion.div
                             key={song.id}
                             layout
-                            className="bg-[#141414] border border-gray-800 rounded-lg p-4 relative"
+                            className="bg-[#141414] border border-gray-800 rounded-lg p-4 relative glass-hover"
                           >
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                              {renderSpotify(song.spotifyEmbed)}
+                              {song.spotifyEmbed && renderSpotify(song.spotifyEmbed)}
 
                               <div className="flex flex-col justify-center items-center gap-2 min-w-[120px]">
                                 <div className="flex gap-2">
                                   <button
-                                    onClick={() =>
-                                      openPanel(album, song, "lyrics")
-                                    }
-                                    className="px-3 py-1 text-xs bg-pink-600 hover:bg-pink-500 rounded"
+                                    onClick={() => openPanel(song, "lyrics")}
+                                    className="px-3 py-1 text-xs bg-pink-600 hover:bg-pink-500 rounded transition"
                                   >
                                     Lyrics
                                   </button>
                                   <button
-                                    onClick={() =>
-                                      openPanel(album, song, "story")
-                                    }
-                                    className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
+                                    onClick={() => openPanel(song, "story")}
+                                    className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded transition"
                                   >
                                     Story
                                   </button>
                                 </div>
-                                {editorMode && (
-                                  <button
-                                    onClick={() =>
-                                      openPanel(album, song, "edit")
-                                    }
-                                    className="px-3 py-1 text-xs bg-gray-800 hover:bg-gray-700 rounded"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
                               </div>
                             </div>
                           </motion.div>
@@ -167,16 +223,98 @@ export default function MusicViewer({ albums = [], editorMode = false }) {
 
         <div className="pb-24" />
 
+        {/* Side Panel - For viewing Lyrics/Story */}
         <AnimatePresence>
-          {panelOpen && (
-            <MusicPanel
-              open={panelOpen}
-              onClose={closePanel}
-              album={selectedAlbum}
-              song={selectedSong}
-              editorMode={editorMode}
-              mode={selectedSong?.initialMode || "lyrics"}
-            />
+          {panelOpen && selectedTrack && (
+            <>
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed inset-y-0 right-0 w-full md:w-1/2 lg:w-2/5 bg-neutral-900 border-l border-neutral-800 shadow-2xl z-50 overflow-hidden panel-glass-enter"
+              >
+                {/* Scrollable content wrapper */}
+                <div className="h-full overflow-y-auto">
+                  {/* Header */}
+                  <div className="sticky top-0 bg-neutral-900 border-b border-neutral-800 p-4 flex items-center justify-between z-10">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-pink-400">
+                        {selectedTrack.title}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={closePanel}
+                      className="p-2 hover:bg-neutral-800 rounded text-gray-400"
+                    >
+                      <X size={24} />
+                    </button>
+                  </div>
+
+                  {/* Spotify Embed - Compact Version */}
+                  {selectedTrack.spotifyEmbed && (
+                    <div className="px-6 pt-4">
+                      {renderSpotify(selectedTrack.spotifyEmbed, true)}
+                    </div>
+                  )}
+
+                  {/* Toggle Buttons */}
+                  <div className="px-6 py-4 flex gap-2 border-b border-neutral-800">
+                    <button
+                      onClick={() => setActiveView("lyrics")}
+                      className={`flex-1 px-4 py-2 rounded text-sm font-medium transition ${
+                        activeView === "lyrics"
+                          ? "bg-pink-600 text-white"
+                          : "bg-neutral-800 text-gray-400 hover:bg-neutral-700"
+                      }`}
+                    >
+                      Lyrics
+                    </button>
+                    <button
+                      onClick={() => setActiveView("story")}
+                      className={`flex-1 px-4 py-2 rounded text-sm font-medium transition ${
+                        activeView === "story"
+                          ? "bg-purple-600 text-white"
+                          : "bg-neutral-800 text-gray-400 hover:bg-neutral-700"
+                      }`}
+                    >
+                      Story
+                    </button>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-6 pb-32">
+                    {activeView === "lyrics" && (
+                      <div className="prose prose-invert max-w-none">
+                        <pre className="whitespace-pre-wrap font-sans text-gray-300 leading-relaxed">
+                          {selectedTrack.lyrics || "No lyrics available."}
+                        </pre>
+                      </div>
+                    )}
+
+                    {activeView === "story" && (
+                      <div className="prose prose-invert max-w-none">
+                        <div
+                          className="text-gray-300 leading-relaxed"
+                          dangerouslySetInnerHTML={{
+                            __html: selectedTrack.story || "<p>No story available.</p>",
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 z-40"
+                onClick={closePanel}
+              />
+            </>
           )}
         </AnimatePresence>
       </div>
