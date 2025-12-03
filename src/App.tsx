@@ -1,12 +1,11 @@
-import React, { useState, lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
+import React, { lazy, Suspense, useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Footer from "./components/Footer";
 import { EditorProvider } from "./context/EditorContext";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /* Layout */
 import Header from "./components/Header";
-import Footer from "./components/Footer";
 
 /* Pages - Eager load for critical routes */
 import Home from "./pages/Home";

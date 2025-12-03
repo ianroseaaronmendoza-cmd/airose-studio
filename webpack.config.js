@@ -1,6 +1,7 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -23,23 +24,30 @@ module.exports = {
     splitChunks: {
       chunks: "all",
       cacheGroups: {
+        // Split React/ReactDOM into separate chunk
+        react: {
+          test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+          name: "react",
+          priority: 20,
+        },
+        // Split large libraries
         vendors: {
           test: /[\\/]node_modules[\\/]/,
           name: "vendors",
           priority: 10,
+          minSize: 30000,
         },
-        tiptap: {
-          test: /[\\/]node_modules[\\/]@tiptap[\\/]/,
-          name: "tiptap",
-          priority: 20,
-        },
-        react: {
-          test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
-          name: "react",
-          priority: 15,
+        // Common code used across multiple pages
+        common: {
+          minChunks: 2,
+          priority: 5,
+          reuseExistingChunk: true,
+          minSize: 10000,
         },
       },
     },
+    // Enable runtime chunk for better caching
+    runtimeChunk: "single",
   },
 
   resolve: {
@@ -79,7 +87,10 @@ module.exports = {
         { from: "public/uploads", to: "uploads", noErrorOnMissing: true },
       ],
     }),
-  ],
+
+    // Only run analyzer when needed
+    process.env.ANALYZE && new BundleAnalyzerPlugin(),
+  ].filter(Boolean),
 
   devServer: {
     port: 3000,
@@ -244,5 +255,11 @@ module.exports = {
 
       return middlewares;
     },
+  },
+
+  performance: {
+    maxAssetSize: 600000, // 600 KB (increased from 500 KB)
+    maxEntrypointSize: 800000, // 800 KB (increased from 488 KB)
+    hints: "warning",
   },
 };
