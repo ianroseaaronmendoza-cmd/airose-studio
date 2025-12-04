@@ -112,12 +112,8 @@ export default function BlogViewPage() {
       )}
 
       {/* Content */}
-      <article className="prose prose-invert max-w-none leading-relaxed text-gray-100">
-        {html ? (
-          <div dangerouslySetInnerHTML={{ __html: html }} />
-        ) : (
-          <div className="text-gray-500">No content yet.</div>
-        )}
+      <article className="space-y-6 text-gray-100">
+        <div dangerouslySetInnerHTML={{ __html: html }} />
       </article>
     </div>
   );

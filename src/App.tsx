@@ -32,7 +32,7 @@ const EditPoemPage = lazy(() => import("./pages/writing/poems/edit/[slug]"));
 const BlogListPage = lazy(() => import("./pages/writing/blogs/index"));
 const BlogViewPage = lazy(() => import("./pages/writing/blogs/[slug]"));
 const NewBlogPage = lazy(() => import("./pages/writing/blogs/new"));
-const EditBlogPage = lazy(() => import("./pages/writing/blogs/[slug]"));
+const EditBlogPage = lazy(() => import("./pages/writing/blogs/edit/BlogEditor"));
 
 /* Novels - Lazy */
 const NovelListPage = lazy(() => import("./pages/writing/novels/index"));
