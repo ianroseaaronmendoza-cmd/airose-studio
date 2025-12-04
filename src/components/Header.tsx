@@ -44,7 +44,7 @@ export default function Header() {
 
       {/* Mobile Button */}
       <button
-        className="md:hidden p-2 rounded-md hover:bg-neutral-900 text-gray-300"
+        className="md:hidden p-2 rounded-md hover:bg-neutral-900 text-white"
         onClick={toggleMenu}
         aria-label="Toggle menu"
       >

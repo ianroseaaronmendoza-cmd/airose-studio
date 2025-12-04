@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEditor } from "@/context/EditorContext";
 import BackButton from "@/components/BackButton";
 import { uploadImage } from "@/utils/uploadImage";
+import { ParagraphIndent } from "@/extensions/ParagraphIndent";
 
 // Tiptap imports
 import { useEditor as useTiptapEditor, EditorContent } from "@tiptap/react";
@@ -35,7 +36,8 @@ export default function BlogEditorPage() {
   // Tiptap editor
   const editor = useTiptapEditor({
     extensions: [
-      StarterKit,
+      StarterKit, // <-- do NOT configure paragraph: false
+      ParagraphIndent,
       Image,
       Link.configure({
         openOnClick: false,
@@ -48,7 +50,6 @@ export default function BlogEditorPage() {
       TextStyle,
       Color,
     ],
-    content: "",
     editorProps: {
       attributes: {
         class:
@@ -164,7 +165,7 @@ export default function BlogEditorPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Blog title"
-            className="w-full bg-neutral-900 border border-neutral-800 rounded text-white px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
+            className="w-full bg-neutral-900 border border-neutral-800 rounded text-white px-4 py-2"
           />
         </div>
 
@@ -208,50 +209,70 @@ export default function BlogEditorPage() {
 
             <div className="w-px bg-neutral-700" />
 
-            {/* Headings */}
+            {/* Font Size */}
             <button
-              onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("heading", { level: 1 }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
+              onClick={() => editor?.chain().focus().setMark('textStyle', { fontSize: '1.5em' }).run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
+              title="Large font"
             >
-              H1
+              A+
             </button>
             <button
-              onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("heading", { level: 2 }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
+              onClick={() => editor?.chain().focus().setMark('textStyle', { fontSize: '1em' }).run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
+              title="Normal font"
             >
-              H2
+              A
             </button>
             <button
-              onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("heading", { level: 3 }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
+              onClick={() => editor?.chain().focus().setMark('textStyle', { fontSize: '0.85em' }).run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
+              title="Small font"
             >
-              H3
+              A-
             </button>
 
             <div className="w-px bg-neutral-700" />
 
-            {/* Lists */}
+            {/* Color */}
             <button
-              onClick={() => editor?.chain().focus().toggleBulletList().run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("bulletList") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
+              onClick={() => editor?.chain().focus().setColor('#e11d48').run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700 text-pink-400"
+              title="Pink"
             >
-              • List
+              Pink
             </button>
             <button
-              onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("orderedList") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
+              onClick={() => editor?.chain().focus().setColor('#f59e42').run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700 text-yellow-400"
+              title="Yellow"
             >
-              1. List
+              Yellow
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().setColor('#38bdf8').run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700 text-blue-400"
+              title="Blue"
+            >
+              Blue
+            </button>
+
+            <div className="w-px bg-neutral-700" />
+
+            {/* Indent/Outdent */}
+            <button
+              onClick={() => editor?.chain().focus().setMark('textStyle', { marginLeft: '2em' }).run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
+              title="Indent"
+            >
+              ➡ Indent
+            </button>
+            <button
+              onClick={() => editor?.chain().focus().setMark('textStyle', { marginLeft: '0em' }).run()}
+              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
+              title="Outdent"
+            >
+              ⬅ Outdent
             </button>
 
             <div className="w-px bg-neutral-700" />

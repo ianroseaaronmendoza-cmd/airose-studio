@@ -53,12 +53,12 @@ export default function MusicPage() {
   // PRODUCTION VIEW
   // ------------------------------------
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex justify-center px-6 py-10 text-gray-100">
-      <div className="w-full px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
-        <h1 className="text-3xl font-bold text-pink-400 mb-2">
+    <div className="min-h-screen bg-[#0a0a0a] flex justify-center px-2 py-4 sm:px-8 sm:py-10 text-gray-100">
+      <div className="w-full max-w-3xl mx-auto py-6 sm:py-12">
+        <h1 className="text-2xl sm:text-3xl font-bold text-pink-400 mb-2">
           🎵 Music Library
         </h1>
-        <p className="text-gray-400 mb-6">
+        <p className="text-gray-400 mb-4">
           Listen to original tracks and soundscapes from Airose Studio.
         </p>
         <MusicViewer albums={albums} />

@@ -61,7 +61,7 @@ export default function PoemViewPage() {
 
       {/* Poetry style: render HTML and style lines */}
       <div
-        className="prose-poem text-pink-200 border-l-2 border-pink-400 pl-6 italic text-lg leading-relaxed space-y-2"
+        className="prose-poem text-pink-200 border-l-2 border-pink-400 pl-6 italic leading-relaxed space-y-2 text-base sm:text-lg"
         dangerouslySetInnerHTML={{ __html: poem.content }}
       />
 

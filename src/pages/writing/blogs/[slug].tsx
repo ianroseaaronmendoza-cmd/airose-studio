@@ -96,7 +96,7 @@ export default function BlogViewPage() {
       {editorMode && (
         <div className="flex gap-3 mb-8">
           <Link
-            to={`/writing/blogs/${slug}/edit`}
+            to={`/writing/blogs/edit/${slug}`}
             className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded text-white"
           >
             Edit Blog
