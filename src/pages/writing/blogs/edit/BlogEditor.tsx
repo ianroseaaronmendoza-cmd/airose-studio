@@ -1,19 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEditor } from "@/context/EditorContext";
 import BackButton from "@/components/BackButton";
-import { uploadImage } from "@/utils/uploadImage";
-import { ParagraphIndent } from "@/extensions/ParagraphIndent";
-
-// Tiptap imports
-import { useEditor as useTiptapEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import TextAlign from "@tiptap/extension-text-align";
-import Underline from "@tiptap/extension-underline";
-import TextStyle from "@tiptap/extension-text-style";
-import Color from "@tiptap/extension-color";
+import { Editor as TinyMCEEditor } from "@tinymce/tinymce-react";
 
 export default function BlogEditorPage() {
   const { slug } = useParams<{ slug?: string }>();
@@ -23,6 +12,8 @@ export default function BlogEditorPage() {
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [initialContent, setInitialContent] = useState("<p>Start writing your blog...</p>");
+  const editorRef = useRef<any>(null);
 
   const isNew = !slug;
 
@@ -33,31 +24,6 @@ export default function BlogEditorPage() {
     }
   }, [editorMode, navigate, slug]);
 
-  // Tiptap editor
-  const editor = useTiptapEditor({
-    extensions: [
-      StarterKit, // <-- do NOT configure paragraph: false
-      ParagraphIndent,
-      Image,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-pink-400 underline",
-        },
-      }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Underline,
-      TextStyle,
-      Color,
-    ],
-    editorProps: {
-      attributes: {
-        class:
-          "prose prose-invert max-w-none focus:outline-none min-h-[400px] p-4",
-      },
-    },
-  });
-
   // Load blog if editing
   useEffect(() => {
     if (!isNew && slug) {
@@ -67,9 +33,7 @@ export default function BlogEditorPage() {
           if (res.ok) {
             const data = await res.json();
             setTitle(data.title || "");
-            if (editor) {
-              editor.commands.setContent(data.content || data.body || "");
-            }
+            setInitialContent(data.content || data.body || "<p>Start writing your blog...</p>");
           }
         } catch (err) {
           console.error("Load failed:", err);
@@ -80,17 +44,17 @@ export default function BlogEditorPage() {
     } else {
       setLoading(false);
     }
-  }, [isNew, slug, editor]);
+  }, [isNew, slug]);
 
   // Save blog
   async function handleSave() {
     if (!title.trim()) return alert("Title is required");
-    if (!editor) return;
+    if (!editorRef.current) return;
 
     setSaving(true);
 
     try {
-      const html = editor.getHTML();
+      const html = editorRef.current.getContent();
 
       const res = await fetch("/dev/blog/save", {
         method: "POST",
@@ -115,31 +79,32 @@ export default function BlogEditorPage() {
     }
   }
 
-  // Insert image
-  async function handleImageUpload() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+  // Custom image upload handler for TinyMCE
+  function images_upload_handler(
+    blobInfo: { blob: () => Blob },
+    success: (url: string) => void,
+    failure?: (err: string) => void
+  ) {
+    const formData = new FormData();
+    formData.append("file", blobInfo.blob());
+    formData.append("section", "blogs");
 
-      try {
-        const url = await uploadImage(file, "blogs");
-        editor?.chain().focus().setImage({ src: url }).run();
-      } catch (err: any) {
-        alert("Image upload failed: " + err.message);
-      }
-    };
-    input.click();
-  }
-
-  // Add link
-  function handleAddLink() {
-    const url = prompt("Enter URL:");
-    if (url) {
-      editor?.chain().focus().setLink({ href: url }).run();
-    }
+    // Always return a Promise
+    return fetch("/dev/upload-image", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => {
+        if (!res || !res.ok) throw new Error("No response from server");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.url) success(data.url);
+        else if (failure) failure("Upload failed");
+      })
+      .catch((err) => {
+        if (failure) failure("Upload failed: " + (err instanceof Error ? err.message : String(err)));
+      });
   }
 
   if (!editorMode) return null;
@@ -169,197 +134,35 @@ export default function BlogEditorPage() {
           />
         </div>
 
-        {/* Content Editor */}
+        {/* TinyMCE Editor */}
         <div className="bg-neutral-900 border border-neutral-800 rounded">
-          {/* Toolbar */}
-          <div className="border-b border-neutral-800 p-2 flex gap-2 flex-wrap">
-            {/* Text Formatting */}
-            <button
-              onClick={() => editor?.chain().focus().toggleBold().run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("bold") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              <strong>B</strong>
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().toggleItalic().run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("italic") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              <em>I</em>
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().toggleUnderline().run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("underline") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              <u>U</u>
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().toggleStrike().run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("strike") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              <s>S</s>
-            </button>
-
-            <div className="w-px bg-neutral-700" />
-
-            {/* Font Size */}
-            <button
-              onClick={() => editor?.chain().focus().setMark('textStyle', { fontSize: '1.5em' }).run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
-              title="Large font"
-            >
-              A+
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().setMark('textStyle', { fontSize: '1em' }).run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
-              title="Normal font"
-            >
-              A
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().setMark('textStyle', { fontSize: '0.85em' }).run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
-              title="Small font"
-            >
-              A-
-            </button>
-
-            <div className="w-px bg-neutral-700" />
-
-            {/* Color */}
-            <button
-              onClick={() => editor?.chain().focus().setColor('#e11d48').run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700 text-pink-400"
-              title="Pink"
-            >
-              Pink
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().setColor('#f59e42').run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700 text-yellow-400"
-              title="Yellow"
-            >
-              Yellow
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().setColor('#38bdf8').run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700 text-blue-400"
-              title="Blue"
-            >
-              Blue
-            </button>
-
-            <div className="w-px bg-neutral-700" />
-
-            {/* Indent/Outdent */}
-            <button
-              onClick={() => editor?.chain().focus().setMark('textStyle', { marginLeft: '2em' }).run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
-              title="Indent"
-            >
-              ➡ Indent
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().setMark('textStyle', { marginLeft: '0em' }).run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
-              title="Outdent"
-            >
-              ⬅ Outdent
-            </button>
-
-            <div className="w-px bg-neutral-700" />
-
-            {/* Alignment */}
-            <button
-              onClick={() => editor?.chain().focus().setTextAlign("left").run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive({ textAlign: "left" }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              ⬅
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().setTextAlign("center").run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive({ textAlign: "center" }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              ⬌
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().setTextAlign("right").run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive({ textAlign: "right" }) ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              ➡
-            </button>
-
-            <div className="w-px bg-neutral-700" />
-
-            {/* Link & Image */}
-            <button
-              onClick={handleAddLink}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("link") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              🔗 Link
-            </button>
-            <button
-              onClick={handleImageUpload}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
-            >
-              🖼️ Image
-            </button>
-
-            <div className="w-px bg-neutral-700" />
-
-            {/* Quote & Code */}
-            <button
-              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("blockquote") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              " Quote
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
-              className={`px-3 py-1 rounded text-sm ${
-                editor?.isActive("codeBlock") ? "bg-pink-600" : "bg-neutral-800 hover:bg-neutral-700"
-              }`}
-            >
-              &lt;/&gt; Code
-            </button>
-
-            <div className="w-px bg-neutral-700" />
-
-            {/* Undo/Redo */}
-            <button
-              onClick={() => editor?.chain().focus().undo().run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
-            >
-              ↶ Undo
-            </button>
-            <button
-              onClick={() => editor?.chain().focus().redo().run()}
-              className="px-3 py-1 rounded text-sm bg-neutral-800 hover:bg-neutral-700"
-            >
-              ↷ Redo
-            </button>
-          </div>
-
-          {/* Editor */}
-          <EditorContent editor={editor} />
+          <TinyMCEEditor
+            apiKey="g7hb7redt7cl6evm9wavtpy2f0mpfxvch87druxrrru3j2a5"
+            onInit={(initEvent: unknown, editor: TinyMCEEditor) => {
+              editorRef.current = editor;
+              if (editorRef.current && editorRef.current.editor) {
+                editorRef.current.editor.setContent(initialContent);
+              }
+            }}
+            initialValue={initialContent}
+            init={{
+              height: 500,
+              menubar: true,
+              plugins: [
+                "advlist autolink lists link image charmap preview anchor",
+                "searchreplace visualblocks code fullscreen",
+                "insertdatetime media table code help wordcount",
+              ],
+              toolbar:
+                "undo redo | formatselect | bold italic underline | forecolor backcolor | " +
+                "alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | " +
+                "removeformat | image | code",
+              images_upload_url: "/dev/upload-image",
+              images_upload_handler,
+              skin: "oxide-dark",
+              content_css: "dark",
+            }}
+          />
         </div>
 
         {/* Save Button */}
