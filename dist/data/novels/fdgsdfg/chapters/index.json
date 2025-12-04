@@ -1,1 +1,80 @@
-[]
+[
+  {
+    "slug": "chapter-1-introduction",
+    "title": "Chapter 1: Introduction",
+    "updatedAt": 1764828298804,
+    "position": 1
+  },
+  {
+    "slug": "chapter-2-encounter",
+    "title": "Chapter 2: Encounter",
+    "updatedAt": 1764828534824,
+    "position": 2
+  },
+  {
+    "slug": "chapter-3-curiosity",
+    "title": "Chapter 3: Curiosity",
+    "updatedAt": 1764828912758,
+    "position": 3
+  },
+  {
+    "slug": "chapter-4-hurt",
+    "title": "Chapter 4: Hurt",
+    "updatedAt": 1764828946614,
+    "position": 4
+  },
+  {
+    "slug": "chapter-5-my-ideal",
+    "title": "Chapter 5: My Ideal",
+    "updatedAt": 1764828974183,
+    "position": 5
+  },
+  {
+    "slug": "chapter-6-her-birthday",
+    "title": "Chapter 6: Her Birthday",
+    "updatedAt": 1764829004206,
+    "position": 6
+  },
+  {
+    "slug": "chapter-7-my-birthday",
+    "title": "Chapter 7: My Birthday",
+    "updatedAt": 1764829040703,
+    "position": 7
+  },
+  {
+    "slug": "chapter-8-decision",
+    "title": "Chapter 8: Decision",
+    "updatedAt": 1764829070519,
+    "position": 8
+  },
+  {
+    "slug": "chapter-9-kaleidoscope",
+    "title": "Chapter 9: Kaleidoscope",
+    "updatedAt": 1764829253103,
+    "position": 9
+  },
+  {
+    "slug": "chapter-10-haunted",
+    "title": "Chapter 10: Haunted",
+    "updatedAt": 1764829267239,
+    "position": 10
+  },
+  {
+    "slug": "chapter-11-worst",
+    "title": "Chapter 11: Worst",
+    "updatedAt": 1764829284007,
+    "position": 11
+  },
+  {
+    "slug": "chapter-12-search",
+    "title": "Chapter 12: Search",
+    "updatedAt": 1764829302135,
+    "position": 12
+  },
+  {
+    "slug": "chapter-13-seriously",
+    "title": "Chapter 13: Seriously?!",
+    "updatedAt": 1764829317319,
+    "position": 13
+  }
+]

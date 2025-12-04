@@ -84,8 +84,7 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: "public/data", to: "data" },
-        // ❌ REMOVE THIS LINE - don't copy uploads during build
-        // { from: "public/uploads", to: "uploads", noErrorOnMissing: true },
+        { from: "public/uploads", to: "uploads", noErrorOnMissing: true }, // ✅ ADD THIS LINE
       ],
     }),
 
