@@ -35,7 +35,7 @@ export default function NewPoemPage() {
     );
 
   return (
-    <div className="max-w-3xl mx-auto text-gray-100 px-6 py-8 pb-32">
+    <div className="w-full text-gray-100 pb-32 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       <BackButton label="Back to Poems" />
       <h1 className="text-2xl font-bold mt-4 mb-6">New Poem</h1>
 
@@ -45,7 +45,7 @@ export default function NewPoemPage() {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-gray-800 rounded px-3 py-2 border border-gray-700 focus:border-pink-500"
+            className="w-full bg-gray-800 rounded border border-gray-700 focus:border-pink-500 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
           />
         </div>
 
@@ -55,7 +55,7 @@ export default function NewPoemPage() {
             rows={10}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full bg-gray-800 rounded px-3 py-2 border border-gray-700 focus:border-pink-500"
+            className="w-full bg-gray-800 rounded border border-gray-700 focus:border-pink-500 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
           />
         </div>
 

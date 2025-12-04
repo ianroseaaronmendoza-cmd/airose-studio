@@ -128,8 +128,8 @@ export default function ReadChapterPage() {
   const html = chapter.content ?? chapter.body ?? "";
 
   return (
-    <main className="w-full px-6 py-10 text-gray-100 flex-1">
-      <div className="max-w-4xl mx-auto">
+    <main className="w-full text-gray-100 flex-1 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
+      <div className="w-full sm: lg: px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
         <BackButton
           to={`/writing/novels/${novelSlug}`}
           label="Back to Novel"

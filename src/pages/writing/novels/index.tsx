@@ -52,7 +52,7 @@ export default function NovelsIndexPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 text-gray-100">
+    <div className="w-full text-gray-100 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       <div className="mb-6">
         <BackButton to="/writing" />
       </div>

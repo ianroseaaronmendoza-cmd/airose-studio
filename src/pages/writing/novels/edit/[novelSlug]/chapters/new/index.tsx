@@ -97,7 +97,7 @@ export default function NewChapterPage() {
     );
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12 text-gray-100">
+    <div className="w-full text-gray-100 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       <BackButton
         to={`/writing/novels/${novelSlug}/edit/chapters`}
         label="Back to Chapters"
@@ -112,7 +112,7 @@ export default function NewChapterPage() {
         <label className="block">
           <div className="text-sm text-gray-400 mb-1">Title</div>
           <input
-            className="w-full rounded border bg-neutral-900 px-3 py-2"
+            className="w-full rounded border bg-neutral-900 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Enter chapter title"
@@ -123,7 +123,7 @@ export default function NewChapterPage() {
         <label className="block">
           <div className="text-sm text-gray-400 mb-1">Slug</div>
           <input
-            className="w-full rounded border bg-neutral-900 px-3 py-2"
+            className="w-full rounded border bg-neutral-900 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
             value={customSlug}
             onChange={(e) => setCustomSlug(e.target.value)}
             placeholder="Leave blank to auto-generate"

@@ -9,7 +9,7 @@ import Header from "./components/Header";
 
 /* Pages - Eager load for critical routes */
 import Home from "./pages/Home";
-import WritingPage from "./pages/writing/page";
+import WritingPage from "./pages/writing"; // ✅ Changed from "./pages/writing/page" to "./pages/writing"
 
 /* Lazy load heavy pages */
 const MusicPage = lazy(() => import("./pages/MusicPage"));
@@ -62,56 +62,46 @@ function RootApp() {
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950">
       <Header />
 
-      <main className="flex-1 p-6 pb-28">
+      <main className="flex-1 pb-28">
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             {/* 🌸 Core */}
             <Route path="/" element={<Home />} />
-            <Route path="/music" element={<MusicPage />} />
             <Route path="/about" element={<About />} />
             <Route path="/support" element={<Support />} />
-
-            {/* ⭐ Projects */}
-            <Route path="/projects" element={<ProjectsPage />} />
-            <Route path="/projects/new" element={<NewProjectPage />} />
-            <Route path="/projects/:slug" element={<ProjectViewPage />} />
-            <Route path="/projects/:slug/edit" element={<ProjectEditorPage />} />
-
-            {/* ✍ Writing root */}
+            <Route path="/music" element={<MusicPage />} />
+            
+            {/* Writing routes */}
             <Route path="/writing" element={<WritingPage />} />
-
+            <Route path="/writing/blogs" element={<BlogListPage />} />
+            <Route path="/writing/blogs/new" element={<NewBlogPage />} />
+            <Route path="/writing/blogs/:slug" element={<BlogViewPage />} />
+            <Route path="/writing/blogs/edit/:slug" element={<EditBlogPage />} />
+            
+            <Route path="/writing/novels" element={<NovelListPage />} />
+            <Route path="/writing/novels/new" element={<NewNovelPage />} />
+            <Route path="/writing/novels/:novelSlug" element={<NovelDetailPage />} />
+            <Route path="/writing/novels/:novelSlug/chapters/:chapterSlug/read" element={<ReadChapterPage />} />
+            
+            <Route path="/writing/novels/edit/:novelSlug" element={<NovelEditorPage />} />
+            <Route path="/writing/novels/edit/:novelSlug/chapters" element={<ManageChaptersPage />} />
+            <Route path="/writing/novels/edit/:novelSlug/chapters/new" element={<NewChapterPage />} />
+            <Route path="/writing/novels/edit/:novelSlug/chapters/:chapterSlug" element={<ChapterEditorPage />} />
+            
             {/* ✒ Poems */}
             <Route path="/writing/poems" element={<PoemsIndexPage />} />
             <Route path="/writing/poems/new" element={<NewPoemPage />} />
             <Route path="/writing/poems/:slug" element={<PoemViewPage />} />
             <Route path="/writing/poems/edit/:slug" element={<EditPoemPage />} />
 
-            {/* 📝 Blogs */}
-            <Route path="/writing/blogs" element={<BlogListPage />} />
-            <Route path="/writing/blogs/new" element={<NewBlogPage />} />
-            <Route path="/writing/blogs/:slug" element={<BlogViewPage />} />
-            <Route path="/writing/blogs/:slug/edit" element={<EditBlogPage />} />
-
-            {/* 📚 Novels */}
-            <Route path="/writing/novels" element={<NovelListPage />} />
-            <Route path="/writing/novels/new" element={<NewNovelPage />} />
-
-            {/* View novel (public) */}
-            <Route path="/writing/novels/:novelSlug" element={<NovelDetailPage />} />
-
-            {/* ✅ Edit novel metadata - NOW uses NovelEditor.tsx */}
-            <Route path="/writing/novels/edit/:novelSlug" element={<NovelEditorPage />} />
-
-            {/* Manage chapters */}
-            <Route path="/writing/novels/edit/:novelSlug/chapters" element={<ManageChaptersPage />} />
-            <Route path="/writing/novels/edit/:novelSlug/chapters/new" element={<NewChapterPage />} />
-            <Route path="/writing/novels/edit/:novelSlug/chapters/:chapterSlug" element={<ChapterEditorPage />} />
-
-            {/* Read chapter (public) */}
-            <Route path="/writing/novels/:novelSlug/chapters/:chapterSlug/read" element={<ReadChapterPage />} />
+            {/* ⭐ Projects */}
+            <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/projects/new" element={<NewProjectPage />} />
+            <Route path="/projects/:slug" element={<ProjectViewPage />} />
+            <Route path="/projects/:slug/edit" element={<ProjectEditorPage />} />
 
             {/* 404 */}
             <Route

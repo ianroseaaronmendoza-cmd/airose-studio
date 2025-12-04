@@ -66,7 +66,7 @@ export default function MusicViewer({ albums }: MusicViewerProps) {
     return (
       <div
         className={`rounded-lg overflow-hidden w-full ${
-          isCompact ? "aspect-[4/1]" : "sm:w-[75%] max-w-full aspect-[3/1] sm:aspect-[5/1]"
+          isCompact ? "aspect-[4/1]" : "sm:w-[75%] w-full aspect-[3/1] sm:aspect-[5/1]"
         }`}
         dangerouslySetInnerHTML={{ __html: embedHtml }}
       />
@@ -121,7 +121,7 @@ export default function MusicViewer({ albums }: MusicViewerProps) {
         }
       `}</style>
 
-      <div className="w-full max-w-3xl px-6">
+      <div className="w-full px-6">
         {albums.length === 0 && (
           <p className="text-center text-gray-400 mt-10">No music data found.</p>
         )}

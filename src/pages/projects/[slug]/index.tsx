@@ -32,7 +32,7 @@ export default function ProjectViewPage() {
   if (!project) return <p className="text-gray-400">Project not found</p>;
 
   return (
-    <div className="max-w-4xl mx-auto pt-8 px-4">
+    <div className="w-full pt-8 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       <div className="flex flex-col items-start gap-12 mb-8">
         <div className="w-full sm:w-72">
           <BackButton label="Back to Projects" to="/projects" />

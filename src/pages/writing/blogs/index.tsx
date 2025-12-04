@@ -2,104 +2,116 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { loadBlogs, deleteBlog } from "@/client/api/blogs";
 import { useEditor } from "@/context/EditorContext";
 import BackButton from "@/components/BackButton";
 
 import type { Blog } from "@/client/api/blogs";
 
 export default function BlogsIndexPage() {
+  const [blogs, setBlogPosts] = useState<Blog[]>([]);
   const navigate = useNavigate();
   const { editorMode } = useEditor();
 
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    (async () => {
-      try {
-        const data = await loadBlogs();
-        setBlogs(data || []);
-      } catch {
-        alert("Failed to load blogs.");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadBlogs();
   }, []);
 
-  async function handleDelete(slug: string) {
-    if (!window.confirm("Delete this blog post?")) return;
-
+  async function loadBlogs() {
     try {
-      await deleteBlog(slug);
-      setBlogs((prev) => prev.filter((b) => b.slug !== slug));
-    } catch {
-      alert("Delete failed.");
+      const res = await fetch("/data/blogs/index.json");
+      if (res.ok) {
+        const data = await res.json();
+        setBlogPosts(data);
+      }
+    } catch (err) {
+      console.error("Error loading blogs:", err);
     }
   }
 
-  function stripHTML(html: string) {
-    const tmp = document.createElement("div");
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || "";
+  async function handleDelete(slug: string) {
+    if (!window.confirm("Are you sure you want to delete this blog post?")) return;
+
+    try {
+      const res = await fetch("/dev/blog/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+
+      if (!res.ok) throw new Error("Delete failed");
+
+      setBlogPosts((prev) => prev.filter((b) => b.slug !== slug));
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Delete failed: " + err);
+    }
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10 space-y-8">
-      <BackButton label="Back" to="/writing" />
-
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-pink-400">Blogs</h1>
-
-        {editorMode && (
-          <button
-            onClick={() => navigate("/writing/blogs/new")}
-            className="px-4 py-2 bg-pink-600 rounded-lg text-white hover:bg-pink-500"
-          >
-            + New Blog
-          </button>
-        )}
+    <div className="w-full p-6 text-gray-100 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
+      <div className="mb-6">
+        <BackButton to="/writing" />
       </div>
 
-      {loading ? (
-        <p className="text-gray-400">Loading blogs...</p>
-      ) : blogs.length === 0 ? (
-        <p className="text-gray-400 italic">No blogs available.</p>
+      <h2 className="text-4xl font-bold !text-pink-400 mb-2">Blogs</h2>
+      <p className="text-gray-400 mb-6">
+        Thoughts, insights, and updates from Airose Studio.
+      </p>
+
+      {editorMode && (
+        <button
+          onClick={() => navigate("/writing/blogs/new")}
+          className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 hover:to-purple-400 text-white font-semibold py-2 px-5 rounded-xl mb-6 transition"
+        >
+          + New Blog Post
+        </button>
+      )}
+
+      {blogs.length === 0 ? (
+        <p className="text-gray-400 mt-10 text-center">
+          No blog posts yet. Start writing your first post!
+        </p>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-4">
           {blogs.map((blog) => (
             <div
               key={blog.slug}
-              onClick={() =>
-                editorMode
-                  ? navigate(`/writing/blogs/${blog.slug}/edit`)
-                  : navigate(`/writing/blogs/${blog.slug}`)
-              }
-              className="bg-neutral-950 border border-neutral-800 rounded-xl p-5 cursor-pointer hover:border-pink-500 transition"
+              onClick={() => navigate(`/writing/blogs/${blog.slug}`)}
+              className="p-6 bg-[#111] rounded-2xl border border-gray-800 hover:border-pink-500/50 shadow-sm hover:shadow-pink-500/20 transition cursor-pointer"
             >
-              <h2 className="text-lg font-semibold text-gray-100">
+              <h3 className="text-xl font-bold !text-pink-300 mb-2">
                 {blog.title}
-              </h2>
-
-              <p className="text-sm text-gray-400 mt-2 line-clamp-3">
-                {stripHTML(blog.content)}
+              </h3>
+              <p className="text-gray-400 text-sm mb-3">
+                {blog.excerpt || "No excerpt available..."}
               </p>
-
-              <p className="text-xs text-gray-500 mt-3">
-                {new Date(blog.updatedAt).toLocaleString()}
-              </p>
+              {blog.date && (
+                <p className="text-gray-500 text-xs">
+                  {new Date(blog.date).toLocaleDateString()}
+                </p>
+              )}
 
               {editorMode && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(blog.slug);
-                  }}
-                  className="mt-3 px-3 py-1 text-sm bg-red-600 text-white rounded"
-                >
-                  Delete
-                </button>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/writing/blogs/edit/${blog.slug}`);
+                    }}
+                    className="bg-pink-500 hover:bg-pink-600 text-white text-sm font-semibold px-3 py-1.5 rounded-lg"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(blog.slug);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-3 py-1.5 rounded-lg"
+                  >
+                    Delete
+                  </button>
+                </div>
               )}
             </div>
           ))}

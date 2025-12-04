@@ -84,11 +84,11 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: "public/data", to: "data" },
-        { from: "public/uploads", to: "uploads", noErrorOnMissing: true },
+        // ❌ REMOVE THIS LINE - don't copy uploads during build
+        // { from: "public/uploads", to: "uploads", noErrorOnMissing: true },
       ],
     }),
 
-    // Only run analyzer when needed
     process.env.ANALYZE && new BundleAnalyzerPlugin(),
   ].filter(Boolean),
 
@@ -99,27 +99,32 @@ module.exports = {
 
     static: {
       directory: path.resolve(__dirname, "public"),
+      publicPath: "/",
+      watch: {
+        ignored: [
+          '**/node_modules/**',
+          '**/uploads/**',  // ✅ Don't watch uploads folder
+        ],
+      },
     },
 
     setupMiddlewares: (middlewares, devServer) => {
       if (!devServer) throw new Error("webpack-dev-server is missing");
 
       const bodyParser = require("body-parser");
+      const express = require("express");
       const app = devServer.app;
+      
       app.use(bodyParser.json());
+
+      // ✅ Add explicit static file serving for uploads
+      app.use('/uploads', express.static(path.resolve(__dirname, 'public/uploads')));
 
       //
       // UPLOAD HANDLER
       //
       const { handleUpload } = require("./dev-tools/upload.js");
-      app.post("/dev/upload", (req, res) => {
-        try {
-          handleUpload(req, res);
-        } catch (err) {
-          console.error("Upload error:", err);
-          res.status(500).json({ error: err.message });
-        }
-      });
+      app.post("/dev/upload", handleUpload); // ✅ Pass the function directly
 
       //
       // BLOGS FS
@@ -258,8 +263,12 @@ module.exports = {
   },
 
   performance: {
-    maxAssetSize: 600000, // 600 KB (increased from 500 KB)
-    maxEntrypointSize: 800000, // 800 KB (increased from 488 KB)
-    hints: "warning",
+    hints: isDev ? false : "warning",
+    maxAssetSize: 600000,
+    maxEntrypointSize: 800000,
+    // ✅ Add this to exclude uploads from bundle size checks
+    assetFilter: function (assetFilename) {
+      return !assetFilename.startsWith('uploads/');
+    },
   },
 };

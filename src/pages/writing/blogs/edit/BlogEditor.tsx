@@ -148,7 +148,7 @@ export default function BlogEditorPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
+    <div className="w-full px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       <BackButton to="/writing/blogs" label="Back to Blogs" />
 
       <h1 className="text-3xl font-bold text-pink-400 mb-6">
@@ -164,7 +164,7 @@ export default function BlogEditorPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Blog title"
-            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded text-white"
+            className="w-full bg-neutral-900 border border-neutral-800 rounded text-white px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
           />
         </div>
 

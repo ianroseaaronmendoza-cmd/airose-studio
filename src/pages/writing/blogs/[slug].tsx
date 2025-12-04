@@ -73,7 +73,7 @@ export default function BlogViewPage() {
   const html = blog.content || blog.body || "";
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
+    <div className="w-full px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       {/* ✅ BackButton with more spacing */}
       <BackButton to="/writing/blogs" label="Back to Blogs" className="mb-8" />
 

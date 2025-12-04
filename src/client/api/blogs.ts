@@ -3,9 +3,12 @@
 export interface Blog {
   slug: string;
   title: string;
+  excerpt?: string; // ✅ Add this line - optional excerpt for blog previews
   content: string;
-  createdAt: number;
-  updatedAt: number;
+  date: string; // Publication date
+  coverImage?: string;
+  tags?: string[];
+  published?: boolean;
 }
 
 const isDev =

@@ -37,13 +37,16 @@ export default function ProjectsPage() {
   if (error) return <div className="text-center text-red-500 mt-10">{error}</div>;
 
   return (
-    <div className="max-w-5xl mx-auto pb-20">
-      <h1 className="text-3xl font-bold text-pink-400 mb-6">Projects</h1>
+    <div className="w-full pb-20 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
+      <h1 className="text-4xl font-bold !text-pink-400 mb-2">Projects</h1>
+      <p className="text-gray-400 mb-6">
+        Explore creative works and ongoing developments from Airose Studio.
+      </p>
 
       {editorMode && (
         <button
           onClick={() => navigate("/projects/new")}
-          className="mb-6 px-4 py-2 bg-pink-500 rounded-lg text-white hover:bg-pink-600 transition"
+          className="mb-6 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 hover:to-purple-400 rounded-lg text-white font-semibold transition"
         >
           + New Project
         </button>

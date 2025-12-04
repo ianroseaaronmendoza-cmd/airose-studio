@@ -107,7 +107,7 @@ export default function ManageChaptersPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
+    <div className="w-full px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       <BackButton to={`/writing/novels/${novelSlug}`} label="Back to Novel" />
 
       <div className="flex justify-between items-center mb-6">

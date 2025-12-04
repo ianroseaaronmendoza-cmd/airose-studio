@@ -6,7 +6,7 @@ type Purpose = "Inquiry" | "Collaboration" | "Suggestion" | "Issue" | "Commissio
 export default function SupportPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#07060a] via-[#0b0b12] to-[#06040a] text-slate-100 antialiased">
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="w-full px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
         <SupportHero />
         <div className="grid lg:grid-cols-2 gap-8 mt-12">
           <DonationCards />
@@ -24,7 +24,7 @@ function SupportHero() {
   return (
     <header className="relative overflow-hidden rounded-2xl p-8 bg-[rgba(255,255,255,0.02)] backdrop-blur-sm border border-transparent/10 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-        <div className="max-w-xl">
+        <div className="w-full">
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight leading-tight">
             Support Airose Studio
           </h1>
@@ -49,7 +49,7 @@ function SupportHero() {
           </div>
         </div>
 
-        <div className="w-full lg:w-72 h-40 rounded-xl bg-gradient-to-tr from-white/3 to-white/2 border border-white/5 p-4 flex items-center justify-center">
+        <div className="w-full lg:w-72 h-40 rounded-xl bg-gradient-to-tr from-white/3 to-white/2 border border-white/5 flex items-center justify-center px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
           <div className="text-center">
             <p className="text-sm text-slate-300">Current focus</p>
             <p className="mt-2 font-medium">Stability · UX · New features</p>
@@ -159,7 +159,7 @@ function GcashQrModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 max-w-sm w-full rounded-2xl bg-[#0b0b12] border border-white/6 p-6">
+      <div className="relative z-10 w-full rounded-2xl bg-[#0b0b12] border border-white/6 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold">GCash QR</h3>
@@ -250,7 +250,7 @@ function SupportForm() {
         <select
           value={purpose}
           onChange={(e) => setPurpose(e.target.value as Purpose)}
-          className="mt-1 w-full rounded-md bg-[#0f0e13] border border-white/6 px-3 py-2 text-slate-100 focus:ring-2 focus:ring-pink-400"
+          className="mt-1 w-full rounded-md bg-[#0f0e13] border border-white/6 text-slate-100 focus:ring-2 focus:ring-pink-400 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
         >
           <option>Inquiry</option>
           <option>Collaboration</option>
@@ -266,7 +266,7 @@ function SupportForm() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={6}
-          className="mt-1 w-full rounded-md bg-transparent border border-white/6 px-3 py-2 text-slate-100 focus:ring-2 focus:ring-pink-400"
+          className="mt-1 w-full rounded-md bg-transparent border border-white/6 text-slate-100 focus:ring-2 focus:ring-pink-400 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
           placeholder="Tell me about your idea or issue..."
         />
       </label>
@@ -323,7 +323,7 @@ function Input({
         placeholder={placeholder}
         type={type}
         required={required}
-        className="mt-1 w-full rounded-md bg-transparent border border-white/6 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-pink-400"
+        className="mt-1 w-full rounded-md bg-transparent border border-white/6 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-pink-400 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
       />
     </label>
   );
@@ -332,7 +332,7 @@ function Input({
 /* ------------------------- OTHER WAYS ------------------------- */
 function OtherWays() {
   return (
-    <section className="max-w-6xl mx-auto px-6 mt-10">
+    <section className="w-full mt-10 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       <div className="rounded-xl p-5 bg-[rgba(255,255,255,0.01)] border border-white/6 backdrop-blur-sm">
         <h3 className="text-lg font-semibold">Other ways to support</h3>
         <ul className="mt-3 text-slate-300 space-y-2 list-disc list-inside">
@@ -366,7 +366,7 @@ function OutroSection() {
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
       }`}
     >
-      <div className="max-w-4xl mx-auto text-center px-6">
+      <div className="w-full text-center px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
         <div className="rounded-3xl p-10 bg-gradient-to-tr from-[#0b0510]/60 to-[#1b0b1f]/40 border border-white/6 backdrop-blur-md shadow-xl">
           <p className="text-xl sm:text-2xl leading-relaxed text-slate-100">
             <strong className="block mb-3">

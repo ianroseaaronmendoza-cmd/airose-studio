@@ -19,6 +19,7 @@ import Highlight from "@tiptap/extension-highlight";
 import { FontFamily } from "@tiptap/extension-font-family";
 import Color from "@tiptap/extension-color";
 import ResizableImage from "../extensions/ResizableImage";
+import { uploadImage } from "@/utils/uploadImage";
 
 interface ProjectsEditorProps {
   mode: "create" | "edit";
@@ -164,29 +165,23 @@ export default function ProjectsEditor({
   // ------------------------------------------------------
   // Image Upload
   // ------------------------------------------------------
-  const handleImageUpload = async (e: any) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const form = new FormData();
-      form.append("file", file);
+      // ✅ Use the utility - it already handles everything correctly
+      const url = await uploadImage(file, "projects");
 
-      const res = await fetch("http://localhost:4000/api/upload/blog-image", {
-        method: "POST",
-        body: form,
-      });
+      // Insert image into editor (your existing insertion code)
+      // Example:
+      const img = `<img src="${url}" alt="${file.name}" />`;
+      editor?.chain().focus().setImage({ src: url }).run();
 
-      const json = await res.json();
-
-      if (json.url) {
-        editor?.chain().focus().setImage({ src: json.url }).run();
-      } else {
-        alert("Image upload failed");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Failed to upload image");
+      console.log("✅ Image uploaded:", url);
+    } catch (error) {
+      console.error("❌ Upload failed:", error);
+      alert(`Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
 

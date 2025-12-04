@@ -28,7 +28,7 @@ function CardContent({ children }: React.PropsWithChildren<{}>) {
 export default function AboutPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-[#0b1220] to-[#0b0f15] text-slate-100 py-16 px-6 md:px-12 lg:px-24">
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full sm: lg: px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
         {/* Header */}
         <motion.header
           initial="hidden"

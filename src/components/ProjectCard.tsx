@@ -30,8 +30,7 @@ export default function ProjectCard({
   return (
     <div
       onClick={() => navigate(`/projects/${project.slug}`)}
-      className="
-        bg-[#1b1b1b]
+      className="bg-[#1b1b1b]
         rounded-2xl
         p-6
         border border-[#2d2d2d]
@@ -41,7 +40,7 @@ export default function ProjectCard({
         hover:border-pink-500
         hover:shadow-[0_10px_30px_rgba(219,39,119,0.08)]
         cursor-pointer
-      "
+     "
     >
       <div className="flex justify-between items-start">
         <div>

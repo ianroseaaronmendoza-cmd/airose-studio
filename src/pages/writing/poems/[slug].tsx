@@ -43,7 +43,7 @@ export default function PoemViewPage() {
     );
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8 pb-32 text-gray-100">
+    <div className="w-full pb-32 text-gray-100 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       <Link
         to="/writing/poems"
         className="inline-block mb-4 text-pink-400 hover:text-white"

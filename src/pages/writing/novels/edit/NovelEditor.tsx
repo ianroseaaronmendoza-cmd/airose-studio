@@ -92,10 +92,18 @@ export default function NovelEditorPage() {
     e.target.value = "";
     if (!file) return;
 
+    console.log("📤 Starting cover upload:", file.name);
+
     try {
       const url = await uploadImage(file, "novels");
+      console.log("✅ Upload successful, URL:", url);
+      console.log("✅ Setting coverUrl state to:", url);
+      
       setCoverUrl(url);
+      
+      console.log("✅ State updated");
     } catch (err: any) {
+      console.error("❌ Upload failed:", err);
       alert("Upload failed: " + err?.message);
     }
   }
@@ -107,7 +115,7 @@ export default function NovelEditorPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 text-gray-100">
+    <div className="w-full text-gray-100 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       {/* ✅ BackButton is here */}
       <BackButton
         to={`/writing/novels/${novelSlug}`}
@@ -123,7 +131,7 @@ export default function NovelEditorPage() {
         <div>
           <label className="block text-gray-400 mb-1">Title</label>
           <input
-            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded text-white"
+            className="w-full bg-neutral-900 border border-neutral-800 rounded text-white px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Novel title"
@@ -137,7 +145,7 @@ export default function NovelEditorPage() {
         <div>
           <label className="block text-gray-400 mb-1">Summary/Synopsis</label>
           <textarea
-            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded min-h-[120px] text-white"
+            className="w-full bg-neutral-900 border border-neutral-800 rounded min-h-[120px] text-white px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
             placeholder="Short summary of your novel"
@@ -148,7 +156,7 @@ export default function NovelEditorPage() {
         <div>
           <label className="block text-gray-400 mb-1">Author Notes</label>
           <textarea
-            className="w-full px-4 py-2 bg-neutral-900 border border-neutral-800 rounded min-h-[120px] text-white"
+            className="w-full bg-neutral-900 border border-neutral-800 rounded min-h-[120px] text-white px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Private notes"
@@ -159,12 +167,27 @@ export default function NovelEditorPage() {
         <div>
           <label className="block text-gray-400 mb-1">Cover Image</label>
 
+          {/* ✅ Debug info */}
+          <div className="mb-2 p-2 bg-neutral-800 rounded text-xs">
+            <p>Cover URL: {coverUrl || "(empty)"}</p>
+            <p>URL length: {coverUrl?.length || 0}</p>
+          </div>
+
           {coverUrl && (
-            <img
-              src={coverUrl}
-              alt="cover"
-              className="w-48 h-auto rounded border border-neutral-700 mb-3"
-            />
+            <div className="mb-3">
+              <img
+                src={coverUrl}
+                alt="cover"
+                className="w-48 h-auto rounded border border-neutral-700"
+                onLoad={() => console.log("✅ Cover image loaded successfully")}
+                onError={(e) => {
+                  console.error("❌ Cover image failed to load");
+                  console.error("URL:", coverUrl);
+                  console.error("Error:", e);
+                }}
+              />
+              <p className="text-xs text-gray-500 mt-1">{coverUrl}</p>
+            </div>
           )}
 
           <label className="inline-block bg-pink-600 hover:bg-pink-700 px-4 py-2 rounded text-white cursor-pointer">
