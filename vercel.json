@@ -3,23 +3,16 @@
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist",
   "installCommand": "pnpm install",
-  "routes": [
-    {
-      "src": "/uploads/(.*)",
-      "dest": "/uploads/$1"
-    },
-    {
-      "src": "/data/(.*)",
-      "dest": "/data/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+
+  "rewrites": [
+    { "source": "/uploads/:path*", "destination": "/uploads/:path*" },
+    { "source": "/data/:path*", "destination": "/data/:path*" },
+    { "source": "/:path*", "destination": "/index.html" }
   ],
+
   "headers": [
     {
-      "source": "/data/(.*)",
+      "source": "/data/:path*",
       "headers": [
         {
           "key": "Cache-Control",
@@ -28,20 +21,11 @@
       ]
     },
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" }
       ]
     }
   ]

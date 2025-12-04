@@ -70,14 +70,13 @@ export async function loadChapters(slug: string): Promise<ChapterEntry[]> {
 export async function loadChapter(
   novelSlug: string,
   chapterSlug: string
-): Promise<ChapterData | null> {
+): Promise<ChapterEntry | null> {
   try {
     const res = await fetch(
-      `/data/novels/${novelSlug}/chapters/${chapterSlug}.json`,
-      { cache: "no-store" }
+      `/data/novels/${novelSlug}/chapters/${chapterSlug}.json`
     );
     if (!res.ok) return null;
-    return (await res.json()) as ChapterData;
+    return await res.json();
   } catch {
     return null;
   }

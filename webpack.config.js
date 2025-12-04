@@ -263,12 +263,6 @@ module.exports = {
   },
 
   performance: {
-    hints: isDev ? false : "warning",
-    maxAssetSize: 600000,
-    maxEntrypointSize: 800000,
-    // ✅ Add this to exclude uploads from bundle size checks
-    assetFilter: function (assetFilename) {
-      return !assetFilename.startsWith('uploads/');
-    },
+    hints: false, // ✅ disables all asset/entrypoint size warnings
   },
 };

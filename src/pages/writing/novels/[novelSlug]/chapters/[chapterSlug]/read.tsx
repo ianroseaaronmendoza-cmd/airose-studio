@@ -125,8 +125,6 @@ export default function ReadChapterPage() {
     );
   }
 
-  const html = chapter.content ?? chapter.body ?? "";
-
   return (
     <main className="w-full text-gray-100 flex-1 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
       <div className="w-full sm: lg: px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
@@ -147,12 +145,12 @@ export default function ReadChapterPage() {
         )}
 
         {/* Chapter HTML */}
-        <article className="prose prose-invert max-w-none leading-relaxed text-gray-100 text-left">
-          {html ? (
-            <div dangerouslySetInnerHTML={{ __html: html }} />
-          ) : (
-            <div className="text-gray-500">No content yet.</div>
-          )}
+        <article className="text-gray-100">
+          {/* Add spacing between paragraphs using custom CSS */}
+          <div
+            className="chapter-content"
+            dangerouslySetInnerHTML={{ __html: chapter.body || chapter.content || "" }}
+          />
         </article>
 
         {/* Previous / Next Chapter Bar */}

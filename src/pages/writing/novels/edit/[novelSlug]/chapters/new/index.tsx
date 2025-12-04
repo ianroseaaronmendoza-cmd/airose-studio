@@ -79,9 +79,8 @@ export default function NewChapterPage() {
 
       alert("Chapter created!");
 
-      navigate(
-        `/writing/novels/${novelSlug}/edit/chapters/${chapterSlug}`
-      );
+      // ✅ Redirect to manage chapters page
+      navigate(`/writing/novels/edit/${novelSlug}/chapters`);
     } catch (err: any) {
       alert("Failed: " + err?.message);
     } finally {

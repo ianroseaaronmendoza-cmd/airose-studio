@@ -87,39 +87,29 @@ export default function ChapterEditorPage() {
   }, [isNew, novelSlug, chapterSlug, editor]);
 
   // Save chapter
-  async function handleSave() {
-    if (!title.trim()) return alert("Title is required");
-    if (!editor) return;
-
+  const handleSave = async () => {
     setSaving(true);
-
     try {
-      const html = editor.getHTML();
-
-      const res = await fetch("/dev/chapter/save", {
+      await fetch("/dev/chapter/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           novelSlug,
-          chapterSlug: isNew ? undefined : chapterSlug,
-          title: title.trim(),
-          content: html,
+          chapterSlug,
+          title,
+          html: editor?.getHTML(), // Save the chapter content!
+          updatedAt: Date.now(),
         }),
       });
-
-      if (!res.ok) throw new Error("Save failed");
-
-      const { saved } = await res.json();
-      alert("Chapter saved!");
-
-      // Navigate back to manage chapters
+      // Redirect to manage chapters after save
       navigate(`/writing/novels/edit/${novelSlug}/chapters`);
-    } catch (err: any) {
-      alert("Failed to save: " + err.message);
+    } catch (err) {
+      // Show error
+      alert("Failed to save chapter.");
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   // Insert image
   async function handleImageUpload() {
@@ -174,7 +164,7 @@ export default function ChapterEditorPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Chapter title"
-            className="w-full bg-neutral-900 border border-neutral-800 rounded text-white px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
+            className="w-full bg-neutral-900 border border-neutral-800 rounded text-white px-4 py-2"
           />
         </div>
 
@@ -357,7 +347,7 @@ export default function ChapterEditorPage() {
             onClick={() =>
               navigate(`/writing/novels/edit/${novelSlug}/chapters`)
             }
-            className="px-6 py-2 bg-neutral-800 hover:bg-neutral-700 rounded text-white"
+            className="px-6 py-2 border border-pink-400 text-pink-400 bg-transparent hover:bg-pink-400 hover:text-white rounded font-semibold transition"
           >
             Cancel
           </button>

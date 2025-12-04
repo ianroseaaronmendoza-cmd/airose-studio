@@ -12,9 +12,16 @@ export default function Home() {
     <>
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center text-center py-24 px-6">
-        <h1 className="text-5xl md:text-7xl font-extrabold leading-tight w-full">
-          Where imagination becomes craft.
-        </h1>
+        <h1
+  className="
+    text-5xl md:text-7xl font-extrabold leading-tight w-full
+    bg-gradient-to-r from-pink-400 via-purple-400 to-teal-400
+    bg-clip-text text-transparent tracking-tight
+  "
+>
+  Where imagination becomes craft.
+</h1>
+
         <p className="mt-6 text-gray-400 w-full">
           Welcome to{" "}
           <span className="text-pink-400 font-medium">Airose Studio</span> — a

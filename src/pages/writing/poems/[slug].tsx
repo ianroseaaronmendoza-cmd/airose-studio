@@ -51,7 +51,7 @@ export default function PoemViewPage() {
         ← Back to Poems
       </Link>
 
-      <h1 className="text-3xl font-bold mb-2">{poem.title}</h1>
+      <h1 className="text-3xl font-bold mb-2 text-pink-400">{poem.title}</h1>
 
       {poem.createdAt && (
         <p className="text-sm text-gray-500 mb-6">
@@ -59,15 +59,17 @@ export default function PoemViewPage() {
         </p>
       )}
 
-      <div className="whitespace-pre-wrap text-gray-300 border-l-2 border-gray-800 pl-4 leading-relaxed">
-        {poem.content}
-      </div>
+      {/* Poetry style: render HTML and style lines */}
+      <div
+        className="prose-poem text-pink-200 border-l-2 border-pink-400 pl-6 italic text-lg leading-relaxed space-y-2"
+        dangerouslySetInnerHTML={{ __html: poem.content }}
+      />
 
       {editorMode && (
         <div className="flex gap-3 mt-8">
           <button
             onClick={() => navigate(`/writing/poems/edit/${poem.slug}`)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+            className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded"
           >
             Edit
           </button>
