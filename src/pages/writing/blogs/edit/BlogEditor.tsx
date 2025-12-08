@@ -79,34 +79,6 @@ export default function BlogEditorPage() {
     }
   }
 
-  // Custom image upload handler for TinyMCE
-  function images_upload_handler(
-    blobInfo: { blob: () => Blob },
-    success: (url: string) => void,
-    failure?: (err: string) => void
-  ) {
-    const formData = new FormData();
-    formData.append("file", blobInfo.blob());
-    formData.append("section", "blogs");
-
-    // Always return a Promise
-    return fetch("/dev/upload-image", {
-      method: "POST",
-      body: formData,
-    })
-      .then((res) => {
-        if (!res || !res.ok) throw new Error("No response from server");
-        return res.json();
-      })
-      .then((data) => {
-        if (data.url) success(data.url);
-        else if (failure) failure("Upload failed");
-      })
-      .catch((err) => {
-        if (failure) failure("Upload failed: " + (err instanceof Error ? err.message : String(err)));
-      });
-  }
-
   if (!editorMode) return null;
 
   if (loading) {
@@ -138,13 +110,11 @@ export default function BlogEditorPage() {
         <div className="bg-neutral-900 border border-neutral-800 rounded">
           <TinyMCEEditor
             apiKey="g7hb7redt7cl6evm9wavtpy2f0mpfxvch87druxrrru3j2a5"
-            onInit={(initEvent: unknown, editor: TinyMCEEditor) => {
-              editorRef.current = editor;
-              if (editorRef.current && editorRef.current.editor) {
-                editorRef.current.editor.setContent(initialContent);
-              }
-            }}
             initialValue={initialContent}
+            onInit={(_, editor) => {
+              editorRef.current = editor;
+              editor.setContent(initialContent);
+            }}
             init={{
               height: 500,
               menubar: true,
@@ -152,15 +122,15 @@ export default function BlogEditorPage() {
                 "advlist autolink lists link image charmap preview anchor",
                 "searchreplace visualblocks code fullscreen",
                 "insertdatetime media table code help wordcount",
+                "image", // <-- Ensure 'image' plugin is included
               ],
               toolbar:
                 "undo redo | formatselect | bold italic underline | forecolor backcolor | " +
                 "alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | " +
-                "removeformat | image | code",
-              images_upload_url: "/dev/upload-image",
-              images_upload_handler,
+                "removeformat | image | code", // <-- Ensure 'image' is in the toolbar
               skin: "oxide-dark",
               content_css: "dark",
+              // Remove images_upload_handler if you have no backend!
             }}
           />
         </div>

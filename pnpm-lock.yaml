@@ -39,7 +39,7 @@ importers:
         version: 5.90.7(react@18.3.1)
       '@tinymce/tinymce-react':
         specifier: ^6.3.0
-        version: 6.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 6.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tinymce@8.2.2)
       '@tiptap/core':
         specifier: 2.1.13
         version: 2.1.13(@tiptap/pm@2.1.13)
@@ -151,6 +151,9 @@ importers:
       slugify:
         specifier: ^1.6.6
         version: 1.6.6
+      tinymce:
+        specifier: ^8.2.2
+        version: 8.2.2
     devDependencies:
       '@babel/core':
         specifier: ^7.28.5
@@ -3633,6 +3636,9 @@ packages:
     resolution: {integrity: sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ==}
     engines: {node: '>=12.0.0'}
 
+  tinymce@8.2.2:
+    resolution: {integrity: sha512-CFDSZwciMvFGW2czK/Xig1HcOGpXI0qcQMIqaIcG2F4RuuTdf+LQTreyEZunAJoFTQ9L0KAugOqL7OA5TJkoAA==}
+
   tippy.js@6.3.7:
     resolution: {integrity: sha512-E1d3oP2emgJ9dRQZdf3Kkn0qJgI6ZLpyS5z6ZkY1DF3kaQaBsGZsndEpHwx+eC+tYM41HaSNvNtLx8tU57FzTQ==}
 
@@ -5104,11 +5110,13 @@ snapshots:
       '@tanstack/query-core': 5.90.7
       react: 18.3.1
 
-  '@tinymce/tinymce-react@6.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@tinymce/tinymce-react@6.3.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(tinymce@8.2.2)':
     dependencies:
       prop-types: 15.8.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
+    optionalDependencies:
+      tinymce: 8.2.2
 
   '@tiptap/core@2.1.13(@tiptap/pm@2.1.13)':
     dependencies:
@@ -7624,6 +7632,8 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.3)
       picomatch: 4.0.3
+
+  tinymce@8.2.2: {}
 
   tippy.js@6.3.7:
     dependencies:
