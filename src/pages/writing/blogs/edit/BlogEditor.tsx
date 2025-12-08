@@ -4,15 +4,24 @@ import { useEditor } from "@/context/EditorContext";
 import BackButton from "@/components/BackButton";
 import { Editor as TinyMCEEditor } from "@tinymce/tinymce-react";
 
-export default function BlogEditorPage() {
+interface BlogEditorProps {
+  initial: {
+    title: string;
+    content: string;
+    coverImage: string;
+  };
+  onSaved: (saved: { slug: string }) => void | Promise<void>;
+}
+
+export default function BlogEditor({ initial, onSaved }: BlogEditorProps) {
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
   const { editorMode } = useEditor();
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initial.title);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [initialContent, setInitialContent] = useState("<p>Start writing your blog...</p>");
+  const [initialContent, setInitialContent] = useState(initial.content);
   const editorRef = useRef<any>(null);
 
   const isNew = !slug;
@@ -70,6 +79,8 @@ export default function BlogEditorPage() {
 
       const { saved } = await res.json();
       alert("Blog saved!");
+
+      onSaved(saved);
 
       navigate(`/writing/blogs/${saved.slug}`);
     } catch (err: any) {

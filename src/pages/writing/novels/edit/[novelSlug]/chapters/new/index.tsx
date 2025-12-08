@@ -64,7 +64,7 @@ export default function NewChapterPage() {
     if (!title.trim()) return alert("Title is required.");
     if (!novelSlug) return;
 
-    const html = editor.getHTML();
+    const html = editor.getContent(); // <-- FIXED HERE
     const chapterSlug = generateSlug();
 
     try {
@@ -79,7 +79,6 @@ export default function NewChapterPage() {
 
       alert("Chapter created!");
 
-      // ✅ Redirect to manage chapters page
       navigate(`/writing/novels/edit/${novelSlug}/chapters`);
     } catch (err: any) {
       alert("Failed: " + err?.message);

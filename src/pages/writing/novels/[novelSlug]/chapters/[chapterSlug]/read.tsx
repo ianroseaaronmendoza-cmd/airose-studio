@@ -106,6 +106,7 @@ export default function ReadChapterPage() {
   // -------------------------------
   const goToChapter = (slug: string) => {
     navigate(`/writing/novels/${novelSlug}/chapters/${slug}/read`);
+    window.scrollTo({ top: 0, behavior: "smooth" }); // <-- scroll to top after navigation
   };
 
   if (loading) {

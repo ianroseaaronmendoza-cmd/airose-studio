@@ -37,7 +37,7 @@ export default function MusicViewer({ albums }: MusicViewerProps) {
     if (albums.length > 0) {
       const expanded: Record<string, boolean> = {};
       albums.forEach((album) => {
-        expanded[album.id] = true;
+        expanded[album.id] = false; // <-- collapsed by default
       });
       setExpandedAlbums(expanded);
     }

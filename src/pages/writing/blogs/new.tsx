@@ -21,7 +21,7 @@ export default function NewBlogPage() {
           content: "",
           coverImage: "",
         }}
-        onSaved={(saved) => navigate(`/writing/blogs/${saved.slug}`)}
+        onSaved={(saved: { slug: string }) => navigate(`/writing/blogs/${saved.slug}`)}
       />
     </div>
   );

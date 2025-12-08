@@ -79,7 +79,12 @@ function RootApp() {
             <Route path="/writing/blogs" element={<BlogListPage />} />
             <Route path="/writing/blogs/new" element={<NewBlogPage />} />
             <Route path="/writing/blogs/:slug" element={<BlogViewPage />} />
-            <Route path="/writing/blogs/edit/:slug" element={<EditBlogPage />} />
+            <Route path="/writing/blogs/edit/:slug" element={
+              <EditBlogPage
+                initial={{ title: "", content: "", coverImage: "" }}
+                onSaved={(saved: { slug: string }) => { /* handle save, e.g. navigate or show a message */ }}
+              />
+            } />
             
             <Route path="/writing/novels" element={<NovelListPage />} />
             <Route path="/writing/novels/new" element={<NewNovelPage />} />

@@ -1,25 +1,12 @@
 // src/components/ProjectsEditor.tsx
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { createProject, updateProject } from "../client/api/projects";
 import type { Project } from "../client/api/projects";
 import { ArrowLeft, X } from "lucide-react";
-
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Bold from "@tiptap/extension-bold";
-import Italic from "@tiptap/extension-italic";
-import Underline from "@tiptap/extension-underline";
-import Link from "@tiptap/extension-link";
-import Heading from "@tiptap/extension-heading";
-import TextAlign from "@tiptap/extension-text-align";
-import { TextStyle } from "@tiptap/extension-text-style";
-import Highlight from "@tiptap/extension-highlight";
-import { FontFamily } from "@tiptap/extension-font-family";
-import Color from "@tiptap/extension-color";
-import ResizableImage from "../extensions/ResizableImage";
-import { uploadImage } from "@/utils/uploadImage";
+import BackButton from "@/components/BackButton";
+import { Editor as TinyMCEEditor } from "@tinymce/tinymce-react";
 
 interface ProjectsEditorProps {
   mode: "create" | "edit";
@@ -34,56 +21,23 @@ interface ProjectsEditorProps {
 export default function ProjectsEditor({
   mode,
   slug,
-  initialData = { title: "", summary: "", content: "" }, // ✅ Default value
+  initialData = { title: "", summary: "", content: "" },
 }: ProjectsEditorProps) {
   const navigate = useNavigate();
 
   const [title, setTitle] = useState(initialData.title);
   const [summary, setSummary] = useState(initialData.summary);
   const [saving, setSaving] = useState(false);
-  const [fontColor, setFontColor] = useState("#ffffff");
-  const [bgColor, setBgColor] = useState("#000000");
+  const [loading, setLoading] = useState(false);
+  const [initialContent, setInitialContent] = useState(initialData.content || "<p>Start writing your project...</p>");
+  const editorRef = useRef<any>(null);
 
-  // ------------------------------------------------------
-  // Tiptap Editor
-  // ------------------------------------------------------
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Bold,
-      Italic,
-      Underline,
-      Link.configure({
-        openOnClick: false,
-        autolink: false,
-      }),
-      Heading.configure({ levels: [1, 2, 3] }),
-      TextAlign.configure({ types: ["heading", "paragraph", "image"] }),
-      TextStyle,
-      Color,
-      Highlight.configure({ multicolor: true }),
-      FontFamily.configure({ types: ["textStyle"] }),
-      ResizableImage,
-    ],
-    content: initialData.content || "",
-    editorProps: {
-      attributes: {
-        class:
-          "prose prose-invert max-w-none min-h-[350px] p-4 border border-neutral-800 rounded-lg bg-[#0d0d0d] text-gray-100 focus:outline-none",
-      },
-    },
-  });
-
-  // Update editor when initial data updates (edit mode load)
   useEffect(() => {
-    if (editor && initialData.content) {
-      editor.commands.setContent(initialData.content);
-    }
-  }, [editor, initialData]);
+    setTitle(initialData.title);
+    setSummary(initialData.summary);
+    setInitialContent(initialData.content || "<p>Start writing your project...</p>");
+  }, [initialData]);
 
-  // ------------------------------------------------------
-  // Navigation Handlers
-  // ------------------------------------------------------
   const handleBack = () => {
     navigate("/projects");
   };
@@ -94,39 +48,31 @@ export default function ProjectsEditor({
     }
   };
 
-  // ------------------------------------------------------
-  // Save Handler
-  // ------------------------------------------------------
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!title.trim() || !summary.trim()) {
       alert("Title and summary are required");
       return;
     }
-
-    if (!editor) return;
+    if (!editorRef.current) return;
 
     setSaving(true);
 
     try {
-      const content = editor.getHTML();
+      const content = editorRef.current.getContent();
 
-      // Construct the full project object
       const payload: Project = {
-        slug: slug || title.toLowerCase().replace(/\s+/g, "-"), // Use existing slug or generate from title
+        slug: slug || title.toLowerCase().replace(/\s+/g, "-"),
         title,
         description: summary,
         content,
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        // Add other fields as needed
       };
 
       if (mode === "edit") {
-        // Pass the complete project object
         await updateProject(payload);
         alert("Project updated!");
       } else {
-        // For create mode, you'll need a createProject function
         await createProject(payload);
         alert("Project created!");
       }
@@ -138,54 +84,9 @@ export default function ProjectsEditor({
     } finally {
       setSaving(false);
     }
-  }, [title, summary, editor, slug, mode, navigate]);
-
-  // ------------------------------------------------------
-  // Link Handling
-  // ------------------------------------------------------
-  const addLink = () => {
-    const url = prompt("Enter URL:");
-    if (!url) return;
-
-    const text = prompt("Text to display:") || url;
-
-    editor
-      ?.chain()
-      .focus()
-      .insertContent(
-        `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`
-      )
-      .run();
   };
 
-  const removeLink = () => {
-    editor?.chain().focus().unsetLink().run();
-  };
-
-  // ------------------------------------------------------
-  // Image Upload
-  // ------------------------------------------------------
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      // ✅ Use the utility - it already handles everything correctly
-      const url = await uploadImage(file, "projects");
-
-      // Insert image into editor (your existing insertion code)
-      // Example:
-      const img = `<img src="${url}" alt="${file.name}" />`;
-      editor?.chain().focus().setImage({ src: url }).run();
-
-      console.log("✅ Image uploaded:", url);
-    } catch (error) {
-      console.error("❌ Upload failed:", error);
-      alert(`Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`);
-    }
-  };
-
-  if (!editor) return <p className="text-gray-400">Loading editor…</p>;
+  if (loading) return <p className="text-gray-400">Loading editor…</p>;
 
   return (
     <div className="space-y-6">
@@ -221,122 +122,33 @@ export default function ProjectsEditor({
         placeholder="Short description"
       />
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 border border-neutral-800 rounded-lg p-3 bg-neutral-950">
-        {/* Bold / Italic / Underline */}
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          active={editor.isActive("bold")}
-          label="B"
-        />
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          active={editor.isActive("italic")}
-          label="I"
-        />
-        <ToolbarButton
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          active={editor.isActive("underline")}
-          label="U"
-        />
-
-        {/* Headings */}
-        <ToolbarButton
-          label="H1"
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 1 }).run()
-          }
-        />
-        <ToolbarButton
-          label="H2"
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 2 }).run()
-          }
-        />
-        <ToolbarButton
-          label="H3"
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 3 }).run()
-          }
-        />
-
-        {/* Alignment */}
-        <ToolbarButton
-          label="←"
-          onClick={() => editor.chain().focus().setTextAlign("left").run()}
-        />
-        <ToolbarButton
-          label="↔"
-          onClick={() => editor.chain().focus().setTextAlign("center").run()}
-        />
-        <ToolbarButton
-          label="→"
-          onClick={() => editor.chain().focus().setTextAlign("right").run()}
-        />
-
-        {/* Font Family */}
-        <select
-          onChange={(e) =>
-            editor.chain().focus().setFontFamily(e.target.value).run()
-          }
-          className="bg-neutral-800 text-gray-300 rounded-md px-2 py-1"
-        >
-          <option value="inherit">Default</option>
-          <option value="serif">Serif</option>
-          <option value="monospace">Monospace</option>
-          <option value="cursive">Cursive</option>
-        </select>
-
-        {/* Text Color */}
-        <input
-          type="color"
-          value={fontColor}
-          onChange={(e) => {
-            setFontColor(e.target.value);
-            editor.chain().focus().setColor(e.target.value).run();
+      {/* TinyMCE Editor */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded">
+        <TinyMCEEditor
+          apiKey="g7hb7redt7cl6evm9wavtpy2f0mpfxvch87druxrrru3j2a5"
+          initialValue={initialContent}
+          onInit={(_, editor) => {
+            editorRef.current = editor;
+            editor.setContent(initialContent);
           }}
-          className="w-8 h-8 cursor-pointer border border-neutral-700 rounded-md"
-        />
-
-        {/* Highlight */}
-        <input
-          type="color"
-          value={bgColor}
-          onChange={(e) => {
-            setBgColor(e.target.value);
-            editor.chain().focus().toggleHighlight({ color: e.target.value }).run();
+          init={{
+            height: 400,
+            menubar: true,
+            plugins: [
+              "advlist autolink lists link image charmap preview anchor",
+              "searchreplace visualblocks code fullscreen",
+              "insertdatetime media table code help wordcount",
+              "image",
+            ],
+            toolbar:
+              "undo redo | formatselect | bold italic underline | forecolor backcolor | " +
+              "alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | " +
+              "removeformat | image | code",
+            skin: "oxide-dark",
+            content_css: "dark",
           }}
-          className="w-8 h-8 cursor-pointer border border-neutral-700 rounded-md"
         />
-
-        {/* Link */}
-        <button
-          className="px-3 py-1 bg-neutral-800 rounded-md text-sm"
-          onClick={addLink}
-        >
-          🔗 Add Link
-        </button>
-
-        <button
-          className="px-3 py-1 bg-neutral-800 rounded-md text-sm"
-          onClick={removeLink}
-        >
-          ❌ Unlink
-        </button>
-
-        {/* Image Upload */}
-        <label className="px-3 py-1 bg-neutral-800 hover:bg-neutral-700 rounded-lg cursor-pointer text-sm">
-          Image
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageUpload}
-          />
-        </label>
       </div>
-
-      <EditorContent editor={editor} />
 
       {/* Action Buttons */}
       <div className="flex gap-3">
@@ -361,26 +173,5 @@ export default function ProjectsEditor({
         </motion.button>
       </div>
     </div>
-  );
-}
-
-function ToolbarButton({
-  onClick,
-  active,
-  label,
-}: {
-  onClick: () => void;
-  active?: boolean;
-  label: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-2 py-1 text-sm rounded-md transition ${
-        active ? "bg-pink-500 text-white" : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
-      }`}
-    >
-      {label}
-    </button>
   );
 }

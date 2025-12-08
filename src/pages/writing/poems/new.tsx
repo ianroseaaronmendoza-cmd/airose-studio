@@ -1,19 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEditor } from "../../../context/EditorContext";
 import BackButton from "../../../components/BackButton";
 import { createPoem, slugifyText } from "../../../client/api/poems";
+import { Editor as TinyMCEEditor } from "@tinymce/tinymce-react";
 
 export default function NewPoemPage() {
   const navigate = useNavigate();
   const { editorMode } = useEditor();
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const editorRef = useRef<any>(null);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const content = editorRef.current?.getContent() || "";
     if (!title.trim() || !content.trim()) return alert("Fill all fields");
 
     setSaving(true);
@@ -45,17 +47,34 @@ export default function NewPoemPage() {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-gray-800 rounded border border-gray-700 focus:border-pink-500 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
+            className="w-full bg-gray-800 rounded border border-gray-700 focus:border-pink-500 px-4 py-2"
           />
         </div>
 
         <div>
           <label className="block mb-1 text-sm text-gray-400">Content</label>
-          <textarea
-            rows={10}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full bg-gray-800 rounded border border-gray-700 focus:border-pink-500 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10"
+          <TinyMCEEditor
+            apiKey="g7hb7redt7cl6evm9wavtpy2f0mpfxvch87druxrrru3j2a5"
+            initialValue="<p>Start writing your poem...</p>"
+            onInit={(_, editor) => {
+              editorRef.current = editor;
+            }}
+            init={{
+              height: 300,
+              menubar: true,
+              plugins: [
+                "advlist autolink lists link image charmap preview anchor",
+                "searchreplace visualblocks code fullscreen",
+                "insertdatetime media table code help wordcount",
+                "image",
+              ],
+              toolbar:
+                "undo redo | formatselect | bold italic underline | forecolor backcolor | " +
+                "alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | " +
+                "removeformat | image | code",
+              skin: "oxide-dark",
+              content_css: "dark",
+            }}
           />
         </div>
 
