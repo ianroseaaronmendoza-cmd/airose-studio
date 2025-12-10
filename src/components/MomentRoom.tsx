@@ -35,31 +35,47 @@ export default function MomentRoom({ roomId }: { roomId: string }) {
     const room = gun.current.get("momentRoom").get(roomId);
 
     // Register user
-    room.get("participants").set(userId);
+    room.get("participants").get(userId).put({ userId, username, joined: Date.now() });
 
-    // Listen for participants
-    room.get("participants").map().on((id: string) => {
-      setParticipants(prev => prev.includes(id) ? prev : [...prev, id]);
-    });
+    const removeSelf = () => {
+      room.get("participants").get(userId).put(null);
 
-    // Listen for current turn
-    room.get("currentTurn").on((turn: string) => setCurrentTurn(turn));
-
-    // Listen for messages
-    room.get("messages").map().on((msg: any) => {
-      if (msg && msg.text) setMessages(prev => [...prev, msg]);
-    });
-
-    // Listen for room closed
-    room.get("roomClosed").on((closed: boolean) => setRoomClosed(!!closed));
-
-    // Listen for streak
-    room.get("streak").on((val: number) => setStreak(val));
-
-    return () => {
-      room.get("participants").unset(userId);
+      // After a short delay, check if anyone is left
+      setTimeout(() => {
+        room.get("participants").once((data: any) => {
+          const stillThere = Object.values(data || {}).filter((p: any) => p && p.userId).length;
+          if (!stillThere) {
+            // Clear room data
+            room.get("messages").put(null);
+            room.get("currentTurn").put(null);
+            room.get("roomClosed").put(null);
+            room.get("streak").put(null);
+          }
+        });
+      }, 500);
     };
-  }, [roomId, userId]);
+
+    window.addEventListener("beforeunload", removeSelf);
+    return () => {
+      removeSelf();
+      window.removeEventListener("beforeunload", removeSelf);
+    };
+  }, [roomId, userId, username]);
+
+  // Participants logic
+  useEffect(() => {
+    const room = gun.current.get("momentRoom").get(roomId);
+    room.get("participants").map().on((data: any) => {
+      setParticipants(prev => {
+        // Remove nulls and deduplicate by userId
+        const filtered = prev.filter(p => p && p.userId !== data?.userId);
+        if (data && data.userId) {
+          return [...filtered, data];
+        }
+        return filtered;
+      });
+    });
+  }, [roomId]);
 
   // Timer logic (simplified MVP)
   useEffect(() => {
@@ -99,7 +115,7 @@ export default function MomentRoom({ roomId }: { roomId: string }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-950 text-gray-100">
+    <div className="relative min-h-screen flex flex-col items-center justify-center bg-neutral-950 text-gray-100">
       <h1 className="text-2xl font-bold mb-4 text-pink-400">Room: {roomId}</h1>
       <CountdownRing
         time={timer}
@@ -123,11 +139,22 @@ export default function MomentRoom({ roomId }: { roomId: string }) {
         placeholder={currentTurn === userId ? "Type your message..." : "Wait for your turn..."}
       />
       <div className="mt-4 text-sm text-gray-400">
-        Participants: {participants.length}
+        Participants: {participants.length}{" "}
+        {participants.map(p => p.username).join(", ")}
       </div>
       {participants.length < 2 && (
         <div className="mt-4 text-pink-400">Waiting for another participant to join…</div>
       )}
+      <button
+        className="absolute top-6 right-6 px-4 py-2 bg-neutral-800 hover:bg-pink-600 rounded text-gray-200 hover:text-white transition"
+        onClick={() => {
+          const room = gun.current.get("momentRoom").get(roomId);
+          room.get("participants").get(userId).put(null);
+          window.location.href = "/moment";
+        }}
+      >
+        Leave Room
+      </button>
     </div>
   );
 }
