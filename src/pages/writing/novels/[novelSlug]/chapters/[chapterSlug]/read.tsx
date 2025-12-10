@@ -127,8 +127,8 @@ export default function ReadChapterPage() {
   }
 
   return (
-    <main className="w-full text-gray-100 flex-1 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
-      <div className="w-full sm: lg: px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
+    <main className="w-full text-gray-100 flex-1 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-6">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-6">
         <BackButton
           to={`/writing/novels/${novelSlug}`}
           label="Back to Novel"

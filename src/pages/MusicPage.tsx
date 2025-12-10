@@ -62,6 +62,9 @@ export default function MusicPage() {
           Listen to original tracks and soundscapes from Airose Studio.
         </p>
         <MusicViewer albums={albums} />
+        <p className="ml-4 sm:ml-0">
+          {/* Caption text */}
+        </p>
       </div>
     </div>
   );

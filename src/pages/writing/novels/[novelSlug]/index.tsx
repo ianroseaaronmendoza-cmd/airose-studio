@@ -91,7 +91,7 @@ export default function NovelDetail() {
           <img
             src={meta.coverUrl}
             alt={meta.title}
-            className="w-48 h-64 object-cover rounded-lg"
+            className="w-32 h-44 sm:w-48 sm:h-64 object-cover rounded-lg"
           />
         )}
 
