@@ -135,7 +135,8 @@ export default function ProjectsEditor({
             height: 400,
             menubar: true,
             plugins: [
-              "advlist autolink lists link image charmap preview anchor",
+              "link",
+              "advlist autolink lists image charmap preview anchor",
               "searchreplace visualblocks code fullscreen",
               "insertdatetime media table code help wordcount",
               "image",
@@ -143,7 +144,7 @@ export default function ProjectsEditor({
             toolbar:
               "undo redo | formatselect | bold italic underline | forecolor backcolor | " +
               "alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | " +
-              "removeformat | image | code",
+              "removeformat | link image | code",
             skin: "oxide-dark",
             content_css: "dark",
           }}

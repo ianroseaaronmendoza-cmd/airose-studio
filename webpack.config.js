@@ -264,4 +264,10 @@ module.exports = {
   performance: {
     hints: false, // ✅ disables all asset/entrypoint size warnings
   },
+
+  ignoreWarnings: [
+    {
+      message: /Critical dependency: the request of a dependency is an expression/,
+    },
+  ],
 };
