@@ -95,7 +95,9 @@ export default function Home() {
             </p>
             <div className="mt-4">
               <Link
-                to="/projects/refiner-mini"  // Link to a specific project page
+                to="/projects/airose-refiner-mini"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-sm hover:text-pink-400"
               >
                 View →
