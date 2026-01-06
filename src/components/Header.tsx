@@ -24,10 +24,11 @@ export default function Header({ menuOpen, toggleMenu, closeMenu }: HeaderProps)
       {/* DESKTOP NAV - FORCE HIDDEN ON MOBILE */}
       <nav className="hidden lg:flex space-x-6 items-center">
         <Link to="/" className="hover:text-pink-400 transition">Home</Link>
-        <Link to="/moment" className="hover:text-pink-400 transition">Moment</Link> {/* <-- Moved here */}
+        <Link to="/moment" className="hover:text-pink-400 transition">Moment</Link>
         <Link to="/music" className="hover:text-pink-400 transition">Music</Link>
         <Link to="/projects" className="hover:text-pink-400 transition">Projects</Link>
         <Link to="/writing" className="hover:text-pink-400 transition">Writing</Link>
+        <Link to="/devotion" className="hover:text-pink-400 transition">Devotion</Link> {/* <-- Add this */}
         <Link to="/about" className="hover:text-pink-400 transition">About</Link>
         <Link to="/support" className="hover:text-pink-400 transition">Support</Link>
         
@@ -89,10 +90,11 @@ export default function Header({ menuOpen, toggleMenu, closeMenu }: HeaderProps)
 
               <nav className="flex flex-col gap-4 mt-6 text-lg">
                 <Link to="/" onClick={closeMenu}>Home</Link>
-                <Link to="/moment" onClick={closeMenu}>Moment</Link> {/* <-- Moved here */}
+                <Link to="/moment" onClick={closeMenu}>Moment</Link>
                 <Link to="/music" onClick={closeMenu}>Music</Link>
                 <Link to="/projects" onClick={closeMenu}>Projects</Link>
                 <Link to="/writing" onClick={closeMenu}>Writing</Link>
+                <Link to="/devotion" onClick={closeMenu}>Devotion</Link> {/* <-- Add this */}
                 <Link to="/about" onClick={closeMenu}>About</Link>
                 <Link to="/support" onClick={closeMenu}>Support</Link>
 
