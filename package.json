@@ -14,7 +14,8 @@
     "build": "webpack --mode production",
     "build:analyze": "cross-env ANALYZE=true webpack --mode production",
     "start": "webpack serve --mode development",
-    "deploy": "node scripts/deploy.js"
+    "deploy": "node scripts/deploy.js",
+    "test": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@notionhq/client": "^5.4.0",

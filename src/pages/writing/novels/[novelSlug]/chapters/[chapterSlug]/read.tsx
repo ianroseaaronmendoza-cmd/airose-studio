@@ -1,188 +1,132 @@
-// src/pages/writing/novels/[novelSlug]/chapters/[chapterSlug]/read.tsx
-
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import BackButton from "@/components/BackButton";
-
+import { Link, useParams } from "react-router-dom";
+import DOMPurify from "dompurify";
 type Chapter = {
   slug: string;
   title: string;
   body?: string;
   content?: string;
-  updatedAt?: string;
-  position: number;
+  position?: number;
 };
-
 export default function ReadChapterPage() {
-  const { novelSlug, chapterSlug } = useParams<{
-    novelSlug: string;
-    chapterSlug: string;
-  }>();
-
-  const navigate = useNavigate();
-
-  const [chapter, setChapter] = useState<Chapter | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const [allChapters, setAllChapters] = useState<Chapter[]>([]);
-  const [prevChapter, setPrevChapter] = useState<Chapter | null>(null);
-  const [nextChapter, setNextChapter] = useState<Chapter | null>(null);
-
-  // -------------------------------
-  // 📡 Load current chapter
-  // -------------------------------
+  const { novelSlug, chapterSlug } = useParams();
+  const [chapter, setChapter] = useState<Chapter | null>(null),
+    [chapters, setChapters] = useState<Chapter[]>([]),
+    [loading, setLoading] = useState(true),
+    [large, setLarge] = useState(false);
   useEffect(() => {
-    const loadChapter = async () => {
+    const controller = new AbortController();
+    setChapter(null);
+    setChapters([]);
+    setLoading(true);
+    async function load() {
       try {
         const res = await fetch(
-          `/data/novels/${novelSlug}/chapters/${chapterSlug}.json`
+          `/data/novels/${novelSlug}/chapters/${chapterSlug}.json`,
+          { signal: controller.signal },
         );
         if (!res.ok) throw new Error("Chapter not found");
         const data = await res.json();
-        setChapter(data);
-      } catch (err) {
-        console.error("Failed to load chapter:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (novelSlug && chapterSlug) {
-      loadChapter();
-    }
-  }, [novelSlug, chapterSlug]);
-
-  // -------------------------------
-  // 📚 Load all chapters in novel (for next/prev)
-  // -------------------------------
-  useEffect(() => {
-    const loadChapters = async () => {
-      try {
-        // Try index.json first
-        let res = await fetch(`/data/novels/${novelSlug}/chapters/index.json`);
-        
-        // Fallback to chapters.json
-        if (!res.ok) {
-          res = await fetch(`/data/novels/${novelSlug}/chapters.json`);
+        if (!controller.signal.aborted) setChapter(data);
+        let index = await fetch(
+          `/data/novels/${novelSlug}/chapters/index.json`,
+          { signal: controller.signal },
+        );
+        if (!index.ok)
+          index = await fetch(`/data/novels/${novelSlug}/chapters.json`, {
+            signal: controller.signal,
+          });
+        if (index.ok) {
+          const list = await index.json();
+          if (!controller.signal.aborted)
+            setChapters(
+              list.sort(
+                (a: Chapter, b: Chapter) =>
+                  (a.position ?? 0) - (b.position ?? 0),
+              ),
+            );
         }
-        
-        if (!res.ok) throw new Error("Chapters not found");
-        
-        const data = await res.json();
-        console.log("Loaded chapters:", data); // Debug log
-        setAllChapters(data);
-      } catch (err) {
-        console.error("Failed to fetch chapter list:", err);
+      } catch {
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
       }
-    };
-
-    if (novelSlug) {
-      loadChapters();
     }
-  }, [novelSlug]);
-
-  // -------------------------------
-  // 🔀 Compute next & previous chapters
-  // -------------------------------
-  useEffect(() => {
-    if (!chapter || allChapters.length === 0) return;
-
-    const sorted = [...allChapters].sort(
-      (a, b) => (a.position ?? 0) - (b.position ?? 0)
-    );
-
-    console.log("Current chapter:", chapter.slug);
-    console.log("Sorted chapters:", sorted.map(c => ({ slug: c.slug, position: c.position })));
-
-    const index = sorted.findIndex((c) => c.slug === chapter.slug);
-    console.log("Chapter index:", index);
-
-    setPrevChapter(sorted[index - 1] || null);
-    setNextChapter(sorted[index + 1] || null);
-  }, [chapter, allChapters]);
-
-  // -------------------------------
-  // 🧭 Navigation functions
-  // -------------------------------
-  const goToChapter = (slug: string) => {
-    navigate(`/writing/novels/${novelSlug}/chapters/${slug}/read`);
-    window.scrollTo({ top: 0, behavior: "smooth" }); // <-- scroll to top after navigation
-  };
-
-  if (loading) {
-    return (
-      <div className="text-gray-400 p-10">
-        <p>Loading chapter...</p>
-      </div>
-    );
-  }
-
-  if (!chapter) {
-    return (
-      <div className="text-gray-400 p-10">
-        <BackButton to={`/writing/novels/${novelSlug}`} label="Back to Novel" />
-        <p>Chapter not found.</p>
-      </div>
-    );
-  }
-
+    load();
+    return () => controller.abort();
+  }, [novelSlug, chapterSlug]);
+  const current = chapters.findIndex((c) => c.slug === chapterSlug);
+  const previous = current > 0 ? chapters[current - 1] : null,
+    next = current >= 0 ? chapters[current + 1] : null;
+  const chapterUrl = (slug: string) =>
+    `/writing/novels/${novelSlug}/chapters/${slug}/read`;
   return (
-    <main className="w-full text-gray-100 flex-1 px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-6">
-      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20 py-6">
-        <BackButton
-          to={`/writing/novels/${novelSlug}`}
-          label="Back to Novel"
-          className="mb-6"
-        />
-
-        <h1 className="text-4xl font-bold text-pink-400 mb-2">
-          {chapter.title}
-        </h1>
-
-        {chapter.updatedAt && (
-          <div className="text-sm text-gray-500 mb-6">
-            Updated {new Date(chapter.updatedAt).toLocaleString()}
-          </div>
-        )}
-
-        {/* Chapter HTML */}
-        <article className="text-gray-100">
-          {/* Add spacing between paragraphs using custom CSS */}
-          <div
-            className="chapter-content"
-            dangerouslySetInnerHTML={{ __html: chapter.body || chapter.content || "" }}
-          />
-        </article>
-
-        {/* Previous / Next Chapter Bar */}
-        <div className="mt-16 grid grid-cols-2 w-full text-sm font-semibold">
-          {/* Previous */}
-          <button
-            disabled={!prevChapter}
-            onClick={() => prevChapter && goToChapter(prevChapter.slug)}
-            className={`py-4 transition text-white 
-              ${prevChapter
-                ? "bg-[#7a0000] hover:bg-[#a30000] cursor-pointer"
-                : "bg-[#3a0000] opacity-30 cursor-default"}
-            `}
-          >
-            {prevChapter ? `← ${prevChapter.title}` : "No previous chapter"}
-          </button>
-
-          {/* Next */}
-          <button
-            disabled={!nextChapter}
-            onClick={() => nextChapter && goToChapter(nextChapter.slug)}
-            className={`py-4 transition text-white 
-              ${nextChapter
-                ? "bg-[#675900] hover:bg-[#836f00] cursor-pointer"
-                : "bg-[#3a3000] opacity-30 cursor-default"}
-            `}
-          >
-            {nextChapter ? `${nextChapter.title} →` : "No next chapter"}
-          </button>
-        </div>
+    <div className="studio-reader">
+      <div className="studio-reader-toolbar">
+        <Link className="studio-text-link" to={`/writing/novels/${novelSlug}`}>
+          ← Table of contents
+        </Link>
+        <button aria-pressed={large} onClick={() => setLarge(!large)}>
+          Larger text {large ? "on" : "off"}
+        </button>
       </div>
-    </main>
+      {loading ? (
+        <p role="status">Loading chapter…</p>
+      ) : !chapter ? (
+        <>
+          <h1>Chapter not found</h1>
+          <p>
+            This chapter could not be loaded. Please return to the contents or
+            refresh to try again.
+          </p>
+        </>
+      ) : (
+        <>
+          <header className="studio-intro">
+            <p className="studio-eyebrow">
+              {current >= 0
+                ? `Chapter ${current + 1} of ${chapters.length}`
+                : "Reading"}{" "}
+              / Free online story
+            </p>
+            <h1>{chapter.title}</h1>
+          </header>
+          <article
+            className={
+              large ? "studio-reading-text is-large" : "studio-reading-text"
+            }
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(chapter.body || chapter.content || ""),
+            }}
+          />
+          <nav className="studio-chapter-nav" aria-label="Chapter navigation">
+            {previous ? (
+              <Link
+                className="studio-button secondary"
+                to={chapterUrl(previous.slug)}
+              >
+                ← {previous.title}
+              </Link>
+            ) : (
+              <span />
+            )}
+            {next ? (
+              <Link
+                className="studio-button secondary"
+                to={chapterUrl(next.slug)}
+              >
+                {next.title} →
+              </Link>
+            ) : (
+              <Link
+                className="studio-button secondary"
+                to={`/writing/novels/${novelSlug}`}
+              >
+                Back to contents →
+              </Link>
+            )}
+          </nav>
+        </>
+      )}
+    </div>
   );
 }

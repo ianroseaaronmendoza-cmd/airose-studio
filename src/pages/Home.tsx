@@ -1,177 +1,127 @@
-// src/pages/Home.tsx
-import React from 'react';  // Ensure React is imported for JSX
-import { Link } from 'react-router-dom'; // Import Link from React Router
-
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import books from "../../public/data/books.json";
+import BookCard from "../components/portfolio/BookCard";
+import ProjectCard from "../components/ProjectCard";
+import { loadProjects, Project } from "../client/api/projects";
 export default function Home() {
-  const spotifyEmbedSrc =
-    "https://open.spotify.com/embed/track/7CDwsfGOr3qlBarBSCi6cQ?utm_source=generator";
-  const albumLink =
-    "https://open.spotify.com/album/6hUWTFwCv1ueihicozJydq?si=0B8y55MuT-akstixXxcxmQ";
-
+  const [projects, setProjects] = useState<Project[]>([]);
+  useEffect(() => {
+    let active = true;
+    loadProjects()
+      .then((items) => {
+        if (active) setProjects(items.filter((p) => p.featured).slice(0, 2));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   return (
-    <>
-      {/* Hero Section */}
-      <section className="flex flex-col items-center justify-center text-center py-24 px-6">
-        <h1
-  className="
-    text-5xl md:text-7xl font-extrabold leading-tight w-full
-    bg-gradient-to-r from-pink-400 via-purple-400 to-teal-400
-    bg-clip-text text-transparent tracking-tight
-  "
->
-  Where imagination becomes craft.
-</h1>
-
-        <p className="mt-6 text-gray-400 w-full">
-          Welcome to{" "}
-          <span className="text-pink-400 font-medium">Airose Studio</span> — a
-          creative space where music, tools, and stories come to life.
-        </p>
-
-        {/* Hero Buttons */}
-        <div className="mt-8 flex gap-4 flex-wrap justify-center">
-          <Link
-            to="/projects"  // Use React Router Link instead of anchor tag
-            className="bg-pink-500 hover:bg-pink-600 text-black font-semibold px-6 py-3 rounded-md transition"
-          >
-            Explore Projects
-          </Link>
-
-          <Link
-            to="/music"  // Use React Router Link for navigation
-            className="border border-pink-500 text-pink-400 hover:bg-pink-500 hover:text-white font-semibold px-6 py-3 rounded-md transition"
-          >
-            Listen to Music
-          </Link>
-        </div>
-      </section>
-
-      {/* Featured Projects */}
-      <section id="projects" className="px-6 py-16 border-t border-gray-800">
-        <h2 className="text-2xl font-bold mb-6">✨ Featured Projects</h2>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Project 1 */}
-          <div className="p-6 bg-[#0e0e0e] rounded-2xl border border-gray-800 hover:border-pink-500/50 transition">
-            <h3 className="text-pink-400 font-semibold">
-              Airose Lyric Video Maker
-            </h3>
-            <p className="text-gray-400 mt-2">
-              Create lyric videos effortlessly.
-            </p>
-            <div className="mt-4">
-              <Link
-                to="/projects/lyric-video-maker"  // Link to a specific project page
-                className="text-sm hover:text-pink-400"
-              >
-                View →
-              </Link>
-            </div>
-          </div>
-
-          {/* Project 2 */}
-          <div className="p-6 bg-[#0e0e0e] rounded-2xl border border-gray-800 hover:border-pink-500/50 transition">
-            <h3 className="text-pink-400 font-semibold">
-              Airose Harmony Trainer
-            </h3>
-            <p className="text-gray-400 mt-2">
-              Learn and practice vocal harmonies.
-            </p>
-            <div className="mt-4">
-              <Link
-                to="/projects/harmony-trainer"  // Link to a specific project page
-                className="text-sm hover:text-pink-400"
-              >
-                View →
-              </Link>
-            </div>
-          </div>
-
-          {/* Project 3 */}
-          <div className="p-6 bg-[#0e0e0e] rounded-2xl border border-gray-800 hover:border-pink-500/50 transition">
-            <h3 className="text-pink-400 font-semibold">Airose Refiner Mini</h3>
-            <p className="text-gray-400 mt-2">
-              Timestamp and sync lyrics with precision.
-            </p>
-            <div className="mt-4">
-              <Link
-                to="/projects/airose-refiner-mini"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm hover:text-pink-400"
-              >
-                View →
-              </Link>
-            </div>
+    <div className="studio-container">
+      <section className="studio-hero">
+        <div>
+          <p className="studio-eyebrow">Books. Code. Music. Possibility.</p>
+          <h1>
+            Where imagination
+            <br />
+            becomes <em>craft.</em>
+          </h1>
+          <p className="studio-hero-copy">
+            The creative home of Ian Mendoza. Stories to get lost in, tools to
+            make things with, and music to carry with you.
+          </p>
+          <div className="studio-actions">
+            <Link className="studio-button" to="/books">
+              Explore Books & Stories ↗
+            </Link>
+            <Link className="studio-button secondary" to="/projects">
+              Discover the projects →
+            </Link>
           </div>
         </div>
-      </section>
-
-      {/* Featured Music */}
-      <section
-        id="music"
-        className="px-6 py-16 border-t border-gray-800 bg-[#0d0d0d]"
-      >
-        <h2 className="text-2xl font-bold mb-6">🎵 Featured Music</h2>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Single */}
-          <div className="bg-[#0f0f0f] border border-gray-800 rounded-2xl p-6">
-            <p className="text-pink-400 font-semibold">Ikaw Lang, Hesus</p>
-            <p className="text-gray-400 text-sm mt-1">Featured single</p>
-
-            <div className="mt-4 rounded-lg overflow-hidden border border-gray-800">
-              <iframe
-                title="Ikaw Lang, Hesus - Spotify"
-                src={spotifyEmbedSrc}
-                width="100%"
-                height="352"
-                frameBorder="0"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              />
-            </div>
-          </div>
-
-          {/* Album */}
-          <div className="bg-[#0f0f0f] border border-gray-800 rounded-2xl p-6">
-            <p className="text-pink-400 font-semibold">Airose's Compositions</p>
-            <p className="text-gray-400 text-sm mt-1">Full Playlist</p>
-
-            <div className="mt-4 rounded-lg overflow-hidden border border-gray-800">
-              <iframe
-                title="Airose Playlist"
-                style={{ borderRadius: "12px" }}
-                src="https://open.spotify.com/embed/playlist/2zNmUwTinrldAjDzQA7Obo?utm_source=generator"
-                width="100%"
-                height="352"
-                frameBorder="0"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
-              ></iframe>
-            </div>
-
-            <p className="text-gray-400 mt-6 text-sm">
-              A worship playlist by Airose Official — featuring “I Count It as Gain” and more songs of faith.
-            </p>
-          </div>
+        <div className="studio-hero-art" aria-hidden="true">
+          <span className="studio-art-star">✳</span>
+          <span className="studio-art-caption">Ideas take shape here</span>
         </div>
       </section>
-
-      {/* Writing */}
-      <section id="writing" className="px-6 py-16 border-t border-gray-800">
-        <h2 className="text-2xl font-bold mb-6">🖋 Writing</h2>
-        <p className="text-gray-400">
-          Poems, short stories, and reflections — read more on the Writing page.
-        </p>
-        <div className="mt-4">
-          <Link
-            to="/writing"  // React Router Link for writing page
-            className="text-pink-400 hover:underline"
-          >
-            Open Writing →
+      <section className="studio-section">
+        <div className="studio-section-heading">
+          <div>
+            <p className="studio-eyebrow">01 / From the bookshelf</p>
+            <h2>Words made to stay.</h2>
+          </div>
+          <Link className="studio-text-link" to="/books">
+            All books & stories →
           </Link>
         </div>
+        {books
+          .filter((b) => b.featured)
+          .map((book) => (
+            <BookCard key={book.slug} book={book} />
+          ))}
       </section>
-    </>
+      <section className="studio-section">
+        <div className="studio-section-heading">
+          <div>
+            <p className="studio-eyebrow">02 / From the workbench</p>
+            <h2>Curiosity, put to work.</h2>
+          </div>
+          <Link className="studio-text-link" to="/projects">
+            Explore projects →
+          </Link>
+        </div>
+        {projects.length ? (
+          <div className="studio-project-grid">
+            {projects.map((project) => (
+              <ProjectCard key={project.slug} project={project} />
+            ))}
+          </div>
+        ) : (
+          <p>
+            Tools, experiments, and ideas in progress.{" "}
+            <Link to="/projects">Visit the project collection →</Link>
+          </p>
+        )}
+      </section>
+      <section className="studio-section">
+        <div className="studio-two-column">
+          <div>
+            <p className="studio-eyebrow">03 / Press play</p>
+            <h2 style={{ fontSize: "clamp(34px,4vw,54px)", fontWeight: 400 }}>
+              A different kind
+              <br />
+              of storytelling.
+            </h2>
+            <p>
+              Original music by Airose Official. Songs of faith, reflection, and
+              the things words alone can’t quite hold.
+            </p>
+            <Link className="studio-text-link" to="/music">
+              Listen to the music →
+            </Link>
+          </div>
+          <iframe
+            className="studio-music-embed"
+            title="Airose’s Compositions on Spotify"
+            src="https://open.spotify.com/embed/playlist/2zNmUwTinrldAjDzQA7Obo?utm_source=generator"
+            loading="lazy"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          />
+        </div>
+      </section>
+      <section className="studio-section">
+        <div className="studio-section-heading">
+          <div>
+            <p className="studio-eyebrow">04 / Notes & reflections</p>
+            <h2>There’s more on the page.</h2>
+          </div>
+          <Link className="studio-text-link" to="/writing">
+            Explore the writing →
+          </Link>
+        </div>
+        <p>Poems, thoughts, and reflections from a life spent making things.</p>
+      </section>
+    </div>
   );
 }

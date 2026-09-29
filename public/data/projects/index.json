@@ -2,7 +2,12 @@
   {
     "slug": "airose-refiner-mini",
     "title": "Airose Refiner Mini",
-    "summary": "",
-    "createdAt": 1765457458721
+    "description": "A lightweight but powerful tool for precise lyric timestamping.",
+    "createdAt": 1765457458721,
+    "updatedAt": 1765457458721,
+    "status": "Released",
+    "category": "Tool",
+    "cover": "/uploads/projects/refiner-mini.webp",
+    "featured": true
   }
 ]

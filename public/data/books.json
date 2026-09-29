@@ -1,0 +1,17 @@
+[
+  {
+    "title": "Capacity to Give", "slug": "capacity-to-give", "type": "Paperback", "availability": "purchase", "cover": null,
+    "description": "A published book by Ian Mendoza. Available in paperback on Amazon.",
+    "externalUrl": "https://www.amazon.com/dp/B0HL4QM8BH", "author": "Ian Mendoza", "featured": true
+  },
+  {
+    "title": "In the Mind of the Genius", "slug": "in-the-mind-of-the-genius", "type": "Online novel", "availability": "free", "cover": "/uploads/novels/1765368175346-image.webp",
+    "description": "An ominous message on a university blackboard draws Brianna Sheiyreen into a mystery and a world of unexpected encounters.",
+    "externalUrl": "https://www.wattpad.com/user/Mazedon", "externalLinkIsProfile": true, "readerUrl": "/writing/novels/in-the-mind-of-the-genius", "author": "Ian Mendoza", "featured": false
+  },
+  {
+    "title": "Seriously?", "slug": "seriously", "type": "Online story", "availability": "free", "cover": "/uploads/novels/1764820995149-image.webp",
+    "description": "Arthur Mendez tries to understand romance by writing his own story—and experiencing it firsthand.",
+    "externalUrl": "https://www.wattpad.com/user/Mazedon", "externalLinkIsProfile": true, "readerUrl": "/writing/novels/fdgsdfg", "author": "Ian Mendoza", "featured": false
+  }
+]

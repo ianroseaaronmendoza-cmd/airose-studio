@@ -24,7 +24,6 @@ export default function Navbar() {
               <NavLink to="/music">Music</NavLink>
               <NavLink to="/novels">Novels</NavLink>
               <NavLink to="/poems">Poems</NavLink>
-              <NavLink to="/moment">Moment</NavLink> {/* <-- Add this line */}
             </div>
 
             {/* Mobile Menu Button */}
@@ -72,10 +71,6 @@ export default function Navbar() {
           <MobileNavLink to="/poems" onClick={() => setIsOpen(false)}>
             Poems
           </MobileNavLink>
-
-          <MobileNavLink to="/moment" onClick={() => setIsOpen(false)}>
-            Moment
-          </MobileNavLink> {/* <-- Add this line */}
         </div>
       )}
     </>

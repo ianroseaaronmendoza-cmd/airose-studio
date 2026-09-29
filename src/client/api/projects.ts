@@ -1,13 +1,8 @@
 // src/client/api/projects.ts
 
-export interface Project {
-  slug: string;
-  title: string;
-  description: string;
-  content: string;
-  createdAt: number;
-  updatedAt: number;
-}
+import { normalizeProject, Project } from "../../lib/projectModel";
+export { PROJECT_STATUSES } from "../../lib/projectModel";
+export type { Project } from "../../lib/projectModel";
 
 const isDev =
   (typeof import.meta !== "undefined" &&
@@ -18,11 +13,10 @@ const isDev =
 export async function loadProjects(): Promise<Project[]> {
   try {
     const res = await fetch("/data/projects/index.json", { cache: "no-store" });
-    if (!res.ok) return [];
-    return (await res.json()) as Project[];
+    if (!res.ok) throw new Error("Failed to load projects");
+    return (await res.json()).map(normalizeProject);
   } catch (err) {
-    console.error("loadProjects failed:", err);
-    return [];
+    throw err;
   }
 }
 
@@ -33,7 +27,7 @@ export async function loadProject(slug: string): Promise<Project | null> {
       cache: "no-store",
     });
     if (!res.ok) return null;
-    return (await res.json()) as Project;
+    return normalizeProject(await res.json());
   } catch (err) {
     console.error("loadProject failed:", err);
     return null;
@@ -41,7 +35,9 @@ export async function loadProject(slug: string): Promise<Project | null> {
 }
 
 /** Create new project (DEV only) - alias for saveProject */
-export async function createProject(project: Partial<Project>): Promise<Project> {
+export async function createProject(
+  project: Partial<Project>,
+): Promise<Project> {
   if (!isDev) throw new Error("createProject is allowed only in development.");
 
   const res = await fetch("/dev/project/save", {
