@@ -103,8 +103,8 @@ export default function Home() {
           </div>
           <iframe
             className="studio-music-embed"
-            title="Airose’s Compositions on Spotify"
-            src="https://open.spotify.com/embed/playlist/2zNmUwTinrldAjDzQA7Obo?utm_source=generator"
+            title="Festival of Praise by Airose Official on Spotify"
+            src="https://open.spotify.com/embed/track/01jNcS7KoyaBaznnAHa5Fw?utm_source=generator"
             loading="lazy"
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           />
