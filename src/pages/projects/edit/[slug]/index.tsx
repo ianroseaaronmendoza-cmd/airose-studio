@@ -52,15 +52,7 @@ export default function EditProjectPage() {
 
   return (
     <div className="w-full px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
-      <ProjectsEditor
-        mode="edit"
-        slug={project.slug}
-        initialData={{
-          title: project.title,
-          summary: project.description,
-          content: project.content || "",
-        }}
-      />
+      <ProjectsEditor mode="edit" slug={project.slug} initialData={project} />
     </div>
   );
 }

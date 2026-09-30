@@ -1,66 +1,111 @@
-// src/pages/projects/index.tsx
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-
-import ProjectCard from "@/components/ProjectCard";
-import { loadProjects, type Project } from "@/client/api/projects";
-import { useEditor } from "@/context/EditorContext";
-
+import { Link } from "react-router-dom";
+import ProjectCard from "../../components/ProjectCard";
+import PageIntro from "../../components/portfolio/PageIntro";
+import {
+  loadProjects,
+  Project,
+  PROJECT_STATUSES,
+} from "../../client/api/projects";
+import { useEditor } from "../../context/EditorContext";
 export default function ProjectsPage() {
-  const navigate = useNavigate();
   const { editorMode } = useEditor();
-
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [projects, setProjects] = useState<Project[]>([]),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState(false),
+    [status, setStatus] = useState("All"),
+    [category, setCategory] = useState("All");
   useEffect(() => {
-    async function load() {
-      try {
-        const data = await loadProjects();
-        setProjects(data);
-      } catch (err) {
-        console.error("❌ Failed to load projects:", err);
-        setError("Failed to load projects");
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+    let active = true;
+    loadProjects()
+      .then((data) => {
+        if (active) setProjects(data);
+      })
+      .catch(() => {
+        if (active) setError(true);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
-
-  const handleDeleted = (slug: string) => {
-    setProjects((prev) => prev.filter((p) => p.slug !== slug));
-  };
-
-  if (loading) return <div className="text-center text-gray-400 mt-10">Loading projects...</div>;
-  if (error) return <div className="text-center text-red-500 mt-10">{error}</div>;
-
+  const categories = Array.from(
+    new Set(projects.map((p) => p.category).filter(Boolean)),
+  ) as string[];
+  const visible = projects.filter(
+    (p) =>
+      (status === "All" || p.status === status) &&
+      (category === "All" || p.category === category),
+  );
   return (
-    <div className="w-full pb-20 px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
-      <h1 className="text-4xl font-bold !text-pink-400 mb-2">Projects</h1>
-      <p className="text-gray-400 mb-6">
-        Explore creative works and ongoing developments from Airose Studio.
-      </p>
-
+    <div className="studio-container">
+      <PageIntro eyebrow="02 / Projects" title="Ideas you can explore.">
+        <p>
+          Software, games, tools, and experiments. Follow a project from its
+          first spark to what comes next.
+        </p>
+      </PageIntro>
       {editorMode && (
-        <button
-          onClick={() => navigate("/projects/new")}
-          className="mb-6 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 hover:to-purple-400 rounded-lg text-white font-semibold transition"
-        >
-          + New Project
-        </button>
+        <Link className="studio-button" to="/projects/new">
+          New project +
+        </Link>
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-        {projects.map((project) => (
-          <ProjectCard
-            key={project.slug}
-            project={project}
-            onDelete={() => handleDeleted(project.slug)}
-          />
-        ))}
+      <div className="studio-filter">
+        <label>
+          Status
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option>All</option>
+            {PROJECT_STATUSES.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Category
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option>All</option>
+            {categories.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </label>
       </div>
+      {loading ? (
+        <p role="status" className="studio-empty">
+          Loading projects…
+        </p>
+      ) : error ? (
+        <p role="alert" className="studio-empty">
+          Projects could not load. Please refresh to try again.
+        </p>
+      ) : (
+        <>
+          <p aria-live="polite" className="studio-meta">
+            {visible.length} {visible.length === 1 ? "project" : "projects"}
+          </p>
+          <div className="studio-project-grid">
+            {visible.map((project) => (
+              <ProjectCard
+                key={project.slug}
+                project={project}
+                onDelete={() =>
+                  setProjects((items) =>
+                    items.filter((p) => p.slug !== project.slug),
+                  )
+                }
+              />
+            ))}
+          </div>
+          {!visible.length && (
+            <p className="studio-empty">No projects match these filters.</p>
+          )}
+        </>
+      )}
     </div>
   );
 }

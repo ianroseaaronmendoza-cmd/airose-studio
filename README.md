@@ -1,45 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Airose Studio
 
-## Getting Started
+A static React 18 / TypeScript portfolio, built with Webpack and Tailwind and deployed to Vercel. React Router handles direct links through the existing SPA rewrite.
 
-First, run the development server:
+## Local development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Install: `pnpm install --frozen-lockfile`
+- Start the local editor/site: `pnpm dev`
+- Test: `pnpm test`
+- Type check: `pnpm exec tsc --noEmit`
+- Production build: `pnpm run build` (output: `dist`)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Content lives in `public/data`; deployed images live in `public/uploads`. Local Webpack middleware saves editor changes to JSON. Vercel serves a static build with editing disabled.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Portfolio
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Home · Books & Stories · Projects · Music · Writing · About. Support is secondary. Books use a simple static JSON catalog. Free novels can be read on this site through the existing chapter URLs; Wattpad is secondary. Capacity to Give links to its Amazon paperback listing.
 
-## Learn More
+See [portfolio architecture and review checklist](docs/portfolio-redesign.md) and [maintenance boundaries](AGENTS.md).
 
-To learn more about Next.js, take a look at the following resources:
+## Devotion compatibility
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`/devotion`, `/devotion/morning`, and `/devotion/evening` support Aletheia Bible Church's external Facebook workflow. Their dedicated layout must not inherit portfolio changes. Do not alter their pages, reader, data hook, or global visual dependencies without explicit authorization.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Publishing changes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## AI Development Tools
-For GitHub Copilot and ChatGPT, refer to:
-
-- docs/architecture.md
-- docs/editor-mode.md
-
-These files describe the core architecture, editor-mode behavior,
-and persistence system used across Airose Studio.
+Create a feature branch, run checks, open a PR, and inspect the Vercel preview before merging. **Do not run `pnpm deploy` or `scripts/publish.ts` for this workflow:** those legacy scripts target `main`. Repository hygiene and unused dependency cleanup are separate work.

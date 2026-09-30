@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { NovelMeta } from "../../../../components/NovelForm";
 import { useEditor } from "@/context/EditorContext";
 import BackButton from "@/components/BackButton";
+import books from "../../../../../public/data/books.json";
 
 interface Chapter {
   slug: string;
@@ -14,6 +15,9 @@ interface Chapter {
 export default function NovelDetail() {
   const { novelSlug } = useParams<{ novelSlug: string }>();
   const navigate = useNavigate();
+  const book = books.find(
+    (b) => b.readerUrl === `/writing/novels/${novelSlug}`,
+  );
   const { editorMode } = useEditor();
 
   const [meta, setMeta] = useState<NovelMeta | null>(null);
@@ -33,12 +37,16 @@ export default function NovelDetail() {
       }
 
       // Load chapters index
-      const chaptersRes = await fetch(`/data/novels/${novelSlug}/chapters/index.json`);
+      const chaptersRes = await fetch(
+        `/data/novels/${novelSlug}/chapters/index.json`,
+      );
       if (chaptersRes.ok) {
         const chaps = await chaptersRes.json();
-        setChapters(chaps.sort((a: Chapter, b: Chapter) => 
-          (a.position || 0) - (b.position || 0)
-        ));
+        setChapters(
+          chaps.sort(
+            (a: Chapter, b: Chapter) => (a.position || 0) - (b.position || 0),
+          ),
+        );
       }
     } catch (err) {
       console.error("Failed to load novel:", err);
@@ -81,12 +89,19 @@ export default function NovelDetail() {
   }
 
   return (
-    <div className="w-full px-8 sm:px-12 md:px-16 lg:px-20 xl:px-24 2xl:px-32 py-10">
+    <div
+      className="studio-container"
+      style={{ paddingTop: 40, paddingBottom: 70 }}
+    >
       {/* ✅ Add BackButton here */}
-      <BackButton to="/writing/novels" label="Back to Novels" className="mb-6" />
+      <BackButton
+        to="/books"
+        label="Back to Books & Stories"
+        className="mb-6"
+      />
 
       {/* Header */}
-      <div className="flex items-start gap-6 mb-8">
+      <div className="studio-story-heading">
         {meta.coverUrl && (
           <img
             src={meta.coverUrl}
@@ -96,11 +111,21 @@ export default function NovelDetail() {
         )}
 
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-pink-400 mb-2">{meta.title}</h1>
-          
-          {meta.summary && (
-            <p className="text-gray-400 mb-4">{meta.summary}</p>
+          <h1 className="text-3xl font-bold text-pink-400 mb-2">
+            {book?.title || meta.title}
+          </h1>
+
+          <p className="studio-eyebrow">Free to read on Airose Studio</p>
+          {chapters.length > 0 && (
+            <Link
+              className="studio-button"
+              style={{ marginBottom: 24 }}
+              to={`/writing/novels/${novelSlug}/chapters/${chapters[0].slug}/read`}
+            >
+              Start reading →
+            </Link>
           )}
+          {meta.summary && <p className="text-gray-400 mb-4">{meta.summary}</p>}
 
           {meta.note && (
             <div className="bg-neutral-900 p-4 rounded mb-4">
@@ -148,6 +173,10 @@ export default function NovelDetail() {
       <div>
         <h2 className="text-xl font-semibold text-gray-200 mb-4">Chapters</h2>
 
+        <p>
+          {chapters.length} {chapters.length === 1 ? "chapter" : "chapters"}{" "}
+          available on this site.
+        </p>
         {chapters.length === 0 ? (
           <p className="text-gray-500">No chapters yet.</p>
         ) : (

@@ -1,3 +1,5 @@
+> Current implementation: React + Webpack, with content in `public/data` and deployed assets in `public/uploads`. See [portfolio-redesign.md](portfolio-redesign.md) for the active layout and content rules. The older architecture notes below contain historical `/data` paths and publishing commands; do not use their main-targeting publishing workflow for PR work.
+
 🌐 Airose Studio — Clean Architecture Overview
 1. Purpose
 

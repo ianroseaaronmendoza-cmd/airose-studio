@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import MusicViewer from "../components/MusicViewer";
 import MusicManager from "../components/MusicManager";
 import { useEditor } from "../context/EditorContext";
+import PageIntro from "../components/portfolio/PageIntro";
 import { IS_PRODUCTION } from "../lib/config";
 
 export default function MusicPage() {
@@ -11,6 +12,7 @@ export default function MusicPage() {
 
   const [albums, setAlbums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -18,10 +20,11 @@ export default function MusicPage() {
     (async () => {
       try {
         const res = await fetch("/data/music.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("Music unavailable");
         const json = await res.json();
         if (mounted) setAlbums(json.albums || []);
       } catch (err) {
-        console.error("Music load error:", err);
+        if (mounted) setFailed(true);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -53,19 +56,22 @@ export default function MusicPage() {
   // PRODUCTION VIEW
   // ------------------------------------
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex justify-center px-2 py-4 sm:px-8 sm:py-10 text-gray-100">
-      <div className="w-full max-w-3xl mx-auto py-6 sm:py-12">
-        <h1 className="text-2xl sm:text-3xl font-bold text-pink-400 mb-2">
-          🎵 Music Library
-        </h1>
-        <p className="text-gray-400 mb-4">
-          Listen to original tracks and soundscapes from Airose Studio.
+    <div className="studio-container studio-music">
+      <PageIntro eyebrow="03 / Music" title="Songs with something to say.">
+        <p>
+          Original tracks and soundscapes from Airose Studio. Listen, linger,
+          and find a song to carry with you.
         </p>
+      </PageIntro>
+      {failed ? (
+        <p role="alert">
+          The music library could not load. Please refresh to try again.
+        </p>
+      ) : albums.length ? (
         <MusicViewer albums={albums} />
-        <p className="ml-4 sm:ml-0">
-          {/* Caption text */}
-        </p>
-      </div>
+      ) : (
+        <p>No releases are listed yet.</p>
+      )}
     </div>
   );
 }
