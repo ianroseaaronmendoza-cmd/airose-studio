@@ -3,7 +3,7 @@
   "src/pages/devotion/morning.tsx": "a1bf68e586df92fd5a1c62cdb69dff683bc53cc44031e642a6893f88a713fc96",
   "src/pages/devotion/evening.tsx": "71235c5e195c6e4ac7424613f8ef7cc0bf0940c8237b426551f768de696a2d0a",
   "src/components/DevotionReader.tsx": "25c153ee1e88e6c72a7bbd092e70b3aba2649f851dec4373a71af7131056a010",
-  "src/hooks/useDevotion.ts": "870133012a03e4cd246f24962515125ff89eb5c09af4fb625c98a7478b7b9ec7",
+  "src/hooks/useDevotion.ts": "4b3de39449ab3cea4db2dcf99178808397dd5940f8145b8bfe7a17aa900c6681",
   "src/components/devotion/DevotionHeader.tsx": "31788b1e0740997a7ad08512e9a78722d391835be56e4cbe8a35b7faab74d4e6",
   "src/components/devotion/DevotionFooter.tsx": "638ec0f4356a556602a7de29d1d0794660ae86dfc2c1c68860f9bc07c2400d77",
   "src/components/devotion/DevotionLayout.tsx": "b7999ac496a443318769379bd8997c5c870d8814523ca483e9ba31396a3a7404",
