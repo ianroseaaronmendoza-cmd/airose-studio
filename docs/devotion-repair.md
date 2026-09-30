@@ -26,3 +26,17 @@ the source-derived records. Both public feeds then returned 09-30 readings
 with Psalm 66:2 and Ecclesiastes 9:4 respectively. No Apps Script change
 or deployment was required. Other calendar gaps observed in the serving
 tabs are outside this two-row restoration and still need a content audit.
+
+## Calendar and leap-day verification
+
+The full audit restored 21 additional readings, corrected 27 June morning date
+labels, and separated June 2 text from June 1. Both calendars contain 366
+unique dates; all 732 verse/date pairs match the CCEL public-domain edition
+and all reading text matches the existing raw source.
+
+February 29 DateKey cells (devotion_am!C358 and devotion_pm!C359) now store
+a real February 29, 2000 date (Sheets serial 36585), displayed as MM-dd.
+This preserves the visible 02-29 key while allowing the unchanged Apps Script
+getValues/new Date lookup to use a real leap-year date rather than parsing
+a yearless string in a non-leap year. Sheet and script timezones are both UTC+8.
+No Apps Script redeployment or URL change is required.
