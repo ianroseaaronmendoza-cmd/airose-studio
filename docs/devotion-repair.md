@@ -15,3 +15,14 @@ This prevents blank pages but does not create missing readings. The Apps Script
 looks in the devotion_am and devotion_pm tabs of its source spreadsheet. Source
 spreadsheet access is required to distinguish missing entries from date-format
 lookup problems. Do not substitute a different day's reading or invent text.
+
+## Source data restoration
+
+The September 30 readings existed in raw!A2919:A2927 (morning) and
+raw!A3088:A3093 (evening), but were absent from the serving tabs.
+With the user-provided edit access, the two records were restored to
+devotion_am!A356:E356 and devotion_pm!A357:E357. Readback exactly matched
+the source-derived records. Both public feeds then returned 09-30 readings
+with Psalm 66:2 and Ecclesiastes 9:4 respectively. No Apps Script change
+or deployment was required. Other calendar gaps observed in the serving
+tabs are outside this two-row restoration and still need a content audit.
